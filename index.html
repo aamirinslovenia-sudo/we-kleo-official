@@ -8,23 +8,24 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
 </head>
-<body class="bg-[#f3f4f5] pb-32 font-sans text-gray-900">
+<body class="bg-[#f3f4f5] pb-32 font-sans text-gray-900" onclick="enableSound()">
     
-    <audio id="orderSound" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" preload="auto"></audio>
+    <audio id="orderSound" preload="auto">
+        <source src="https://notificationsounds.com/storage/sounds/file-sounds-1150-pristine.mp3" type="audio/mpeg">
+    </audio>
 
     <div class="bg-white px-4 py-4 border-b border-gray-100 sticky top-0 z-50 shadow-sm flex justify-between items-center">
         <h1 class="text-xl font-black italic text-blue-600">WE KLEO</h1>
-        <div id="status" class="text-[10px] bg-green-100 text-green-600 px-2 py-1 rounded-full font-bold">● SYSTEM LIVE</div>
+        <div id="soundStatus" class="text-[10px] bg-red-100 text-red-600 px-2 py-1 rounded-full font-bold uppercase tracking-widest">🔇 Click anywhere to enable sound</div>
     </div>
 
     <div class="max-w-md mx-auto px-4 py-6 space-y-6">
-        
         <div class="grid grid-cols-2 gap-4">
-            <div onclick="selectItem('Kleo Pizza', '9.50')" class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 active:bg-blue-50">
+            <div onclick="selectItem('Kleo Pizza', '9.50')" class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 active:bg-blue-50 cursor-pointer">
                 <p class="font-bold text-sm">🍕 Pizza</p>
                 <p class="text-blue-600 font-black text-xs">€9.50</p>
             </div>
-            <div onclick="selectItem('Kleo Burger', '8.90')" class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 active:bg-blue-50">
+            <div onclick="selectItem('Kleo Burger', '8.90')" class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 active:bg-blue-50 cursor-pointer">
                 <p class="font-bold text-sm">🍔 Burger</p>
                 <p class="text-blue-600 font-black text-xs">€8.90</p>
             </div>
@@ -32,16 +33,12 @@
 
         <div class="bg-white rounded-[24px] p-6 shadow-md border-2 border-blue-100">
             <h3 id="orderLabel" class="font-black text-gray-400 text-[10px] uppercase tracking-widest mb-4">Select an item above</h3>
-            
             <div class="space-y-3">
                 <input id="userName" type="text" placeholder="Your Name" class="w-full bg-gray-50 rounded-xl px-4 py-3 border border-gray-100 outline-none">
                 <input id="userPhone" type="tel" placeholder="Phone Number" class="w-full bg-gray-50 rounded-xl px-4 py-3 border border-gray-100 outline-none">
                 <input id="userAddress" type="text" placeholder="Address in Maribor" class="w-full bg-gray-50 rounded-xl px-4 py-3 border border-gray-100 outline-none">
             </div>
-
-            <button onclick="sendOrder()" class="w-full mt-6 bg-blue-600 text-white py-4 rounded-2xl font-black shadow-lg active:scale-95 transition-all">
-                PLACE ORDER
-            </button>
+            <button onclick="sendOrder()" class="w-full mt-6 bg-blue-600 text-white py-4 rounded-2xl font-black shadow-lg active:scale-95 transition-all">PLACE ORDER</button>
         </div>
     </div>
 
@@ -59,52 +56,46 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
         let selectedItem = "";
+        let soundEnabled = false;
+
+        // Function to unlock audio on first click
+        function enableSound() {
+            if(!soundEnabled) {
+                const audio = document.getElementById('orderSound');
+                audio.play().then(() => {
+                    audio.pause();
+                    audio.currentTime = 0;
+                    soundEnabled = true;
+                    document.getElementById('soundStatus').innerText = "🔊 SOUND ON";
+                    document.getElementById('soundStatus').className = "text-[10px] bg-green-100 text-green-600 px-2 py-1 rounded-full font-bold uppercase tracking-widest";
+                });
+            }
+        }
 
         function selectItem(name, price) {
             selectedItem = name;
             document.getElementById('orderLabel').innerText = "ORDERING: " + name;
-            document.getElementById('orderLabel').classList.remove('text-gray-400');
-            document.getElementById('orderLabel').classList.add('text-blue-600');
         }
 
         function sendOrder() {
             const name = document.getElementById('userName').value;
             const phone = document.getElementById('userPhone').value;
             const addr = document.getElementById('userAddress').value;
-
             if (!selectedItem || !name || !addr) { alert("Fill all details!"); return; }
-
             db.ref('orders').push({
-                item: selectedItem,
-                customer: name,
-                phone: phone,
-                address: addr,
-                time: new Date().toLocaleString(),
-                status: 'New'
-            }).then(() => {
-                alert('Order Sent!');
-                location.reload();
-            });
+                item: selectedItem, customer: name, phone: phone, address: addr,
+                time: new Date().toLocaleString(), status: 'New'
+            }).then(() => { alert('Order Sent!'); location.reload(); });
         }
 
-        // --- THE KITCHEN MONITOR LOGIC ---
-        // This listens for new entries in the database
         let isFirstLoad = true;
         db.ref('orders').on('child_added', (snapshot) => {
-            if (!isFirstLoad) {
-                // PLAY SOUND
+            if (!isFirstLoad && soundEnabled) {
                 const ding = document.getElementById('orderSound');
-                ding.play().catch(e => console.log("Click the page once to enable sound!"));
-                
-                // OPTIONAL: Alert the kitchen
-                console.log("NEW ORDER ARRIVED!");
+                ding.play();
             }
         });
-
-        // This prevents the sound from playing for all OLD orders when you first open the page
-        db.ref('orders').once('value', () => {
-            isFirstLoad = false;
-        });
+        db.ref('orders').once('value', () => { isFirstLoad = false; });
     </script>
 </body>
 </html>
