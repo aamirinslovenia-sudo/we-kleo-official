@@ -8,21 +8,21 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
 </head>
-<body class="bg-[#f3f4f5] pb-32 font-sans text-gray-900" onclick="enableSound()">
+<body class="bg-[#f3f4f5] pb-32 font-sans text-gray-900">
     
     <div class="bg-white px-4 py-4 border-b border-gray-100 sticky top-0 z-50 shadow-sm flex justify-between items-center">
-        <h1 class="text-xl font-black italic text-blue-600">WE KLEO</h1>
-        <div id="soundStatus" class="text-[10px] bg-green-100 text-green-600 px-2 py-1 rounded-full font-bold uppercase tracking-widest">🔊 Kitchen Live</div>
+        <h1 class="text-xl font-black italic text-blue-600 uppercase">WE KLEO</h1>
+        <span class="text-[10px] bg-blue-50 text-blue-600 px-2 py-1 rounded-full font-bold uppercase tracking-widest">Maribor Delivery</span>
     </div>
 
     <div class="max-w-md mx-auto px-4 py-6 space-y-6">
         <div class="grid grid-cols-2 gap-4">
-            <div onclick="selectItem('Kleo Pizza', 9.50)" class="bg-white p-4 rounded-2xl shadow-sm border-2 border-transparent active:border-blue-500 cursor-pointer text-center transition-all" id="card-Pizza">
+            <div onclick="selectItem('Kleo Pizza', 9.50)" class="bg-white p-4 rounded-2xl shadow-sm border-2 border-transparent active:border-blue-500 cursor-pointer text-center transition-all">
                 <p class="text-2xl">🍕</p>
                 <p class="font-bold text-sm">Pizza</p>
                 <p class="text-blue-600 font-black text-xs">€9.50</p>
             </div>
-            <div onclick="selectItem('Kleo Burger', 8.90)" class="bg-white p-4 rounded-2xl shadow-sm border-2 border-transparent active:border-blue-500 cursor-pointer text-center transition-all" id="card-Burger">
+            <div onclick="selectItem('Kleo Burger', 8.90)" class="bg-white p-4 rounded-2xl shadow-sm border-2 border-transparent active:border-blue-500 cursor-pointer text-center transition-all">
                 <p class="text-2xl">🍔</p>
                 <p class="font-bold text-sm">Burger</p>
                 <p class="text-blue-600 font-black text-xs">€8.90</p>
@@ -30,30 +30,32 @@
         </div>
 
         <div class="bg-white rounded-[24px] p-6 shadow-md border border-gray-100">
-            <h3 class="font-black text-gray-400 text-[10px] uppercase tracking-widest mb-4">Add Extras (+€1.00 each)</h3>
+            <h3 class="font-black text-gray-400 text-[10px] uppercase tracking-widest mb-4">Add Extras (+€1.00)</h3>
             <div class="grid grid-cols-2 gap-3">
-                <label class="flex items-center space-x-3 p-3 bg-gray-50 rounded-xl cursor-pointer">
+                <label class="flex items-center space-x-3 p-3 bg-gray-50 rounded-xl">
                     <input type="checkbox" class="w-5 h-5 accent-blue-600" onchange="updateTotal()" value="Extra Cheese">
                     <span class="text-sm font-bold">Cheese</span>
                 </label>
-                <label class="flex items-center space-x-3 p-3 bg-gray-50 rounded-xl cursor-pointer">
+                <label class="flex items-center space-x-3 p-3 bg-gray-50 rounded-xl">
                     <input type="checkbox" class="w-5 h-5 accent-blue-600" onchange="updateTotal()" value="Jalapeños">
-                    <span class="text-sm font-bold">Hot Peppers</span>
+                    <span class="text-sm font-bold">Peppers</span>
                 </label>
             </div>
         </div>
 
         <div class="bg-white rounded-[24px] p-6 shadow-md border-2 border-blue-600">
             <div class="flex justify-between items-center mb-6">
-                <h3 id="orderLabel" class="font-black text-blue-600 text-lg italic">Select Food</h3>
-                <span id="priceDisplay" class="text-2xl font-black">€0.00</span>
+                <h3 id="orderLabel" class="font-black text-blue-600 text-lg italic tracking-tighter">Select Food</h3>
+                <span id="priceDisplay" class="text-2xl font-black tracking-tighter">€0.00</span>
             </div>
             <div class="space-y-3">
                 <input id="userName" type="text" placeholder="Your Name" class="w-full bg-gray-50 rounded-xl px-4 py-3 border border-gray-100 outline-none focus:ring-2 focus:ring-blue-500">
                 <input id="userPhone" type="tel" placeholder="Phone Number" class="w-full bg-gray-50 rounded-xl px-4 py-3 border border-gray-100 outline-none focus:ring-2 focus:ring-blue-500">
                 <input id="userAddress" type="text" placeholder="Address in Maribor" class="w-full bg-gray-50 rounded-xl px-4 py-3 border border-gray-100 outline-none focus:ring-2 focus:ring-blue-500">
             </div>
-            <button onclick="sendOrder()" class="w-full mt-6 bg-blue-600 text-white py-4 rounded-2xl font-black shadow-lg shadow-blue-200 active:scale-95 transition-all">PLACE ORDER</button>
+            <button onclick="sendOrder()" class="w-full mt-6 bg-blue-600 text-white py-4 rounded-2xl font-black shadow-lg shadow-blue-200 active:scale-95 transition-all uppercase tracking-widest text-sm">
+                Confirm Order
+            </button>
         </div>
     </div>
 
@@ -72,19 +74,8 @@
         const db = firebase.database();
         let selectedItem = "";
         let basePrice = 0;
-        let audioCtx = null;
 
-        function playBeep() {
-            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.connect(gain); gain.connect(audioCtx.destination);
-            osc.type = "sine"; osc.frequency.setValueAtTime(880, audioCtx.currentTime);
-            gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-            osc.start(); osc.stop(audioCtx.currentTime + 0.4);
-        }
-
-        function enableSound() { playBeep(); }
+        // Note: No more playBeep() function here! The customer app is now silent.
 
         function selectItem(name, price) {
             selectedItem = name;
@@ -106,7 +97,7 @@
             const addr = document.getElementById('userAddress').value;
             const extras = Array.from(document.querySelectorAll('input[type="checkbox"]:checked')).map(el => el.value);
 
-            if (!selectedItem || !name || !addr) { alert("Please complete form!"); return; }
+            if (!selectedItem || !name || !addr) { alert("Please complete the form!"); return; }
 
             db.ref('orders').push({
                 item: selectedItem,
@@ -118,16 +109,10 @@
                 time: new Date().toLocaleString(),
                 status: 'New'
             }).then(() => {
-                alert('🚀 Order sent! Total: ' + document.getElementById('priceDisplay').innerText);
+                alert('🚀 Order sent to WE KLEO Kitchen! Thank you ' + name + '!');
                 location.reload();
             });
         }
-
-        let isFirstLoad = true;
-        db.ref('orders').on('child_added', () => {
-            if (!isFirstLoad) playBeep();
-        });
-        db.ref('orders').once('value', () => { isFirstLoad = false; });
     </script>
 </body>
 </html>
