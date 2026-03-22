@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WE KLEO | Kitchen Command</title>
+    <title>KITCHEN | WE KLEO Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
@@ -11,39 +11,45 @@
     <style>
         body { font-family: 'Inter', sans-serif; overflow-x: hidden; }
         @keyframes pulse-red {
-            0%, 100% { border-color: rgba(59, 130, 246, 0.5); }
-            50% { border-color: #ef4444; box-shadow: 0 0 30px rgba(239, 68, 68, 0.6); }
+            0%, 100% { border-color: rgba(59, 130, 246, 0.3); }
+            50% { border-color: #ef4444; box-shadow: 0 0 40px rgba(239, 68, 68, 0.5); }
+        }
+        @keyframes text-shimmer {
+            0% { color: #3b82f6; text-shadow: 0 0 10px rgba(59, 130, 246, 0.5); }
+            50% { color: #60a5fa; text-shadow: 0 0 30px rgba(96, 165, 250, 0.8); }
+            100% { color: #3b82f6; text-shadow: 0 0 10px rgba(59, 130, 246, 0.5); }
         }
         .urgent-card { animation: pulse-red 1s infinite; border-width: 4px; }
-        .glass { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(15px); }
-        .logo-glow { filter: drop-shadow(0 0 15px rgba(59, 130, 246, 0.5)); }
+        .glass { background: rgba(255, 255, 255, 0.02); backdrop-filter: blur(20px); }
+        .we-kleo-title { animation: text-shimmer 3s infinite; }
     </style>
 </head>
-<body class="bg-[#0a0f18] text-slate-100 min-h-screen pb-20">
+<body class="bg-[#060a11] text-slate-100 min-h-screen pb-20">
 
-    <div id="sync-overlay" class="fixed inset-0 z-[100] bg-[#0a0f18]/95 flex flex-col items-center justify-center backdrop-blur-md">
-        <img src="WeKleo.png" class="w-32 mb-8 logo-glow" alt="WE KLEO">
-        <button onclick="startKitchen()" class="group relative px-12 py-6 bg-blue-600 rounded-[32px] text-white font-black text-2xl shadow-2xl shadow-blue-500/40 hover:scale-105 active:scale-95 transition-all">
-            <span class="relative z-10 uppercase italic tracking-tighter">▶ Start Kitchen System</span>
-            <div class="absolute inset-0 bg-blue-400 rounded-[32px] animate-ping opacity-20"></div>
+    <div id="sync-overlay" class="fixed inset-0 z-[100] bg-[#060a11] flex flex-col items-center justify-center">
+        <h1 class="text-7xl font-[900] italic tracking-tighter uppercase mb-12 we-kleo-title">WE KLEO</h1>
+        <button onclick="startKitchen()" class="px-12 py-6 bg-blue-600 rounded-[32px] text-white font-black text-2xl shadow-2xl shadow-blue-500/20 hover:scale-105 active:scale-95 transition-all uppercase italic">
+            Open Kitchen System
         </button>
     </div>
 
     <div class="max-w-7xl mx-auto p-6">
         
-        <div class="flex flex-col items-center mb-10 border-b border-slate-800 pb-8">
-            <img src="WeKleo.png" class="w-24 mb-4 logo-glow" alt="WE KLEO">
-            <div class="text-center">
-                <h1 class="text-xl font-black italic tracking-widest uppercase text-blue-500">Kitchen Dashboard</h1>
-                <p id="clock" class="text-3xl font-black text-slate-300 tracking-tighter mt-1">00:00:00</p>
+        <div class="flex flex-col items-center mb-12 py-10 border-b border-slate-900">
+            <h1 class="text-6xl font-[900] italic tracking-tighter uppercase mb-2 we-kleo-title">WE KLEO</h1>
+            <div class="flex items-center gap-3">
+                <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                <p class="text-slate-500 font-bold text-xs uppercase tracking-[0.4em]">Maribor Kitchen Command</p>
             </div>
+            <p id="clock" class="text-4xl font-black text-slate-200 tracking-tighter mt-6">00:00:00</p>
         </div>
 
-        <div id="orderList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div id="orderList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
             </div>
     </div>
 
     <script>
+        // --- YOUR FIREBASE CONFIG ---
         const firebaseConfig = {
           apiKey: "AIzaSyBD_YmzFTA2OKn64h22Z9yM7pCAmmlTl68",
           authDomain: "we-kleo.firebaseapp.com",
@@ -60,6 +66,7 @@
         let alarmInterval = null;
         let activeCount = 0;
 
+        // CLOCK
         setInterval(() => {
             document.getElementById('clock').innerText = new Date().toLocaleTimeString('sl-SI');
         }, 1000);
@@ -69,6 +76,7 @@
             const osc = audioCtx.createOscillator();
             osc.connect(audioCtx.destination);
             osc.start(); osc.stop(audioCtx.currentTime + 0.1);
+            
             document.getElementById('sync-overlay').style.opacity = "0";
             setTimeout(() => { document.getElementById('sync-overlay').style.display = "none"; }, 500);
         }
@@ -78,10 +86,10 @@
             const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
             osc.connect(gain); gain.connect(audioCtx.destination);
-            osc.type = "triangle";
-            osc.frequency.setValueAtTime(900, audioCtx.currentTime);
-            gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-            osc.start(); osc.stop(audioCtx.currentTime + 0.3);
+            osc.type = "sine";
+            osc.frequency.setValueAtTime(800, audioCtx.currentTime);
+            gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+            osc.start(); osc.stop(audioCtx.currentTime + 0.2);
         }
 
         function startAlarm() { if (!alarmInterval) alarmInterval = setInterval(playBeep, 1200); }
@@ -102,33 +110,33 @@
                 <div id="${id}" class="glass border border-slate-800 p-8 rounded-[40px] shadow-2xl urgent-card transition-all duration-500 scale-100">
                     <div class="flex justify-between items-start mb-6">
                         <div>
-                            <span class="bg-red-600 text-[10px] px-3 py-1 rounded-full font-black uppercase mb-2 inline-block animate-pulse">Action Required</span>
-                            <h2 class="text-3xl font-black italic tracking-tighter uppercase text-white">${order.item}</h2>
+                            <span class="bg-red-600 text-[10px] px-3 py-1 rounded-full font-black uppercase mb-2 inline-block animate-pulse">New Order</span>
+                            <h2 class="text-3xl font-[900] italic tracking-tighter uppercase text-white">${order.item}</h2>
                         </div>
-                        <p class="text-2xl font-black text-blue-400 tracking-tighter">${order.totalPrice}</p>
+                        <p class="text-2xl font-black text-blue-400">${order.totalPrice}</p>
                     </div>
 
                     <div class="bg-blue-600/10 rounded-3xl p-5 mb-8 border border-blue-500/20 text-center">
-                        <p class="text-xl font-bold text-blue-100 italic">"${order.toppings}"</p>
+                        <p class="text-lg font-bold text-blue-100 uppercase italic tracking-tight">${order.toppings}</p>
                     </div>
 
                     <div class="space-y-4 mb-8 text-sm">
                         <div class="flex items-center gap-4">
-                            <span class="text-slate-500 font-bold uppercase text-[9px] w-16">Customer</span>
+                            <span class="text-slate-600 font-bold uppercase text-[9px] w-16">Customer</span>
                             <span class="font-bold text-slate-100">${order.customer}</span>
                         </div>
                         <div class="flex items-center gap-4">
-                            <span class="text-slate-500 font-bold uppercase text-[9px] w-16">Contact</span>
-                            <span class="font-bold text-blue-400">${order.phone}</span>
+                            <span class="text-slate-600 font-bold uppercase text-[9px] w-16">Contact</span>
+                            <span class="font-bold text-blue-400 underline">${order.phone}</span>
                         </div>
                         <div class="flex items-center gap-4">
-                            <span class="text-slate-500 font-bold uppercase text-[9px] w-16">Address</span>
-                            <span class="font-bold text-slate-100 underline decoration-blue-500/50">${order.address}</span>
+                            <span class="text-slate-600 font-bold uppercase text-[9px] w-16">Location</span>
+                            <span class="font-bold text-slate-100">${order.address}</span>
                         </div>
                     </div>
 
-                    <button onclick="completeOrder('${id}')" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-black py-5 rounded-[24px] text-lg transition-all shadow-xl shadow-blue-900/40 active:scale-95 uppercase italic tracking-tighter">
-                        Mark as Dispatched
+                    <button onclick="completeOrder('${id}')" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-black py-5 rounded-[24px] text-lg transition-all shadow-xl shadow-blue-900/40 active:scale-95 uppercase italic">
+                        Mark Dispatched
                     </button>
                 </div>
             `;
