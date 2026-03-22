@@ -3,60 +3,82 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>WE KLEO | Maribor Delivery</title>
+    <title>WE KLEO | Premium Delivery Maribor</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .active-card { border-color: #3b82f6 !important; background-color: #eff6ff !important; transform: scale(1.02); }
+    </style>
 </head>
-<body class="bg-[#f3f4f5] pb-32 font-sans text-gray-900">
+<body class="bg-[#f8fafc] pb-24 text-slate-900">
     
-    <div class="bg-white px-4 py-4 border-b border-gray-100 sticky top-0 z-50 shadow-sm flex justify-between items-center">
-        <h1 class="text-xl font-black italic text-blue-600 uppercase">WE KLEO</h1>
-        <span class="text-[10px] bg-blue-50 text-blue-600 px-2 py-1 rounded-full font-bold uppercase tracking-widest">Maribor Delivery</span>
+    <div class="bg-white px-6 py-6 border-b border-slate-100 sticky top-0 z-50 shadow-sm flex justify-between items-center">
+        <div>
+            <h1 class="text-2xl font-[900] italic tracking-tighter text-blue-600 uppercase">WE KLEO</h1>
+            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Fast Delivery • Maribor</p>
+        </div>
+        <div class="bg-green-50 text-green-600 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter">● Online</div>
     </div>
 
-    <div class="max-w-md mx-auto px-4 py-6 space-y-6">
-        <div class="grid grid-cols-2 gap-4">
-            <div onclick="selectItem('Kleo Pizza', 9.50)" class="bg-white p-4 rounded-2xl shadow-sm border-2 border-transparent active:border-blue-500 cursor-pointer text-center transition-all">
-                <p class="text-2xl">🍕</p>
-                <p class="font-bold text-sm">Pizza</p>
-                <p class="text-blue-600 font-black text-xs">€9.50</p>
+    <div class="max-w-md mx-auto px-5 py-8 space-y-8">
+        
+        <section>
+            <h2 class="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">Select Your Meal</h2>
+            <div class="grid grid-cols-2 gap-4">
+                <div id="card-Pizza" onclick="selectItem('Kleo Pizza', 9.50, 'Pizza')" class="bg-white p-5 rounded-[28px] shadow-sm border-2 border-transparent transition-all cursor-pointer">
+                    <div class="w-12 h-12 bg-orange-50 rounded-2xl flex items-center justify-center text-2xl mb-3">🍕</div>
+                    <p class="font-bold text-slate-800">Pizza</p>
+                    <p class="text-blue-600 font-black text-sm">€9.50</p>
+                </div>
+                <div id="card-Burger" onclick="selectItem('Kleo Burger', 8.90, 'Burger')" class="bg-white p-5 rounded-[28px] shadow-sm border-2 border-transparent transition-all cursor-pointer">
+                    <div class="w-12 h-12 bg-red-50 rounded-2xl flex items-center justify-center text-2xl mb-3">🍔</div>
+                    <p class="font-bold text-slate-800">Burger</p>
+                    <p class="text-blue-600 font-black text-sm">€8.90</p>
+                </div>
             </div>
-            <div onclick="selectItem('Kleo Burger', 8.90)" class="bg-white p-4 rounded-2xl shadow-sm border-2 border-transparent active:border-blue-500 cursor-pointer text-center transition-all">
-                <p class="text-2xl">🍔</p>
-                <p class="font-bold text-sm">Burger</p>
-                <p class="text-blue-600 font-black text-xs">€8.90</p>
-            </div>
-        </div>
+        </section>
 
-        <div class="bg-white rounded-[24px] p-6 shadow-md border border-gray-100">
-            <h3 class="font-black text-gray-400 text-[10px] uppercase tracking-widest mb-4">Add Extras (+€1.00)</h3>
-            <div class="grid grid-cols-2 gap-3">
-                <label class="flex items-center space-x-3 p-3 bg-gray-50 rounded-xl">
-                    <input type="checkbox" class="w-5 h-5 accent-blue-600" onchange="updateTotal()" value="Extra Cheese">
-                    <span class="text-sm font-bold">Cheese</span>
-                </label>
-                <label class="flex items-center space-x-3 p-3 bg-gray-50 rounded-xl">
-                    <input type="checkbox" class="w-5 h-5 accent-blue-600" onchange="updateTotal()" value="Jalapeños">
-                    <span class="text-sm font-bold">Peppers</span>
-                </label>
-            </div>
-        </div>
-
-        <div class="bg-white rounded-[24px] p-6 shadow-md border-2 border-blue-600">
-            <div class="flex justify-between items-center mb-6">
-                <h3 id="orderLabel" class="font-black text-blue-600 text-lg italic tracking-tighter">Select Food</h3>
-                <span id="priceDisplay" class="text-2xl font-black tracking-tighter">€0.00</span>
-            </div>
+        <section class="bg-white rounded-[32px] p-6 shadow-sm border border-slate-100">
+            <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Customize Your Order (+€1.00)</h3>
             <div class="space-y-3">
-                <input id="userName" type="text" placeholder="Your Name" class="w-full bg-gray-50 rounded-xl px-4 py-3 border border-gray-100 outline-none focus:ring-2 focus:ring-blue-500">
-                <input id="userPhone" type="tel" placeholder="Phone Number" class="w-full bg-gray-50 rounded-xl px-4 py-3 border border-gray-100 outline-none focus:ring-2 focus:ring-blue-500">
-                <input id="userAddress" type="text" placeholder="Address in Maribor" class="w-full bg-gray-50 rounded-xl px-4 py-3 border border-gray-100 outline-none focus:ring-2 focus:ring-blue-500">
+                <label class="flex items-center justify-between p-4 bg-slate-50 rounded-2xl cursor-pointer">
+                    <span class="font-bold text-sm text-slate-700">🧀 Extra Cheese</span>
+                    <input type="checkbox" class="w-6 h-6 accent-blue-600" onchange="updateTotal()" value="Extra Cheese">
+                </label>
+                <label class="flex items-center justify-between p-4 bg-slate-50 rounded-2xl cursor-pointer">
+                    <span class="font-bold text-sm text-slate-700">🌶️ Jalapeños</span>
+                    <input type="checkbox" class="w-6 h-6 accent-blue-600" onchange="updateTotal()" value="Jalapeños">
+                </label>
             </div>
-            <button onclick="sendOrder()" class="w-full mt-6 bg-blue-600 text-white py-4 rounded-2xl font-black shadow-lg shadow-blue-200 active:scale-95 transition-all uppercase tracking-widest text-sm">
-                Confirm Order
+        </section>
+
+        <section class="bg-blue-600 rounded-[40px] p-8 shadow-xl shadow-blue-200 text-white">
+            <div class="flex justify-between items-end mb-8">
+                <div>
+                    <p id="orderLabel" class="text-xs font-bold uppercase tracking-widest text-blue-200 mb-1">Total Amount</p>
+                    <h3 id="priceDisplay" class="text-4xl font-black italic tracking-tighter">€0.00</h3>
+                </div>
+                <button onclick="clearSavedData()" class="text-[10px] font-bold underline opacity-50 hover:opacity-100">Edit Info</button>
+            </div>
+
+            <div id="dataForm" class="space-y-4 mb-6">
+                <input id="userName" type="text" placeholder="Full Name" class="w-full bg-blue-700/30 rounded-2xl px-5 py-4 border border-blue-400/30 placeholder:text-blue-300 outline-none focus:bg-blue-700/50 transition-all font-bold">
+                <input id="userPhone" type="tel" placeholder="Phone Number" class="w-full bg-blue-700/30 rounded-2xl px-5 py-4 border border-blue-400/30 placeholder:text-blue-300 outline-none focus:bg-blue-700/50 transition-all font-bold">
+                <input id="userAddress" type="text" placeholder="Delivery Address" class="w-full bg-blue-700/30 rounded-2xl px-5 py-4 border border-blue-400/30 placeholder:text-blue-300 outline-none focus:bg-blue-700/50 transition-all font-bold">
+            </div>
+
+            <div id="welcomeBack" class="hidden mb-6 p-4 bg-blue-700/40 rounded-2xl border border-blue-400/30">
+                <p class="text-sm font-medium">Delivering to your saved address:</p>
+                <p id="savedDetail" class="text-lg font-black italic"></p>
+            </div>
+
+            <button onclick="sendOrder()" class="w-full bg-white text-blue-600 font-[900] py-5 rounded-[24px] text-lg shadow-lg active:scale-95 transition-all uppercase italic tracking-tighter">
+                Confirm & Order Now
             </button>
-        </div>
+        </section>
     </div>
 
     <script>
@@ -75,12 +97,35 @@
         let selectedItem = "";
         let basePrice = 0;
 
-        // Note: No more playBeep() function here! The customer app is now silent.
+        // --- CHECK FOR SAVED DATA ---
+        window.onload = function() {
+            const savedName = localStorage.getItem('kleo_name');
+            const savedPhone = localStorage.getItem('kleo_phone');
+            const savedAddr = localStorage.getItem('kleo_address');
 
-        function selectItem(name, price) {
+            if (savedName && savedPhone && savedAddr) {
+                document.getElementById('userName').value = savedName;
+                document.getElementById('userPhone').value = savedPhone;
+                document.getElementById('userAddress').value = savedAddr;
+                
+                document.getElementById('dataForm').classList.add('hidden');
+                document.getElementById('welcomeBack').classList.remove('hidden');
+                document.getElementById('savedDetail').innerText = savedName + ", " + savedAddr;
+            }
+        };
+
+        function clearSavedData() {
+            document.getElementById('dataForm').classList.remove('hidden');
+            document.getElementById('welcomeBack').classList.add('hidden');
+        }
+
+        function selectItem(name, price, id) {
             selectedItem = name;
             basePrice = price;
-            document.getElementById('orderLabel').innerText = name;
+            // Visual highlight
+            document.getElementById('card-Pizza').classList.remove('active-card');
+            document.getElementById('card-Burger').classList.remove('active-card');
+            document.getElementById('card-' + id).classList.add('active-card');
             updateTotal();
         }
 
@@ -97,7 +142,12 @@
             const addr = document.getElementById('userAddress').value;
             const extras = Array.from(document.querySelectorAll('input[type="checkbox"]:checked')).map(el => el.value);
 
-            if (!selectedItem || !name || !addr) { alert("Please complete the form!"); return; }
+            if (!selectedItem || !name || !addr) { alert("Please select food and fill your details!"); return; }
+
+            // --- SAVE TO PHONE MEMORY ---
+            localStorage.setItem('kleo_name', name);
+            localStorage.setItem('kleo_phone', phone);
+            localStorage.setItem('kleo_address', addr);
 
             db.ref('orders').push({
                 item: selectedItem,
@@ -109,7 +159,7 @@
                 time: new Date().toLocaleString(),
                 status: 'New'
             }).then(() => {
-                alert('🚀 Order sent to WE KLEO Kitchen! Thank you ' + name + '!');
+                alert('🚀 Order received! We are starting now, ' + name + '!');
                 location.reload();
             });
         }
