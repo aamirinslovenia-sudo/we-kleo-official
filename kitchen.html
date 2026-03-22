@@ -41,6 +41,7 @@
     </div>
 
     <div class="max-w-7xl mx-auto p-6">
+        
         <div class="flex flex-col items-center mb-12 py-10 border-b border-slate-900">
             <h1 class="text-6xl font-[900] italic tracking-tighter uppercase mb-2 we-kleo-title">WE KLEO</h1>
             <div class="flex items-center gap-3">
@@ -50,7 +51,8 @@
             <p id="clock" class="text-4xl font-black text-slate-200 tracking-tighter mt-6">00:00:00</p>
         </div>
 
-        <div id="orderList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10"></div>
+        <div id="orderList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
+            </div>
     </div>
 
     <script>
@@ -70,6 +72,7 @@
         let alarmInterval = null;
         let activeCount = 0;
 
+        // CLOCK
         setInterval(() => {
             document.getElementById('clock').innerText = new Date().toLocaleTimeString('sl-SI');
         }, 1000);
@@ -79,6 +82,7 @@
             const osc = audioCtx.createOscillator();
             osc.connect(audioCtx.destination);
             osc.start(); osc.stop(audioCtx.currentTime + 0.1);
+            
             document.getElementById('sync-overlay').style.opacity = "0";
             setTimeout(() => { document.getElementById('sync-overlay').style.display = "none"; }, 500);
         }
@@ -100,6 +104,7 @@
         let isFirstLoad = true;
         db.ref('orders').on('child_added', (snapshot) => {
             const order = snapshot.val();
+            // Only show orders that are still "New"
             if (order.status === "New") {
                 activeCount++;
                 renderOrder(snapshot.key, order);
@@ -117,39 +122,39 @@
                         </div>
                         <p class="text-2xl font-black text-blue-400">${order.totalPrice}</p>
                     </div>
+
                     <div class="bg-blue-600/10 rounded-3xl p-5 mb-8 border border-blue-500/20 text-center">
                         <p class="text-lg font-bold text-blue-100 uppercase italic tracking-tight">${order.toppings}</p>
                     </div>
-                    <div class="space-y-4 mb-8 text-sm">
-                        <div class="flex items-center gap-4">
-                            <span class="text-slate-600 font-bold uppercase text-[9px] w-16">Customer</span>
-                            <span class="font-bold text-slate-100">${order.customer}</span>
-                        </div>
-                        <div class="flex items-center gap-4">
-                            <span class="text-slate-600 font-bold uppercase text-[9px] w-16">Contact</span>
-                            <span class="font-bold text-blue-400 underline">${order.phone}</span>
-                        </div>
-                        <div class="flex items-center gap-4">
-                            <span class="text-slate-600 font-bold uppercase text-[9px] w-16">Location</span>
-                            <span class="font-bold text-slate-100">${order.address}</span>
-                        </div>
+
+                    <div class="space-y-4 mb-8 text-sm text-slate-400">
+                        <p><span class="font-bold text-slate-100">Customer:</span> ${order.customer}</p>
+                        <p><span class="font-bold text-slate-100">Phone:</span> ${order.phone}</p>
+                        <p><span class="font-bold text-slate-100">Address:</span> ${order.address}</p>
                     </div>
-                    <button onclick="completeOrder('${id}')" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-black py-5 rounded-[24px] text-lg transition-all shadow-xl shadow-blue-900/40 active:scale-95 uppercase italic">
-                        Mark Dispatched
+
+                    <button onclick="sendToDriver('${id}')" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-[900] py-5 rounded-[24px] text-lg shadow-xl shadow-blue-900/40 active:scale-95 uppercase italic tracking-tighter">
+                        Ready for Driver
                     </button>
                 </div>
             `;
             document.getElementById('orderList').insertAdjacentHTML('afterbegin', html);
         }
 
-        function completeOrder(id) {
-            db.ref('orders/' + id).update({ status: "Completed", completedAt: new Date().toLocaleString() });
-            document.getElementById(id).classList.add('scale-0', 'opacity-0');
-            setTimeout(() => {
-                document.getElementById(id).remove();
-                activeCount--;
-                if (activeCount <= 0) stopAlarm();
-            }, 500);
+        function sendToDriver(id) {
+            // Change status to Ready so Driver App sees it
+            db.ref('orders/' + id).update({ status: "Ready" });
+            
+            // Remove from Kitchen screen
+            const element = document.getElementById(id);
+            if(element) {
+                element.classList.add('scale-0', 'opacity-0');
+                setTimeout(() => {
+                    element.remove();
+                    activeCount--;
+                    if (activeCount <= 0) stopAlarm();
+                }, 500);
+            }
         }
 
         db.ref('orders').once('value', () => { isFirstLoad = false; });
