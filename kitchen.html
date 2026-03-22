@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KITCHEN | WE KLEO Maribor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+</head>
+<body class="bg-slate-900 text-white p-6" onclick="startKitchen()">
+
+    <div class="flex justify-between items-center mb-8 border-b border-slate-700 pb-4">
+        <h1 class="text-3xl font-black italic text-blue-500 uppercase">WE KLEO KITCHEN</h1>
+        <div id="status" class="bg-red-600 px-4 py-2 rounded-full text-xs font-bold animate-pulse">🔇 CLICK TO ACTIVATE ALARM</div>
+    </div>
+
+    <div id="orderList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        </div>
+
+    <script>
+        const firebaseConfig = {
+          apiKey: "AIzaSyBD_YmzFTA2OKn64h22Z9yM7pCAmmlTl68",
+          authDomain: "we-kleo.firebaseapp.com",
+          databaseURL: "https://we-kleo-default-rtdb.europe-west1.firebasedatabase.app",
+          projectId: "we-kleo",
+          storageBucket: "we-kleo.firebasestorage.app",
+          messagingSenderId: "87105321281",
+          appId: "1:87105321281:web:ec83e4472e5756182749c0"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+        let audioCtx = null;
+        let alarmInterval = null;
+
+        function startKitchen() {
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            document.getElementById('status').innerText = "🔊 ALARM READY";
+            document.getElementById('status').className = "bg-green-600 px-4 py-2 rounded-full text-xs font-bold";
+            stopAlarm(); // Test beep
+            playBeep();
+        }
+
+        function playBeep() {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.frequency.setValueAtTime(1000, audioCtx.currentTime);
+            gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+            osc.start(); osc.stop(audioCtx.currentTime + 0.3);
+        }
+
+        function startAlarm() {
+            if (!alarmInterval) {
+                alarmInterval = setInterval(playBeep, 1000); // Beep every second
+            }
+        }
+
+        function stopAlarm() {
+            clearInterval(alarmInterval);
+            alarmInterval = null;
+        }
+
+        // Listen for new orders
+        let isFirstLoad = true;
+        db.ref('orders').on('child_added', (snapshot) => {
+            const order = snapshot.val();
+            const orderId = snapshot.key;
+
+            const orderCard = `
+                <div id="${orderId}" class="bg-white text-slate-900 p-6 rounded-3xl shadow-2xl border-l-8 border-blue-500 animate-bounce">
+                    <div class="flex justify-between items-start mb-4">
+                        <h2 class="text-2xl font-black uppercase">${order.item}</h2>
+                        <span class="bg-blue-100 text-blue-700 px-3 py-1 rounded-lg font-bold text-sm">${order.totalPrice}</span>
+                    </div>
+                    <div class="space-y-2 text-sm border-y border-gray-100 py-4 my-4">
+                        <p><strong>Toppings:</strong> ${order.toppings}</p>
+                        <p><strong>Customer:</strong> ${order.customer}</p>
+                        <p><strong>Phone:</strong> ${order.phone}</p>
+                        <p><strong>Address:</strong> ${order.address}</p>
+                    </div>
+                    <button onclick="completeOrder('${orderId}')" class="w-full bg-green-500 text-white font-black py-3 rounded-xl hover:bg-green-600 transition-colors">DONE / DISPATCH</button>
+                </div>
+            `;
+
+            document.getElementById('orderList').insertAdjacentHTML('afterbegin', orderCard);
+            
+            if (!isFirstLoad) {
+                startAlarm();
+            }
+        });
+
+        function completeOrder(id) {
+            stopAlarm(); // Turn off the noise
+            document.getElementById(id).remove();
+            // Optional: Remove from Firebase too
+            // db.ref('orders/' + id).remove();
+        }
+
+        db.ref('orders').once('value', () => { isFirstLoad = false; });
+    </script>
+</body>
+</html>
