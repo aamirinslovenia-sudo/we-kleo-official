@@ -12,27 +12,37 @@
     
     <div class="bg-white px-4 py-3 border-b border-gray-100 flex items-center justify-between sticky top-0 z-50">
         <div>
-            <p class="text-[10px] font-bold text-blue-600 uppercase tracking-widest">Delivery to</p>
-            <h2 class="text-sm font-black italic">Maistrova ulica 24, Maribor ▼</h2>
+            <p class="text-[10px] font-bold text-blue-600 uppercase tracking-widest">Delivery from</p>
+            <h2 class="text-sm font-black italic text-gray-800">WE KLEO Maribor</h2>
         </div>
     </div>
 
-    <div class="px-4 mt-6">
+    <div class="px-4 mt-6 max-w-md mx-auto">
         <div class="bg-white rounded-[32px] shadow-lg overflow-hidden border border-gray-50">
             <img src="https://images.unsplash.com/photo-1513104890138-7c749659a591?w=800" class="w-full h-52 object-cover">
+            
             <div class="p-6">
-                <h2 class="text-2xl font-black italic text-blue-600">WE KLEO</h2>
-                <p class="text-gray-500 text-sm mb-4">Fresh Wood-Fired Pizza</p>
-                <div class="flex justify-between items-center">
-                    <span class="text-2xl font-black text-gray-900">€9.50</span>
-                    <button onclick="placeOrder('Kleo Pizza')" class="bg-blue-600 text-white px-8 py-3 rounded-2xl font-black shadow-lg shadow-blue-200 active:scale-95 transition-all">Order Now</button>
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-2xl font-black italic text-blue-600">Kleo Pizza</h2>
+                    <span class="text-xl font-black text-gray-900">€9.50</span>
                 </div>
+
+                <div class="space-y-3 mb-6">
+                    <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Delivery Details</p>
+                    <input id="userName" type="text" placeholder="Your Name" class="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <input id="userPhone" type="tel" placeholder="Phone Number" class="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <input id="userAddress" type="text" placeholder="Full Delivery Address" class="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+
+                <button onclick="placeOrder('Kleo Pizza')" class="w-full bg-blue-600 text-white py-4 rounded-2xl font-black shadow-lg shadow-blue-200 active:scale-95 transition-all text-center uppercase tracking-widest text-sm">
+                    Place Order
+                </button>
             </div>
         </div>
     </div>
 
     <script>
-        // THIS IS YOUR CORRECT CONFIG WITH THE DATABASE URL ADDED
+        // YOUR FIREBASE CONFIG
         const firebaseConfig = {
           apiKey: "AIzaSyBD_YmzFTA2OKn64h22Z9yM7pCAmmlTl68",
           authDomain: "we-kleo.firebaseapp.com",
@@ -43,19 +53,33 @@
           appId: "1:87105321281:web:ec83e4472e5756182749c0"
         };
 
-        // Initialize Firebase
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
         function placeOrder(itemName) {
+            const name = document.getElementById('userName').value;
+            const phone = document.getElementById('userPhone').value;
+            const address = document.getElementById('userAddress').value;
+
+            // Simple check to make sure they filled the info
+            if (!name || !phone || !address) {
+                alert('Please fill in your name, phone, and address!');
+                return;
+            }
+
             db.ref('orders').push({
                 item: itemName,
+                customer: name,
+                phone: phone,
+                address: address,
                 time: new Date().toLocaleString(),
                 status: 'New'
             }).then(() => {
-                alert('🚀 Order sent to WE KLEO! It is now in your database.');
-            }).catch((error) => {
-                alert('Error: Make sure you clicked "Enable" in Realtime Database!');
+                alert('🚀 Thanks ' + name + '! Your order is on the way!');
+                // Clear the form
+                document.getElementById('userName').value = "";
+                document.getElementById('userPhone').value = "";
+                document.getElementById('userAddress').value = "";
             });
         }
     </script>
