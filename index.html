@@ -8,41 +8,56 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
 </head>
-<body class="bg-[#f3f4f5] pb-24 font-sans">
+<body class="bg-[#f3f4f5] pb-32 font-sans text-gray-900">
     
-    <div class="bg-white px-4 py-3 border-b border-gray-100 flex items-center justify-between sticky top-0 z-50">
-        <div>
-            <p class="text-[10px] font-bold text-blue-600 uppercase tracking-widest">Delivery from</p>
-            <h2 class="text-sm font-black italic text-gray-800">WE KLEO Maribor</h2>
-        </div>
+    <div class="bg-white px-4 py-4 border-b border-gray-100 sticky top-0 z-50 shadow-sm">
+        <h1 class="text-xl font-black italic text-blue-600">WE KLEO <span class="text-gray-400 not-italic font-medium text-xs ml-2">Maribor Center</span></h1>
     </div>
 
-    <div class="px-4 mt-6 max-w-md mx-auto">
-        <div class="bg-white rounded-[32px] shadow-lg overflow-hidden border border-gray-50">
-            <img src="https://images.unsplash.com/photo-1513104890138-7c749659a591?w=800" class="w-full h-52 object-cover">
-            
-            <div class="p-6">
-                <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-2xl font-black italic text-blue-600">Kleo Pizza</h2>
-                    <span class="text-xl font-black text-gray-900">€9.50</span>
+    <div class="max-w-md mx-auto px-4 py-6 space-y-8">
+        
+        <div class="bg-white rounded-[24px] shadow-md overflow-hidden border border-gray-50">
+            <img src="https://images.unsplash.com/photo-1513104890138-7c749659a591?w=800" class="w-full h-40 object-cover">
+            <div class="p-5 flex justify-between items-center">
+                <div>
+                    <h3 class="font-bold text-lg">Kleo Special Pizza</h3>
+                    <p class="text-blue-600 font-black">€9.50</p>
                 </div>
-
-                <div class="space-y-3 mb-6">
-                    <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Delivery Details</p>
-                    <input id="userName" type="text" placeholder="Your Name" class="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    <input id="userPhone" type="tel" placeholder="Phone Number" class="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    <input id="userAddress" type="text" placeholder="Full Delivery Address" class="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-                </div>
-
-                <button onclick="placeOrder('Kleo Pizza')" class="w-full bg-blue-600 text-white py-4 rounded-2xl font-black shadow-lg shadow-blue-200 active:scale-95 transition-all text-center uppercase tracking-widest text-sm">
-                    Place Order
-                </button>
+                <button onclick="selectItem('Kleo Special Pizza', '9.50')" class="bg-blue-50 text-blue-600 px-4 py-2 rounded-xl font-bold hover:bg-blue-600 hover:text-white transition-all">Add +</button>
             </div>
+        </div>
+
+        <div class="bg-white rounded-[24px] shadow-md overflow-hidden border border-gray-50">
+            <img src="https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=800" class="w-full h-40 object-cover">
+            <div class="p-5 flex justify-between items-center">
+                <div>
+                    <h3 class="font-bold text-lg">Kleo Smash Burger</h3>
+                    <p class="text-blue-600 font-black">€8.90</p>
+                </div>
+                <button onclick="selectItem('Kleo Smash Burger', '8.90')" class="bg-blue-50 text-blue-600 px-4 py-2 rounded-xl font-bold hover:bg-blue-600 hover:text-white transition-all">Add +</button>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-[24px] p-6 shadow-md border-2 border-blue-100">
+            <h3 class="font-black text-gray-400 text-[10px] uppercase tracking-widest mb-4">Finalize Order</h3>
+            
+            <div id="orderPreview" class="mb-4 p-3 bg-blue-50 rounded-xl text-blue-700 font-bold text-sm hidden">
+                Selected: <span id="selectedItemName">None</span>
+            </div>
+
+            <div class="space-y-3">
+                <input id="userName" type="text" placeholder="Your Name" class="w-full bg-gray-50 rounded-xl px-4 py-3 border border-gray-100 focus:ring-2 focus:ring-blue-500 outline-none">
+                <input id="userPhone" type="tel" placeholder="Phone Number" class="w-full bg-gray-50 rounded-xl px-4 py-3 border border-gray-100 focus:ring-2 focus:ring-blue-500 outline-none">
+                <input id="userAddress" type="text" placeholder="Address in Maribor" class="w-full bg-gray-50 rounded-xl px-4 py-3 border border-gray-100 focus:ring-2 focus:ring-blue-500 outline-none">
+            </div>
+
+            <button onclick="sendToFirebase()" class="w-full mt-6 bg-blue-600 text-white py-4 rounded-2xl font-black shadow-lg shadow-blue-100 active:scale-95 transition-all uppercase tracking-tighter">
+                Send Order to Kitchen
+            </button>
         </div>
     </div>
 
     <script>
-        // YOUR FIREBASE CONFIG
         const firebaseConfig = {
           apiKey: "AIzaSyBD_YmzFTA2OKn64h22Z9yM7pCAmmlTl68",
           authDomain: "we-kleo.firebaseapp.com",
@@ -56,30 +71,33 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        function placeOrder(itemName) {
+        let currentSelection = "";
+
+        function selectItem(name, price) {
+            currentSelection = name;
+            document.getElementById('orderPreview').classList.remove('hidden');
+            document.getElementById('selectedItemName').innerText = name + " (€" + price + ")";
+            window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+        }
+
+        function sendToFirebase() {
             const name = document.getElementById('userName').value;
             const phone = document.getElementById('userPhone').value;
-            const address = document.getElementById('userAddress').value;
+            const addr = document.getElementById('userAddress').value;
 
-            // Simple check to make sure they filled the info
-            if (!name || !phone || !address) {
-                alert('Please fill in your name, phone, and address!');
-                return;
-            }
+            if (!currentSelection) { alert("Please select a Pizza or Burger first!"); return; }
+            if (!name || !phone || !addr) { alert("We need your details to deliver!"); return; }
 
             db.ref('orders').push({
-                item: itemName,
+                item: currentSelection,
                 customer: name,
                 phone: phone,
-                address: address,
+                address: addr,
                 time: new Date().toLocaleString(),
                 status: 'New'
             }).then(() => {
-                alert('🚀 Thanks ' + name + '! Your order is on the way!');
-                // Clear the form
-                document.getElementById('userName').value = "";
-                document.getElementById('userPhone').value = "";
-                document.getElementById('userAddress').value = "";
+                alert('🚀 DONE! WE KLEO is preparing your ' + currentSelection);
+                location.reload(); // Refresh to clear
             });
         }
     </script>
