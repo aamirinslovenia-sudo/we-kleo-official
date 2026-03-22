@@ -10,32 +10,28 @@
 </head>
 <body class="bg-[#f3f4f5] pb-32 font-sans text-gray-900" onclick="enableSound()">
     
-    <audio id="orderSound" preload="auto">
-        <source src="https://notificationsounds.com/storage/sounds/file-sounds-1150-pristine.mp3" type="audio/mpeg">
-    </audio>
-
     <div class="bg-white px-4 py-4 border-b border-gray-100 sticky top-0 z-50 shadow-sm flex justify-between items-center">
         <h1 class="text-xl font-black italic text-blue-600">WE KLEO</h1>
-        <div id="soundStatus" class="text-[10px] bg-red-100 text-red-600 px-2 py-1 rounded-full font-bold uppercase tracking-widest">🔇 Click anywhere to enable sound</div>
+        <div id="soundStatus" class="text-[10px] bg-red-100 text-red-600 px-2 py-1 rounded-full font-bold uppercase tracking-widest italic">🔇 Click to Test Sound</div>
     </div>
 
     <div class="max-w-md mx-auto px-4 py-6 space-y-6">
         <div class="grid grid-cols-2 gap-4">
-            <div onclick="selectItem('Kleo Pizza', '9.50')" class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 active:bg-blue-50 cursor-pointer">
+            <div onclick="selectItem('Kleo Pizza', '9.50')" class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 active:bg-blue-50 cursor-pointer text-center">
                 <p class="font-bold text-sm">🍕 Pizza</p>
                 <p class="text-blue-600 font-black text-xs">€9.50</p>
             </div>
-            <div onclick="selectItem('Kleo Burger', '8.90')" class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 active:bg-blue-50 cursor-pointer">
+            <div onclick="selectItem('Kleo Burger', '8.90')" class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 active:bg-blue-50 cursor-pointer text-center">
                 <p class="font-bold text-sm">🍔 Burger</p>
                 <p class="text-blue-600 font-black text-xs">€8.90</p>
             </div>
         </div>
 
         <div class="bg-white rounded-[24px] p-6 shadow-md border-2 border-blue-100">
-            <h3 id="orderLabel" class="font-black text-gray-400 text-[10px] uppercase tracking-widest mb-4">Select an item above</h3>
+            <h3 id="orderLabel" class="font-black text-gray-400 text-[10px] uppercase tracking-widest mb-4 text-center">Choose your food</h3>
             <div class="space-y-3">
-                <input id="userName" type="text" placeholder="Your Name" class="w-full bg-gray-50 rounded-xl px-4 py-3 border border-gray-100 outline-none">
-                <input id="userPhone" type="tel" placeholder="Phone Number" class="w-full bg-gray-50 rounded-xl px-4 py-3 border border-gray-100 outline-none">
+                <input id="userName" type="text" placeholder="Name" class="w-full bg-gray-50 rounded-xl px-4 py-3 border border-gray-100 outline-none">
+                <input id="userPhone" type="tel" placeholder="Phone" class="w-full bg-gray-50 rounded-xl px-4 py-3 border border-gray-100 outline-none">
                 <input id="userAddress" type="text" placeholder="Address in Maribor" class="w-full bg-gray-50 rounded-xl px-4 py-3 border border-gray-100 outline-none">
             </div>
             <button onclick="sendOrder()" class="w-full mt-6 bg-blue-600 text-white py-4 rounded-2xl font-black shadow-lg active:scale-95 transition-all">PLACE ORDER</button>
@@ -56,20 +52,26 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
         let selectedItem = "";
-        let soundEnabled = false;
+        let audioCtx = null;
 
-        // Function to unlock audio on first click
+        // CRITICAL: This creates a beep sound manually
+        function playBeep() {
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.type = "sine";
+            osc.frequency.setValueAtTime(880, audioCtx.currentTime); // High pitch beep
+            gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.5); // Beep for half a second
+        }
+
         function enableSound() {
-            if(!soundEnabled) {
-                const audio = document.getElementById('orderSound');
-                audio.play().then(() => {
-                    audio.pause();
-                    audio.currentTime = 0;
-                    soundEnabled = true;
-                    document.getElementById('soundStatus').innerText = "🔊 SOUND ON";
-                    document.getElementById('soundStatus').className = "text-[10px] bg-green-100 text-green-600 px-2 py-1 rounded-full font-bold uppercase tracking-widest";
-                });
-            }
+            playBeep(); // Beep once when clicked so you know it works!
+            document.getElementById('soundStatus').innerText = "🔊 SOUND ACTIVE";
+            document.getElementById('soundStatus').className = "text-[10px] bg-green-100 text-green-600 px-2 py-1 rounded-full font-bold uppercase tracking-widest";
         }
 
         function selectItem(name, price) {
@@ -90,9 +92,8 @@
 
         let isFirstLoad = true;
         db.ref('orders').on('child_added', (snapshot) => {
-            if (!isFirstLoad && soundEnabled) {
-                const ding = document.getElementById('orderSound');
-                ding.play();
+            if (!isFirstLoad) {
+                playBeep(); // Trigger the computer-generated beep
             }
         });
         db.ref('orders').once('value', () => { isFirstLoad = false; });
