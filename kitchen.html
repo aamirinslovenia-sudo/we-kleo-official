@@ -7,12 +7,25 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+    <style>
+        @keyframes pulse-red {
+            0% { background-color: #ef4444; }
+            50% { background-color: #b91c1c; }
+            100% { background-color: #ef4444; }
+        }
+        .bg-urgent { animation: pulse-red 1s infinite; }
+    </style>
 </head>
-<body class="bg-slate-900 text-white p-6" onclick="startKitchen()">
+<body class="bg-slate-900 text-white p-4 sm:p-8" onclick="startKitchen()">
 
     <div class="flex justify-between items-center mb-8 border-b border-slate-700 pb-4">
-        <h1 class="text-3xl font-black italic text-blue-500 uppercase">WE KLEO KITCHEN</h1>
-        <div id="status" class="bg-red-600 px-4 py-2 rounded-full text-xs font-bold animate-pulse">🔇 CLICK TO ACTIVATE ALARM</div>
+        <div>
+            <h1 class="text-3xl font-black italic text-blue-500 uppercase tracking-tighter">WE KLEO KITCHEN</h1>
+            <p class="text-slate-400 text-xs uppercase font-bold tracking-widest">Live Order Monitor</p>
+        </div>
+        <div id="status" class="bg-red-600 px-6 py-3 rounded-2xl text-sm font-black animate-pulse cursor-pointer">
+            🔇 CLICK TO ARM ALARM
+        </div>
     </div>
 
     <div id="orderList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -33,69 +46,87 @@
         const db = firebase.database();
         let audioCtx = null;
         let alarmInterval = null;
+        let activeOrdersCount = 0;
 
+        // 1. Start the system (The Chef must click once)
         function startKitchen() {
             if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            document.getElementById('status').innerText = "🔊 ALARM READY";
-            document.getElementById('status').className = "bg-green-600 px-4 py-2 rounded-full text-xs font-bold";
-            stopAlarm(); // Test beep
-            playBeep();
+            document.getElementById('status').innerText = "🔊 SYSTEM ONLINE";
+            document.getElementById('status').className = "bg-green-600 px-6 py-3 rounded-2xl text-sm font-black";
         }
 
+        // 2. The Alarm Sound
         function playBeep() {
+            if (!audioCtx) return;
             const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
             osc.connect(gain); gain.connect(audioCtx.destination);
-            osc.frequency.setValueAtTime(1000, audioCtx.currentTime);
-            gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
-            osc.start(); osc.stop(audioCtx.currentTime + 0.3);
+            osc.type = "square"; // More annoying "Wolt" sound
+            osc.frequency.setValueAtTime(660, audioCtx.currentTime);
+            gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            osc.start(); osc.stop(audioCtx.currentTime + 0.2);
         }
 
         function startAlarm() {
             if (!alarmInterval) {
-                alarmInterval = setInterval(playBeep, 1000); // Beep every second
+                alarmInterval = setInterval(playBeep, 800); // Beep every 0.8 seconds
+                document.body.classList.add('bg-urgent'); // Flash the background!
             }
         }
 
         function stopAlarm() {
             clearInterval(alarmInterval);
             alarmInterval = null;
+            document.body.classList.remove('bg-urgent');
         }
 
-        // Listen for new orders
+        // 3. LISTEN FOR ORDERS
         let isFirstLoad = true;
         db.ref('orders').on('child_added', (snapshot) => {
             const order = snapshot.val();
             const orderId = snapshot.key;
+            activeOrdersCount++;
 
-            const orderCard = `
-                <div id="${orderId}" class="bg-white text-slate-900 p-6 rounded-3xl shadow-2xl border-l-8 border-blue-500 animate-bounce">
+            const html = `
+                <div id="${orderId}" class="bg-white text-slate-900 p-6 rounded-[32px] shadow-2xl border-t-[12px] border-blue-500 transition-all scale-100 hover:scale-105">
                     <div class="flex justify-between items-start mb-4">
-                        <h2 class="text-2xl font-black uppercase">${order.item}</h2>
-                        <span class="bg-blue-100 text-blue-700 px-3 py-1 rounded-lg font-bold text-sm">${order.totalPrice}</span>
+                        <h2 class="text-3xl font-black italic tracking-tighter">${order.item}</h2>
+                        <span class="bg-blue-600 text-white px-3 py-1 rounded-full font-black text-sm">${order.totalPrice}</span>
                     </div>
-                    <div class="space-y-2 text-sm border-y border-gray-100 py-4 my-4">
-                        <p><strong>Toppings:</strong> ${order.toppings}</p>
-                        <p><strong>Customer:</strong> ${order.customer}</p>
-                        <p><strong>Phone:</strong> ${order.phone}</p>
-                        <p><strong>Address:</strong> ${order.address}</p>
+                    
+                    <div class="space-y-2 mb-6 text-sm bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                        <p class="font-bold text-blue-600 uppercase text-[10px]">Toppings:</p>
+                        <p class="text-lg font-bold">${order.toppings}</p>
+                        <hr class="my-2">
+                        <p>👤 <strong>${order.customer}</strong></p>
+                        <p>📞 <strong>${order.phone}</strong></p>
+                        <p>📍 <strong>${order.address}</strong></p>
                     </div>
-                    <button onclick="completeOrder('${orderId}')" class="w-full bg-green-500 text-white font-black py-3 rounded-xl hover:bg-green-600 transition-colors">DONE / DISPATCH</button>
+
+                    <button onclick="completeOrder('${orderId}')" class="w-full bg-green-500 text-white font-black py-4 rounded-2xl text-lg hover:bg-green-600 shadow-lg shadow-green-100 active:scale-95 transition-all">
+                        DONE & DISPATCH
+                    </button>
                 </div>
             `;
 
-            document.getElementById('orderList').insertAdjacentHTML('afterbegin', orderCard);
+            document.getElementById('orderList').insertAdjacentHTML('afterbegin', html);
             
+            // Only sound alarm if it's a NEW order while the page is open
             if (!isFirstLoad) {
                 startAlarm();
             }
         });
 
+        // 4. THE "DONE" BUTTON (Deletes from Firebase)
         function completeOrder(id) {
-            stopAlarm(); // Turn off the noise
+            db.ref('orders/' + id).remove(); // This deletes it from the database!
             document.getElementById(id).remove();
-            // Optional: Remove from Firebase too
-            // db.ref('orders/' + id).remove();
+            activeOrdersCount--;
+            
+            // If no more orders on screen, stop the noise
+            if (activeOrdersCount <= 0) {
+                stopAlarm();
+            }
         }
 
         db.ref('orders').once('value', () => { isFirstLoad = false; });
