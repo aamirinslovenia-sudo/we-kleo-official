@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KITCHEN | WE KLEO Maribor</title>
+    <title>KITCHEN | WE KLEO History Mode</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
@@ -20,16 +20,15 @@
 
     <div class="flex justify-between items-center mb-8 border-b border-slate-700 pb-4">
         <div>
-            <h1 class="text-3xl font-black italic text-blue-500 uppercase tracking-tighter">WE KLEO KITCHEN</h1>
-            <p class="text-slate-400 text-xs uppercase font-bold tracking-widest">Live Order Monitor</p>
+            <h1 class="text-3xl font-black italic text-blue-500 uppercase">WE KLEO KITCHEN</h1>
+            <p class="text-slate-400 text-xs font-bold uppercase tracking-widest leading-none">History Mode Active</p>
         </div>
         <div id="status" class="bg-red-600 px-6 py-3 rounded-2xl text-sm font-black animate-pulse cursor-pointer">
-            🔇 CLICK TO ARM ALARM
+            🔇 CLICK TO ARM
         </div>
     </div>
 
-    <div id="orderList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        </div>
+    <div id="orderList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
 
     <script>
         const firebaseConfig = {
@@ -46,31 +45,29 @@
         const db = firebase.database();
         let audioCtx = null;
         let alarmInterval = null;
-        let activeOrdersCount = 0;
+        let activeOnScreen = 0;
 
-        // 1. Start the system (The Chef must click once)
         function startKitchen() {
             if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
             document.getElementById('status').innerText = "🔊 SYSTEM ONLINE";
             document.getElementById('status').className = "bg-green-600 px-6 py-3 rounded-2xl text-sm font-black";
         }
 
-        // 2. The Alarm Sound
         function playBeep() {
             if (!audioCtx) return;
             const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
             osc.connect(gain); gain.connect(audioCtx.destination);
-            osc.type = "square"; // More annoying "Wolt" sound
+            osc.type = "square";
             osc.frequency.setValueAtTime(660, audioCtx.currentTime);
-            gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
             osc.start(); osc.stop(audioCtx.currentTime + 0.2);
         }
 
         function startAlarm() {
             if (!alarmInterval) {
-                alarmInterval = setInterval(playBeep, 800); // Beep every 0.8 seconds
-                document.body.classList.add('bg-urgent'); // Flash the background!
+                alarmInterval = setInterval(playBeep, 800);
+                document.body.classList.add('bg-urgent');
             }
         }
 
@@ -80,51 +77,57 @@
             document.body.classList.remove('bg-urgent');
         }
 
-        // 3. LISTEN FOR ORDERS
+        // LISTEN FOR ORDERS
         let isFirstLoad = true;
         db.ref('orders').on('child_added', (snapshot) => {
             const order = snapshot.val();
             const orderId = snapshot.key;
-            activeOrdersCount++;
 
-            const html = `
-                <div id="${orderId}" class="bg-white text-slate-900 p-6 rounded-[32px] shadow-2xl border-t-[12px] border-blue-500 transition-all scale-100 hover:scale-105">
-                    <div class="flex justify-between items-start mb-4">
-                        <h2 class="text-3xl font-black italic tracking-tighter">${order.item}</h2>
-                        <span class="bg-blue-600 text-white px-3 py-1 rounded-full font-black text-sm">${order.totalPrice}</span>
-                    </div>
-                    
-                    <div class="space-y-2 mb-6 text-sm bg-gray-50 p-4 rounded-2xl border border-gray-100">
-                        <p class="font-bold text-blue-600 uppercase text-[10px]">Toppings:</p>
-                        <p class="text-lg font-bold">${order.toppings}</p>
-                        <hr class="my-2">
-                        <p>👤 <strong>${order.customer}</strong></p>
-                        <p>📞 <strong>${order.phone}</strong></p>
-                        <p>📍 <strong>${order.address}</strong></p>
-                    </div>
-
-                    <button onclick="completeOrder('${orderId}')" class="w-full bg-green-500 text-white font-black py-4 rounded-2xl text-lg hover:bg-green-600 shadow-lg shadow-green-100 active:scale-95 transition-all">
-                        DONE & DISPATCH
-                    </button>
-                </div>
-            `;
-
-            document.getElementById('orderList').insertAdjacentHTML('afterbegin', html);
-            
-            // Only sound alarm if it's a NEW order while the page is open
-            if (!isFirstLoad) {
-                startAlarm();
+            // ONLY show the order if the status is "New"
+            if (order.status === "New") {
+                activeOnScreen++;
+                renderOrder(orderId, order);
+                if (!isFirstLoad) startAlarm();
             }
         });
 
-        // 4. THE "DONE" BUTTON (Deletes from Firebase)
+        function renderOrder(id, order) {
+            const html = `
+                <div id="${id}" class="bg-white text-slate-900 p-6 rounded-[32px] shadow-2xl border-t-[12px] border-blue-500 transition-all">
+                    <div class="flex justify-between items-start mb-4">
+                        <h2 class="text-2xl font-black italic uppercase tracking-tighter">${order.item}</h2>
+                        <span class="bg-blue-600 text-white px-3 py-1 rounded-full font-black text-xs">${order.totalPrice}</span>
+                    </div>
+                    <div class="space-y-2 mb-6 text-sm bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                        <p class="font-bold text-blue-600 uppercase text-[10px]">Toppings:</p>
+                        <p class="text-md font-bold">${order.toppings}</p>
+                        <hr class="my-2 border-gray-200">
+                        <p>👤 <strong>${order.customer}</strong></p>
+                        <p>📍 <strong>${order.address}</strong></p>
+                        <p>📞 <strong>${order.phone}</strong></p>
+                    </div>
+                    <button onclick="completeOrder('${id}')" class="w-full bg-green-500 text-white font-black py-4 rounded-2xl text-md hover:bg-green-600 active:scale-95 transition-all shadow-lg shadow-green-100">
+                        DONE & SAVE DATA
+                    </button>
+                </div>
+            `;
+            document.getElementById('orderList').insertAdjacentHTML('afterbegin', html);
+        }
+
+        // NEW LOGIC: Update instead of Delete
         function completeOrder(id) {
-            db.ref('orders/' + id).remove(); // This deletes it from the database!
+            // 1. Update status in Firebase (Saves the data forever!)
+            db.ref('orders/' + id).update({
+                status: "Completed",
+                completedAt: new Date().toLocaleString()
+            });
+
+            // 2. Remove from screen
             document.getElementById(id).remove();
-            activeOrdersCount--;
+            activeOnScreen--;
             
-            // If no more orders on screen, stop the noise
-            if (activeOrdersCount <= 0) {
+            // 3. Stop alarm if no more "New" orders
+            if (activeOnScreen <= 0) {
                 stopAlarm();
             }
         }
