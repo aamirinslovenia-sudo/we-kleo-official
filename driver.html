@@ -13,25 +13,22 @@
         #map-bg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #000000; z-index: 1; opacity: 0.4; }
         .glass { background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.3); }
         .dark-glass { background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(15px); border: 1px solid rgba(255, 255, 255, 0.1); }
+        
+        /* Sidebars & Overlays */
+        #history-sidebar, #chat-overlay, #stats-overlay { position: fixed; top: 0; right: 0; width: 100%; height: 100%; background: #ffffff; z-index: 2000; transform: translateX(100%); transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1); padding: 50px 25px; display: flex; flex-direction: column; }
+        .sidebar-active, .chat-active, .stats-active { transform: translateX(0) !important; }
+        
+        /* Stats Styling (Wolt Look) */
+        .tab-btn { padding: 8px 14px; border-radius: 12px; font-weight: 600; font-size: 13px; color: #64748b; transition: all 0.2s; }
+        .tab-btn.active { background: #f1f5f9; color: #000; }
+        .stat-row { display: flex; justify-content: space-between; padding: 18px 0; border-bottom: 1px solid #f8fafc; }
+        .stat-label { color: #1e293b; font-weight: 500; font-size: 15px; }
+        .stat-value { color: #64748b; font-weight: 600; }
+        
         .bottom-sheet { position: fixed; bottom: 20px; left: 15px; right: 15px; border-radius: 35px; z-index: 100; transition: all 0.6s cubic-bezier(0.23, 1, 0.32, 1); padding: 30px; }
         .sheet-minimized { transform: translateY(calc(100% - 130px)); }
         .sheet-expanded { transform: translateY(0); }
         
-        #history-sidebar, #chat-overlay, #stats-overlay { position: fixed; top: 0; right: 0; width: 100%; height: 100%; background: #ffffff; z-index: 2000; transform: translateX(100%); transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1); padding: 50px 25px; display: flex; flex-direction: column; }
-        .sidebar-active, .chat-active, .stats-active { transform: translateX(0) !important; }
-        
-        #chat-messages { flex: 1; overflow-y: auto; padding-bottom: 20px; display: flex; flex-direction: column; }
-        .msg-driver { align-self: flex-end; background: #3b82f6; color: white; border-radius: 20px 20px 0 20px; padding: 12px 16px; margin-bottom: 8px; max-width: 80%; font-size: 14px; font-weight: 600; }
-        .msg-admin { align-self: flex-start; background: #f1f5f9; color: #1e293b; border-radius: 20px 20px 20px 0; padding: 12px 16px; margin-bottom: 8px; max-width: 80%; font-size: 14px; font-weight: 600; }
-        .currency { font-weight: 900; font-size: 54px; letter-spacing: -3px; color: #1e293b; line-height: 1; }
-        
-        /* Wolt Style Stats Styling */
-        .tab-btn { padding: 8px 16px; border-radius: 12px; font-weight: 600; font-size: 13px; color: #64748b; transition: all 0.2s; }
-        .tab-btn.active { background: #f1f5f9; color: #000; }
-        .stat-row { display: flex; justify-content: space-between; padding: 16px 0; border-bottom: 1px solid #f1f5f9; }
-        .stat-label { color: #1e293b; font-weight: 500; }
-        .stat-value { color: #64748b; font-weight: 600; }
-
         .status-online { background: #4ade80; box-shadow: 0 0 10px #4ade80; }
         .status-offline { background: #ef4444; box-shadow: 0 0 10px #ef4444; }
     </style>
@@ -43,40 +40,51 @@
         <button onclick="toggleSidebar()" class="w-14 h-14 glass rounded-2xl flex items-center justify-center text-2xl shadow-xl active:scale-90 transition-all">≡</button>
         <div class="dark-glass text-white px-5 py-3 rounded-2xl flex items-center gap-2">
             <span id="conn-dot" class="w-2 h-2 rounded-full animate-pulse status-online"></span>
-            <span id="conn-text" class="text-[10px] font-black uppercase tracking-widest">Live Shift</span>
+            <span id="conn-text" class="text-[10px] font-black uppercase tracking-widest text-center">Live Shift</span>
         </div>
     </div>
 
     <div id="history-sidebar">
-        <div class="flex justify-between items-center mb-8">
-            <h2 class="text-3xl font-black text-slate-900 uppercase italic">KLEO</h2>
+        <div class="flex justify-between items-center mb-10">
+            <h2 class="text-3xl font-black text-slate-900 uppercase italic">Menu</h2>
             <button onclick="toggleSidebar()" class="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center font-bold">✕</button>
         </div>
-        <div class="space-y-4">
-            <button onclick="openStats()" class="w-full flex items-center gap-4 p-4 hover:bg-slate-50 rounded-2xl transition-all">
-                <span class="text-xl">📊</span><span class="font-bold text-slate-800">Your Stats</span>
+        <div class="space-y-6">
+            <button onclick="openStats()" class="w-full flex items-center gap-5 p-5 hover:bg-slate-50 rounded-3xl transition-all">
+                <span class="text-2xl">📊</span><span class="text-lg font-bold text-slate-800 tracking-tight">Your stats</span>
             </button>
-            <button onclick="openChat()" class="w-full flex items-center gap-4 p-4 hover:bg-slate-50 rounded-2xl transition-all">
-                <span class="text-xl">🎧</span><span class="font-bold text-slate-800">Support</span>
+            <button onclick="openChat()" class="w-full flex items-center gap-5 p-5 hover:bg-slate-50 rounded-3xl transition-all">
+                <span class="text-2xl">🎧</span><span class="text-lg font-bold text-slate-800 tracking-tight">Support</span>
             </button>
-        </div>
-        <div class="mt-auto pt-6 border-t border-slate-100">
-            <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Version 2.173.1</p>
         </div>
     </div>
 
     <div id="stats-overlay">
         <div class="flex items-center gap-4 mb-8">
-            <button onclick="closeStats()" class="text-2xl">←</button>
+            <button onclick="closeStats()" class="text-2xl font-bold">←</button>
             <h2 class="text-3xl font-black text-slate-900">Your stats</h2>
         </div>
+
         <div class="flex justify-between bg-slate-50 p-1 rounded-2xl mb-8">
             <button onclick="filterStats('today')" id="tab-today" class="tab-btn active">Today</button>
             <button onclick="filterStats('week')" id="tab-week" class="tab-btn">Week</button>
             <button onclick="filterStats('month')" id="tab-month" class="tab-btn">Month</button>
-            <button class="tab-btn">Custom</button>
+            <button onclick="showCustomRange()" id="tab-custom" class="tab-btn">Custom</button>
         </div>
+
+        <div id="custom-picker" class="hidden grid grid-cols-2 gap-3 mb-6 animate-pulse">
+            <div>
+                <label class="text-[10px] font-bold text-slate-400 uppercase ml-2">From</label>
+                <input type="date" id="date-from" onchange="runCustomFilter()" class="w-full bg-slate-50 p-3 rounded-xl border-none outline-none font-bold text-xs">
+            </div>
+            <div>
+                <label class="text-[10px] font-bold text-slate-400 uppercase ml-2">To</label>
+                <input type="date" id="date-to" onchange="runCustomFilter()" class="w-full bg-slate-50 p-3 rounded-xl border-none outline-none font-bold text-xs">
+            </div>
+        </div>
+
         <h3 id="stat-date-label" class="text-lg font-black mb-4">-- --</h3>
+
         <div class="space-y-1">
             <div class="stat-row"><span class="stat-label">Deliveries completed</span><span id="stat-count" class="stat-value">0</span></div>
             <div class="stat-row"><span class="stat-label">Earnings (estimate)</span><span id="stat-total" class="stat-value text-slate-900">€0.00</span></div>
@@ -90,28 +98,25 @@
             <h2 class="text-2xl font-black text-slate-900 uppercase italic">Support Chat</h2>
             <button onclick="closeChat()" class="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center font-bold">✕</button>
         </div>
-        <div id="chat-messages"></div>
-        <div id="chat-controls" class="pt-4 space-y-3">
-            <div class="flex gap-2">
-                <input type="text" id="chat-input" placeholder="Type message..." class="flex-1 bg-slate-100 p-4 rounded-2xl font-bold outline-none">
-                <button onclick="sendMessage()" class="bg-blue-600 text-white px-6 rounded-2xl font-black uppercase text-xs">Send</button>
-            </div>
-            <button onclick="endChatSession()" class="w-full py-3 text-[10px] font-black uppercase text-slate-400 hover:text-red-500 tracking-widest transition-colors">End Chat Session</button>
+        <div id="chat-messages" class="flex-1 overflow-y-auto mb-4"></div>
+        <div class="flex gap-2">
+            <input type="text" id="chat-input" placeholder="Type..." class="flex-1 bg-slate-100 p-4 rounded-2xl font-bold">
+            <button onclick="sendMessage()" class="bg-blue-600 text-white px-6 rounded-2xl font-black uppercase text-xs">Send</button>
         </div>
     </div>
 
-    <div id="boot-screen" class="fixed inset-0 z-[3000] bg-white flex flex-col items-center justify-center p-12 text-center">
+    <div id="boot-screen" class="fixed inset-0 z-[3000] bg-white flex flex-col items-center justify-center p-12">
         <div class="text-blue-600 font-black text-6xl tracking-tighter mb-16 italic">KLEO</div>
         <button onclick="goOnline()" class="bg-blue-600 text-white w-full py-6 rounded-3xl text-sm font-black uppercase tracking-widest shadow-2xl active:scale-95 transition-all">Go Online</button>
     </div>
 
     <div id="order-sheet" class="bottom-sheet glass sheet-minimized shadow-2xl">
         <div class="w-12 h-1 bg-slate-300 rounded-full mx-auto mb-8"></div>
-        <div id="waiting-ui" class="text-center py-2"><p class="text-slate-900 font-black text-xl uppercase italic">Online & Active</p><p class="text-slate-400 text-xs">Scanning...</p></div>
+        <div id="waiting-ui" class="text-center py-2"><p class="text-slate-900 font-black text-xl uppercase italic tracking-tighter">Online & Active</p></div>
         <div id="order-ui" class="hidden">
             <div class="flex justify-between items-end mb-8"><div><div class="currency">€4.00</div><p class="text-blue-500 font-black text-[10px] uppercase">Guaranteed</p></div><button onclick="confirmDecline()" class="bg-red-50 text-red-500 px-4 py-2 rounded-xl text-[10px] font-black">Decline</button></div>
             <div class="bg-white/50 rounded-[30px] p-6 mb-8 border border-white">
-                <div class="mb-6 flex gap-4"><div class="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center text-blue-600 font-bold">1</div><div><p class="text-[9px] font-black text-slate-400 uppercase">Pickup</p><h2 class="text-lg font-black text-slate-800">KLEO Kitchen</h2><p class="text-slate-500 text-xs">Slovenska ulica 15</p></div></div>
+                <div class="mb-6 flex gap-4"><div class="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center text-blue-600 font-bold">1</div><div><p class="text-[9px] font-black text-slate-400 uppercase">Pickup</p><h2 class="text-lg font-black text-slate-800">KLEO Kitchen</h2></div></div>
                 <div class="flex gap-4"><div class="w-10 h-10 bg-indigo-100 rounded-xl flex items-center justify-center text-indigo-600 font-bold">2</div><div class="flex-1"><p class="text-[9px] font-black text-slate-400 uppercase">Drop</p><h2 id="c-name" class="text-lg font-black text-slate-800 truncate uppercase">---</h2><p id="c-addr" class="text-indigo-600 text-sm font-bold truncate underline">---</p></div></div>
             </div>
             <div class="flex gap-4"><a id="c-phone" href="#" class="w-20 h-20 bg-white rounded-[25px] flex items-center justify-center text-2xl shadow-sm border border-slate-100">📞</a><button id="action-btn" onclick="processOrder()" class="flex-1 bg-slate-900 text-white rounded-[25px] text-lg font-black uppercase tracking-tight shadow-xl">Accept Task</button></div>
@@ -122,33 +127,47 @@
         const firebaseConfig = { apiKey: "AIzaSyBD_YmzFTA2OKn64h22Z9yM7pCAmmlTl68", authDomain: "we-kleo.firebaseapp.com", databaseURL: "https://we-kleo-default-rtdb.europe-west1.firebasedatabase.app", projectId: "we-kleo", storageBucket: "we-kleo.firebasestorage.app", messagingSenderId: "87105321281", appId: "1:87105321281:web:ec83e4472e5756182749c0" };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
-        
         const driverId = "D-" + Math.floor(Math.random() * 10000);
-        let currentOrder = null; let audioCtx = null; let activeTicketId = null; let alertInterval = null; 
+        let currentOrder = null; let audioCtx = null; let alertInterval = null; 
         let allCompletedOrders = [];
 
         db.ref(".info/connected").on("value", (snap) => {
             const dot = document.getElementById('conn-dot');
-            const txt = document.getElementById('conn-text');
-            if (snap.val() === true) {
-                dot.className = "w-2 h-2 rounded-full animate-pulse status-online";
-                txt.innerText = "Live Shift";
-            } else {
-                dot.className = "w-2 h-2 rounded-full status-offline";
-                txt.innerText = "Offline";
-            }
+            if (snap.val() === true) dot.className = "w-2 h-2 rounded-full animate-pulse status-online";
+            else dot.className = "w-2 h-2 rounded-full status-offline";
         });
 
         function confirmDecline() { if(confirm("Are you sure you want to decline this €4.00 task?")) location.reload(); }
         function toggleSidebar() { document.getElementById('history-sidebar').classList.toggle('sidebar-active'); }
         function openStats() { document.getElementById('stats-overlay').classList.add('stats-active'); toggleSidebar(); filterStats('today'); }
-        function closeStats() { document.getElementById('stats-overlay').classList.remove('stats-active'); }
+        function closeStats() { document.getElementById('stats-overlay').classList.remove('stats-active'); document.getElementById('custom-picker').classList.add('hidden'); }
         function openChat() { document.getElementById('chat-overlay').classList.add('chat-active'); toggleSidebar(); }
         function closeChat() { document.getElementById('chat-overlay').classList.remove('chat-active'); }
-        
+
+        function showCustomRange() {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('tab-custom').classList.add('active');
+            document.getElementById('custom-picker').classList.remove('hidden');
+        }
+
+        function runCustomFilter() {
+            const from = new Date(document.getElementById('date-from').value).setHours(0,0,0,0);
+            const to = new Date(document.getElementById('date-to').value).setHours(23,59,59,999);
+            if(!from || !to) return;
+            
+            let count = 0;
+            allCompletedOrders.forEach(o => {
+                const oDate = (o.completedAt || o.timestamp);
+                if(oDate >= from && oDate <= to) count++;
+            });
+            updateStatDisplay(count, "Custom Range");
+        }
+
         function filterStats(range) {
+            document.getElementById('custom-picker').classList.add('hidden');
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             document.getElementById('tab-' + range).classList.add('active');
+            
             const now = new Date();
             let count = 0;
             allCompletedOrders.forEach(o => {
@@ -157,104 +176,46 @@
                 else if(range === 'week' && (now - oDate) < 7 * 24 * 60 * 60 * 1000) count++;
                 else if(range === 'month' && oDate.getMonth() === now.getMonth()) count++;
             });
+            updateStatDisplay(count, range === 'today' ? now.toLocaleDateString('en-GB', { day: 'numeric', month: 'long' }) : range.toUpperCase());
+        }
+
+        function updateStatDisplay(count, label) {
             document.getElementById('stat-count').innerText = count;
             document.getElementById('stat-total').innerText = "€" + (count * 4).toFixed(2);
             document.getElementById('stat-base').innerText = "€" + (count * 4).toFixed(2);
-            document.getElementById('stat-date-label').innerText = range === 'today' ? now.toLocaleDateString('en-GB', { day: 'numeric', month: 'long' }) : range.toUpperCase();
+            document.getElementById('stat-date-label').innerText = label;
         }
-
-        function goOnline() { 
-            audioCtx = new (window.AudioContext || window.webkitAudioContext)(); 
-            if(audioCtx.state === 'suspended') audioCtx.resume();
-            document.getElementById('boot-screen').style.display = 'none'; 
-        }
-
-        function endChatSession() { if(confirm("End this support session?")) { if(activeTicketId) db.ref('support_tickets/' + activeTicketId).update({ status: "Resolved" }); closeChat(); } }
-
-        function sendMessage() {
-            const input = document.getElementById('chat-input');
-            if (!input.value.trim()) return;
-            const messageData = { sender: "Driver", text: input.value, timestamp: Date.now() };
-            if (activeTicketId) {
-                db.ref('support_tickets/' + activeTicketId + '/chat').push(messageData);
-                db.ref('support_tickets/' + activeTicketId).update({ lastUpdate: Date.now(), status: "Open" });
-            } else {
-                const newRef = db.ref('support_tickets').push();
-                activeTicketId = newRef.key;
-                newRef.set({ customer: currentOrder ? currentOrder.customer : "General", timestamp: Date.now(), status: "Open" });
-                db.ref('support_tickets/' + activeTicketId + '/chat').push(messageData);
-            }
-            input.value = "";
-        }
-
-        db.ref('support_tickets').on('value', (snap) => {
-            const tickets = snap.val(); 
-            if (!tickets) { activeTicketId = null; return; }
-            const activeKey = Object.keys(tickets).find(k => tickets[k].status === "Open" || (k === activeTicketId && tickets[k].status !== "Resolved"));
-            if (activeKey) {
-                activeTicketId = activeKey; const t = tickets[activeKey];
-                let html = ""; if (t.chat) {
-                    const messages = Object.values(t.chat);
-                    messages.forEach(m => { html += `<div class="${m.sender === 'Driver' ? 'msg-driver' : 'msg-admin'}">${m.text}</div>`; });
-                    const last = messages[messages.length-1];
-                    if (last.sender === "Admin" && last.timestamp > (Date.now() - 3000)) {
-                        playBeep(1000, 0.4); if(!document.getElementById('chat-overlay').classList.contains('chat-active')) document.getElementById('unread-dot').classList.remove('hidden');
-                    }
-                }
-                document.getElementById('chat-messages').innerHTML = html;
-                document.getElementById('chat-messages').scrollTop = document.getElementById('chat-messages').scrollHeight;
-            } else { 
-                activeTicketId = null; 
-                document.getElementById('chat-messages').innerHTML = "<p class='text-center text-slate-400 mt-10 text-xs font-bold uppercase'>No active support thread</p>"; 
-            }
-        });
 
         db.ref('orders').on('value', (snap) => {
             let active = null; allCompletedOrders = [];
             snap.forEach(c => {
-                const o = c.val(); 
-                if ((o.status === "Ready" && !o.claimedBy) || (o.status === "Delivering" && o.claimedBy === driverId)) {
-                    active = {id: c.key, ...o};
-                }
+                const o = c.val(); o.id = c.key;
+                if ((o.status === "Ready" && !o.claimedBy) || (o.status === "Delivering" && o.claimedBy === driverId)) active = o;
                 if (o.status === "Completed") allCompletedOrders.push(o);
             });
-            
             if (active) {
-                currentOrder = active; document.getElementById('c-name').innerText = active.customer; document.getElementById('c-addr').innerText = active.address; document.getElementById('c-phone').href = "tel:" + active.phone;
-                document.getElementById('action-btn').innerText = active.status === "Ready" ? "Confirm Pickup" : "End Mission";
-                document.getElementById('waiting-ui').classList.add('hidden'); document.getElementById('order-ui').classList.remove('hidden');
-                document.getElementById('order-sheet').classList.replace('sheet-minimized', 'sheet-expanded'); 
-                if (active.status === "Ready") {
-                    if (!alertInterval) {
-                        playBeep(800, 0.5); 
-                        alertInterval = setInterval(() => { playBeep(800, 0.5); }, 1500); 
-                    }
-                } else { clearInterval(alertInterval); alertInterval = null; }
-            } else { 
+                currentOrder = active; document.getElementById('c-name').innerText = active.customer; document.getElementById('c-addr').innerText = active.address;
+                document.getElementById('order-ui').classList.remove('hidden'); document.getElementById('waiting-ui').classList.add('hidden');
+                document.getElementById('order-sheet').classList.replace('sheet-minimized', 'sheet-expanded');
+                if (active.status === "Ready" && !alertInterval) alertInterval = setInterval(() => playBeep(800, 0.5), 1500);
+            } else {
                 currentOrder = null; clearInterval(alertInterval); alertInterval = null;
-                document.getElementById('waiting-ui').classList.remove('hidden'); document.getElementById('order-ui').classList.add('hidden'); document.getElementById('order-sheet').classList.replace('sheet-expanded', 'sheet-minimized'); 
+                document.getElementById('order-ui').classList.add('hidden'); document.getElementById('waiting-ui').classList.remove('hidden');
+                document.getElementById('order-sheet').classList.replace('sheet-expanded', 'sheet-minimized');
             }
         });
 
-        function processOrder() { 
-            if (!currentOrder) return; 
-            if (currentOrder.status === "Ready") {
-                db.ref('orders/' + currentOrder.id).update({ status: "Delivering", claimedBy: driverId });
-                window.open(`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(currentOrder.address)}`);
-            } else {
-                db.ref('orders/' + currentOrder.id).update({status: "Completed", completedAt: Date.now()});
-            }
+        function processOrder() {
+            if (!currentOrder) return;
+            const nextStatus = currentOrder.status === "Ready" ? "Delivering" : "Completed";
+            const updateData = { status: nextStatus, claimedBy: driverId };
+            if(nextStatus === "Completed") updateData.completedAt = Date.now();
+            db.ref('orders/' + currentOrder.id).update(updateData);
+            if(nextStatus === "Delivering") window.open(`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(currentOrder.address)}`);
         }
 
-        function playBeep(f, d) { 
-            if (!audioCtx) return; 
-            if (audioCtx.state === 'suspended') audioCtx.resume();
-            const o = audioCtx.createOscillator(); const g = audioCtx.createGain(); 
-            o.connect(g); g.connect(audioCtx.destination); 
-            o.frequency.setValueAtTime(f, audioCtx.currentTime); 
-            g.gain.setValueAtTime(0.1, audioCtx.currentTime); 
-            o.start(); o.stop(audioCtx.currentTime + d); 
-        }
+        function goOnline() { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); document.getElementById('boot-screen').style.display = 'none'; }
+        function playBeep(f, d) { if (!audioCtx) return; const o = audioCtx.createOscillator(); const g = audioCtx.createGain(); o.connect(g); g.connect(audioCtx.destination); o.frequency.value = f; g.gain.value = 0.1; o.start(); o.stop(audioCtx.currentTime + d); }
     </script>
 </body>
 </html>
