@@ -2,119 +2,185 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>WE KLEO | KITCHEN COMMAND</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KITCHEN | WE KLEO Dashboard</title>
+
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="mobile-web-app-capable" content="yes">
+    <link rel="apple-touch-icon" href="WeKleo.png">
+    <link rel="icon" href="WeKleo.png">
+
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Inter', sans-serif; background-color: #060a11; color: white; margin: 0; padding: 0; }
-        .shimmer-text { color: #3b82f6; text-shadow: 0 0 30px rgba(59, 130, 246, 0.8); font-style: italic; }
-        .glass-card { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(15px); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 40px; padding: 30px; display: flex; flex-direction: column; justify-content: space-between; min-height: 400px; }
-        .timer-badge { background: rgba(59, 130, 246, 0.15); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); padding: 8px 16px; border-radius: 20px; font-size: 11px; font-weight: 900; text-transform: uppercase; }
+        body { font-family: 'Inter', sans-serif; overflow-x: hidden; background-color: #060a11; }
+        @keyframes pulse-red {
+            0%, 100% { border-color: rgba(59, 130, 246, 0.3); }
+            50% { border-color: #ef4444; box-shadow: 0 0 40px rgba(239, 68, 68, 0.4); }
+        }
+        @keyframes text-shimmer {
+            0% { color: #3b82f6; text-shadow: 0 0 10px rgba(59, 130, 246, 0.5); }
+            50% { color: #60a5fa; text-shadow: 0 0 30px rgba(96, 165, 250, 0.8); }
+            100% { color: #3b82f6; text-shadow: 0 0 10px rgba(59, 130, 246, 0.5); }
+        }
+        .urgent-card { animation: pulse-red 1s infinite; border-width: 4px; }
+        .glass { background: rgba(255, 255, 255, 0.02); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.05); }
+        .we-kleo-title { animation: text-shimmer 3s infinite; }
+        #history-sidebar { transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1); z-index: 2000; }
+        .sidebar-open { transform: translateX(0) !important; }
     </style>
 </head>
-<body class="p-8" onclick="startAudio()">
+<body class="text-slate-100 min-h-screen pb-20">
 
-    <div class="flex flex-col items-center justify-center mb-10 border-b border-white/5 pb-10 text-center">
-        <h1 class="text-7xl font-[900] tracking-tighter uppercase shimmer-text">WE KLEO</h1>
-        <p class="text-[10px] font-bold text-slate-500 uppercase tracking-[0.5em] mt-3">Kitchen Production Line</p>
-        <p class="text-[8px] text-slate-700 mt-2">TAP ANYWHERE TO ENABLE AUDIO ALERTS</p>
+    <div id="sync-overlay" class="fixed inset-0 z-[3000] bg-[#060a11] flex flex-col items-center justify-center">
+        <h1 class="text-7xl font-[900] italic tracking-tighter uppercase mb-12 we-kleo-title">WE KLEO</h1>
+        <button onclick="startKitchen()" class="px-12 py-6 bg-blue-600 rounded-[32px] text-white font-black text-2xl shadow-2xl shadow-blue-500/20 hover:scale-105 active:scale-95 transition-all uppercase italic">
+            Open Kitchen System
+        </button>
     </div>
 
-    <div id="order-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
+    <div id="history-sidebar" class="fixed top-0 right-0 h-full w-80 bg-[#0a101a] z-[2000] p-6 transform translate-x-full shadow-2xl border-l border-white/10">
+        <div class="flex justify-between items-center mb-8">
+            <h2 class="text-xl font-black italic uppercase text-blue-400">Past Orders</h2>
+            <button onclick="toggleHistory()" class="text-slate-500 hover:text-white text-2xl font-bold">✕</button>
+        </div>
+        <div id="historyList" class="space-y-4 overflow-y-auto h-[85vh] pr-2">
+            </div>
+    </div>
+
+    <div class="max-w-7xl mx-auto p-6">
+        
+        <div class="flex flex-col items-center mb-12 py-10 border-b border-slate-900 relative">
+            <button onclick="toggleHistory()" class="absolute right-0 top-10 bg-white/5 px-6 py-2 rounded-full border border-white/10 text-xs font-bold uppercase tracking-widest hover:bg-white/10 transition-all">
+                📜 View History
+            </button>
+            <h1 class="text-6xl font-[900] italic tracking-tighter uppercase mb-2 we-kleo-title">WE KLEO</h1>
+            <div class="flex items-center gap-3">
+                <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                <p class="text-slate-500 font-bold text-xs uppercase tracking-[0.4em]">Kitchen Command</p>
+            </div>
+            <p id="clock" class="text-4xl font-black text-slate-200 tracking-tighter mt-6">00:00:00</p>
         </div>
 
+        <div id="orderList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
+            </div>
+    </div>
+
     <script>
-        const firebaseConfig = { 
-            apiKey: "AIzaSyBD_YmzFTA2OKn64h22Z9yM7pCAmmlTl68", 
-            authDomain: "we-kleo.firebaseapp.com", 
-            databaseURL: "https://we-kleo-default-rtdb.europe-west1.firebasedatabase.app", 
-            projectId: "we-kleo", 
-            storageBucket: "we-kleo.firebasestorage.app", 
-            messagingSenderId: "87105321281", 
-            appId: "1:87105321281:web:ec83e4472e5756182749c0" 
+        const firebaseConfig = {
+          apiKey: "AIzaSyBD_YmzFTA2OKn64h22Z9yM7pCAmmlTl68",
+          authDomain: "we-kleo.firebaseapp.com",
+          databaseURL: "https://we-kleo-default-rtdb.europe-west1.firebasedatabase.app",
+          projectId: "we-kleo",
+          storageBucket: "we-kleo.firebasestorage.app",
+          messagingSenderId: "87105321281",
+          appId: "1:87105321281:web:ec83e4472e5756182749c0"
         };
-        
+
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
-        
         let audioCtx = null;
-        function startAudio() { if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+        let alarmInterval = null;
+        let activeCount = 0;
 
-        function playAlert() {
-            if (!audioCtx) return;
-            const osc = audioCtx.createOscillator();
-            const g = audioCtx.createGain();
-            osc.connect(g); g.connect(audioCtx.destination);
-            osc.type = 'sine';
-            osc.frequency.setValueAtTime(880, audioCtx.currentTime);
-            g.gain.setValueAtTime(0.1, audioCtx.currentTime);
-            osc.start(); osc.stop(audioCtx.currentTime + 0.4);
-        }
-
-        // Timer Logic: Fixed to handle missing timestamps
+        // CLOCK LOGIC
         setInterval(() => {
-            document.querySelectorAll('.live-timer').forEach(span => {
-                const startTime = parseInt(span.dataset.start);
-                const now = Date.now();
-                const diff = Math.max(0, Math.floor((now - startTime) / 1000));
-                const mins = Math.floor(diff / 60);
-                const secs = diff % 60;
-                span.innerText = `${mins}m ${secs}s`;
-            });
+            document.getElementById('clock').innerText = new Date().toLocaleTimeString('sl-SI');
         }, 1000);
 
-        let orderIds = new Set();
-        let initialLoad = true;
+        function startKitchen() {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = audioCtx.createOscillator();
+            osc.connect(audioCtx.destination);
+            osc.start(); osc.stop(audioCtx.currentTime + 0.1);
+            document.getElementById('sync-overlay').style.opacity = "0";
+            setTimeout(() => { document.getElementById('sync-overlay').style.display = "none"; }, 500);
+        }
 
-        db.ref('orders').on('value', (snap) => {
-            const grid = document.getElementById('order-grid');
-            grid.innerHTML = "";
-            let currentIds = new Set();
-            let newOrderFound = false;
+        function playBeep() {
+            if (!audioCtx) return;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.type = "sine";
+            osc.frequency.setValueAtTime(800, audioCtx.currentTime);
+            gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+            osc.start(); osc.stop(audioCtx.currentTime + 0.2);
+        }
 
-            snap.forEach(child => {
-                const o = child.val();
+        function startAlarm() { if (!alarmInterval) alarmInterval = setInterval(playBeep, 1200); }
+        function stopAlarm() { clearInterval(alarmInterval); alarmInterval = null; }
+
+        function toggleHistory() {
+            document.getElementById('history-sidebar').classList.toggle('sidebar-open');
+        }
+
+        // UNIFIED ENGINE (Fixes the Sync Issue)
+        db.ref('orders').on('value', (snapshot) => {
+            const orderList = document.getElementById('orderList');
+            const historyList = document.getElementById('historyList');
+            orderList.innerHTML = "";
+            historyList.innerHTML = "";
+            activeCount = 0;
+
+            snapshot.forEach((child) => {
+                const order = child.val();
                 const id = child.key;
-                
-                // Show everything that is NOT Completed
-                if(o.status !== "Completed") {
-                    currentIds.add(id);
-                    if (!orderIds.has(id) && !initialLoad) newOrderFound = true;
 
-                    const timestamp = o.timestamp || Date.now();
-                    
-                    grid.insertAdjacentHTML('beforeend', `
-                        <div class="glass-card shadow-2xl">
-                            <div>
-                                <div class="flex justify-between items-center mb-6">
-                                    <div class="timer-badge">
-                                        Waiting: <span class="live-timer" data-start="${timestamp}">0m 0s</span>
-                                    </div>
-                                    <span class="text-blue-500 font-black text-[10px] uppercase tracking-widest">${o.status || 'NEW'}</span>
-                                </div>
-                                <h2 class="text-3xl font-[900] italic uppercase text-white mb-1 tracking-tighter">${o.customer || 'Guest'}</h2>
-                                <p class="text-slate-500 font-bold uppercase text-[10px] tracking-widest mb-8 border-l-2 border-blue-500 pl-3">${o.address || 'No Address'}</p>
-                                <div class="bg-white/5 p-6 rounded-[30px] border border-white/5">
-                                    <p class="text-blue-400 font-black text-xl mb-1 uppercase">${o.item || "Standard Order"}</p>
-                                    <p class="text-slate-400 text-sm italic font-medium">${o.toppings || "Standard"}</p>
-                                </div>
-                            </div>
-                            <button onclick="readyOrder('${id}')" class="w-full mt-8 bg-blue-600 hover:bg-blue-500 text-white py-6 rounded-[24px] font-[900] uppercase italic tracking-tighter text-xl transition-all active:scale-95">
-                                Mark Ready
-                            </button>
-                        </div>
-                    `);
+                if (order.status === "New") {
+                    activeCount++;
+                    renderOrder(id, order);
+                } else {
+                    renderHistory(id, order);
                 }
             });
 
-            if (newOrderFound) playAlert();
-            orderIds = currentIds;
-            initialLoad = false;
+            if (activeCount > 0 && !alarmInterval) startAlarm();
+            if (activeCount === 0) stopAlarm();
         });
 
-        function readyOrder(id) { db.ref('orders/' + id).update({ status: "Ready" }); }
+        function renderOrder(id, order) {
+            const html = `
+                <div class="glass border border-slate-800 p-8 rounded-[40px] shadow-2xl urgent-card transition-all">
+                    <div class="flex justify-between items-start mb-6">
+                        <div>
+                            <span class="bg-red-600 text-[10px] px-3 py-1 rounded-full font-black uppercase mb-2 inline-block animate-pulse">New Order</span>
+                            <h2 class="text-3xl font-[900] italic tracking-tighter uppercase text-white">${order.item}</h2>
+                        </div>
+                        <p class="text-2xl font-black text-blue-400">${order.totalPrice}</p>
+                    </div>
+                    <div class="bg-blue-600/10 rounded-3xl p-5 mb-8 border border-blue-500/20 text-center text-blue-100 italic">"${order.toppings}"</div>
+                    <div class="space-y-2 mb-8 text-xs text-slate-400">
+                        <p><span class="font-bold text-slate-100 uppercase">Customer:</span> ${order.customer}</p>
+                        <p><span class="font-bold text-slate-100 uppercase">Phone:</span> ${order.phone}</p>
+                        <p><span class="font-bold text-slate-100 uppercase">Address:</span> ${order.address}</p>
+                    </div>
+                    <button onclick="setStatus('${id}', 'Ready')" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-[900] py-5 rounded-[24px] text-lg shadow-xl uppercase italic tracking-tighter">Ready for Driver</button>
+                </div>
+            `;
+            document.getElementById('orderList').insertAdjacentHTML('afterbegin', html);
+        }
+
+        function renderHistory(id, order) {
+            const html = `
+                <div class="bg-white/5 p-4 rounded-2xl border border-white/5 mb-3 text-sm">
+                    <div class="flex justify-between items-center mb-2">
+                        <p class="font-black text-white italic uppercase truncate w-32">${order.item}</p>
+                        <span class="text-[9px] text-blue-400 font-bold uppercase tracking-widest">${order.status}</span>
+                    </div>
+                    <p class="text-xs text-slate-500 mb-3">${order.customer}</p>
+                    <button onclick="setStatus('${id}', 'New')" class="text-[9px] font-black uppercase text-blue-500 hover:underline tracking-widest">↩ Undo Dispatch</button>
+                </div>
+            `;
+            document.getElementById('historyList').insertAdjacentHTML('afterbegin', html);
+        }
+
+        function setStatus(id, newStatus) {
+            db.ref('orders/' + id).update({ status: newStatus });
+        }
     </script>
 </body>
 </html>
