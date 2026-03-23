@@ -62,9 +62,12 @@
                             <button onclick="resolveTicket('${id}')" class="text-slate-300 hover:text-red-500 font-bold">✕</button>
                         </div>
                         <div class="chat-box mb-6 shadow-inner">${chatHtml}</div>
-                        <div class="flex gap-2">
-                            <input type="text" id="reply-${id}" placeholder="Type reply..." class="flex-1 p-4 rounded-2xl border-2 border-slate-100 outline-none focus:border-blue-500 transition-all font-bold">
-                            <button onclick="sendReply('${id}')" class="bg-blue-600 text-white px-8 rounded-2xl font-black uppercase text-xs">Reply</button>
+                        <div class="space-y-4">
+                            <div class="flex gap-2">
+                                <input type="text" id="reply-${id}" placeholder="Type reply..." class="flex-1 p-4 rounded-2xl border-2 border-slate-100 outline-none focus:border-blue-500 transition-all font-bold">
+                                <button onclick="sendReply('${id}')" class="bg-blue-600 text-white px-8 rounded-2xl font-black uppercase text-xs">Reply</button>
+                            </div>
+                            <button onclick="resolveTicket('${id}')" class="w-full py-4 bg-slate-900 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-red-600 transition-colors">Resolve & Close Thread</button>
                         </div>
                     </div>`;
                 }
@@ -84,7 +87,7 @@
             }
         }
 
-        function resolveTicket(id) { if(confirm("Close this chat?")) db.ref('support_tickets/' + id).update({ status: "Resolved" }); }
+        function resolveTicket(id) { if(confirm("This will permanently archive and close this chat. Proceed?")) db.ref('support_tickets/' + id).update({ status: "Resolved" }); }
     </script>
 </body>
 </html>
