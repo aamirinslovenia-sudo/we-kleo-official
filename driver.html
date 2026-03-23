@@ -30,20 +30,27 @@
 </head>
 <body class="pb-20">
 
+    <div id="driver-overlay" class="fixed inset-0 z-[3000] bg-[#060a11] flex flex-col items-center justify-center">
+        <h1 class="text-5xl font-[900] italic tracking-tighter uppercase mb-12 we-kleo-title text-center px-6">WE KLEO<br>DRIVER</h1>
+        <button onclick="startDriverMode()" class="px-12 py-6 bg-blue-600 rounded-[32px] text-white font-black text-2xl shadow-2xl shadow-blue-500/20 hover:scale-105 active:scale-95 transition-all uppercase italic">
+            Start Shift
+        </button>
+        <p class="text-slate-500 mt-6 text-[10px] uppercase font-bold tracking-widest">Enables Order Alerts</p>
+    </div>
+
     <div class="flex flex-col items-center pt-10 pb-6 border-b border-slate-900 mb-8">
         <h1 class="text-4xl font-[900] italic tracking-tighter uppercase we-kleo-title">WE KLEO</h1>
-        <p class="text-[10px] font-bold text-slate-500 uppercase tracking-[0.4em] mt-2">Driver Command</p>
+        <p class="text-[10px] font-bold text-slate-500 uppercase tracking-[0.4em] mt-2">Delivery Fleet</p>
     </div>
 
     <div id="driverList" class="max-w-md mx-auto px-6 space-y-6">
         <div id="emptyState" class="text-center py-20">
             <p class="text-slate-600 font-bold uppercase text-xs tracking-widest">No active deliveries</p>
-            <p class="text-slate-800 text-sm mt-2 italic">Waiting for kitchen...</p>
+            <p class="text-slate-800 text-sm mt-2 italic">Keep this app open to hear alerts...</p>
         </div>
     </div>
 
     <script>
-        // --- YOUR FIREBASE CONFIG ---
         const firebaseConfig = {
           apiKey: "AIzaSyBD_YmzFTA2OKn64h22Z9yM7pCAmmlTl68",
           authDomain: "we-kleo.firebaseapp.com",
@@ -56,28 +63,52 @@
 
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
+        
+        let audioCtx = null;
+        let alarmInterval = null;
+        let isFirstLoad = true;
 
-        // Listen for orders ready for pickup or already in transit
+        function startDriverMode() {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            document.getElementById('driver-overlay').style.display = 'none';
+        }
+
+        function playAlert() {
+            if (!audioCtx) return;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.type = "square"; // Sharper sound for drivers
+            osc.frequency.setValueAtTime(660, audioCtx.currentTime);
+            gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.3);
+        }
+
+        function startAlarm() { if (!alarmInterval) alarmInterval = setInterval(playAlert, 1500); }
+        function stopAlarm() { clearInterval(alarmInterval); alarmInterval = null; }
+
         db.ref('orders').on('value', (snapshot) => {
             const list = document.getElementById('driverList');
-            let hasOrders = false;
+            let readyCount = 0;
             list.innerHTML = "";
 
             snapshot.forEach((child) => {
                 const order = child.val();
                 if (order.status === "Ready" || order.status === "Delivering") {
-                    hasOrders = true;
+                    if (order.status === "Ready") readyCount++;
                     renderDriverCard(child.key, order);
                 }
             });
 
-            if (!hasOrders) {
-                list.innerHTML = `
-                    <div class="text-center py-20">
-                        <p class="text-slate-600 font-bold uppercase text-xs tracking-widest">No active deliveries</p>
-                        <p class="text-slate-800 text-sm mt-2 italic">Waiting for kitchen...</p>
-                    </div>`;
+            if (!isFirstLoad && readyCount > 0) startAlarm();
+            if (readyCount === 0) stopAlarm();
+            
+            if (list.innerHTML === "") {
+                list.innerHTML = `<div class="text-center py-20"><p class="text-slate-600 font-bold uppercase text-xs tracking-widest">No active deliveries</p></div>`;
             }
+            isFirstLoad = false;
         });
 
         function renderDriverCard(id, order) {
@@ -88,7 +119,7 @@
                 <div class="glass p-8 rounded-[40px] border border-slate-800 ${!isDelivering ? 'driver-card' : ''}">
                     <div class="flex justify-between items-center mb-6">
                         <span class="bg-blue-600/20 text-blue-400 text-[10px] px-3 py-1 rounded-full font-black uppercase tracking-tighter">
-                            ${isDelivering ? '● In Transit' : '● Ready for Pickup'}
+                            ${isDelivering ? '● In Transit' : '● NEW PICKUP'}
                         </span>
                         <span class="text-[10px] text-slate-500 font-bold font-mono">${order.time.split(',')[1]}</span>
                     </div>
@@ -97,13 +128,13 @@
                     <p class="text-blue-400 font-bold text-sm mb-6 underline decoration-blue-900 underline-offset-4">${order.address}</p>
 
                     <div class="space-y-3">
-                        <a href="${mapsUrl}" target="_blank" class="flex items-center justify-center gap-2 w-full bg-slate-800/50 text-white py-4 rounded-2xl font-bold text-sm border border-white/5 transition-all active:scale-95">
-                            📍 Open Route in Maps
+                        <a href="${mapsUrl}" target="_blank" class="flex items-center justify-center gap-2 w-full bg-slate-800/50 text-white py-4 rounded-2xl font-bold text-sm border border-white/5 active:scale-95 transition-all">
+                            📍 Start Navigation
                         </a>
                         
                         ${!isDelivering ? 
-                            `<button onclick="updateStatus('${id}', 'Delivering')" class="w-full bg-blue-600 hover:bg-blue-500 text-white py-5 rounded-[24px] font-[900] italic uppercase shadow-xl shadow-blue-900/20 active:scale-95 transition-all">Pick Up Order</button>` :
-                            `<button onclick="updateStatus('${id}', 'Completed')" class="w-full bg-green-600 hover:bg-green-500 text-white py-5 rounded-[24px] font-[900] italic uppercase shadow-xl shadow-green-900/20 active:scale-95 transition-all">Mark as Delivered</button>`
+                            `<button onclick="updateStatus('${id}', 'Delivering')" class="w-full bg-blue-600 text-white py-5 rounded-[24px] font-[900] italic uppercase shadow-xl active:scale-95 transition-all">Accept Pickup</button>` :
+                            `<button onclick="updateStatus('${id}', 'Completed')" class="w-full bg-green-600 text-white py-5 rounded-[24px] font-[900] italic uppercase shadow-xl active:scale-95 transition-all">Mark Delivered</button>`
                         }
                     </div>
 
@@ -117,10 +148,7 @@
         }
 
         function updateStatus(id, newStatus) {
-            db.ref('orders/' + id).update({ 
-                status: newStatus,
-                driverUpdateAt: new Date().toLocaleString()
-            });
+            db.ref('orders/' + id).update({ status: newStatus });
         }
     </script>
 </body>
