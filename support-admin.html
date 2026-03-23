@@ -2,138 +2,92 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KLEO | SUPPORT CENTER</title>
+    <title>KLEO | SUPPORT COMMAND</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;600;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Outfit', sans-serif; background: #f1f5f9; }
-        .ticket-card { background: white; border-radius: 25px; transition: all 0.3s ease; cursor: pointer; border: 2px solid transparent; }
-        .ticket-active { border-color: #3b82f6; box-shadow: 0 10px 30px rgba(59, 130, 246, 0.1); }
-        #chat-window { height: calc(100vh - 200px); background: white; border-radius: 35px; overflow: hidden; }
-        .msg-admin { align-self: flex-end; background: #3b82f6; color: white; border-radius: 20px 20px 0 20px; padding: 12px 18px; margin-bottom: 10px; max-width: 70%; font-weight: 600; font-size: 14px; }
-        .msg-driver { align-self: flex-start; background: #f1f5f9; color: #1e293b; border-radius: 20px 20px 20px 0; padding: 12px 18px; margin-bottom: 10px; max-width: 70%; font-weight: 600; font-size: 14px; }
+        .ticket-card { background: white; border-radius: 35px; box-shadow: 0 15px 40px rgba(0,0,0,0.06); border-left: 12px solid #3b82f6; }
+        #login-overlay { position: fixed; inset: 0; background: #0f172a; z-index: 5000; display: flex; align-items: center; justify-content: center; }
+        .chat-box { height: 350px; overflow-y: auto; display: flex; flex-direction: column; padding: 20px; background: #f8fafc; border-radius: 20px; }
     </style>
 </head>
-<body class="p-6 md:p-12">
+<body class="p-8">
 
-    <div class="max-w-7xl mx-auto">
-        <header class="flex justify-between items-end mb-12">
-            <div>
-                <h1 class="text-5xl font-black text-slate-900 italic tracking-tighter">SUPPORT<span class="text-blue-600">HUB</span></h1>
-                <p class="text-slate-400 font-bold uppercase text-[10px] tracking-[0.4em]">Administrative Assistance</p>
-            </div>
-        </header>
-
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
-            <div class="lg:col-span-4 space-y-4 overflow-y-auto max-h-[70vh]">
-                <h2 class="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-4 mb-2">Active Tickets</h2>
-                <div id="ticket-list" class="space-y-3">
-                    </div>
-            </div>
-
-            <div class="lg:col-span-8">
-                <div id="chat-window" class="flex flex-col p-8 shadow-2xl relative">
-                    <div id="chat-messages" class="flex-1 overflow-y-auto pr-4 flex flex-col">
-                        <div class="h-full flex flex-col items-center justify-center text-center opacity-20">
-                            <span class="text-6xl mb-4">🎧</span>
-                            <p class="font-black uppercase tracking-widest text-xs">Select a ticket to begin</p>
-                        </div>
-                    </div>
-                    
-                    <div id="input-area" class="hidden pt-6 mt-6 border-t border-slate-100 flex gap-4">
-                        <input type="text" id="admin-input" placeholder="Type your reply..." class="flex-1 bg-slate-50 p-5 rounded-2xl font-bold outline-none focus:bg-slate-100 transition-all">
-                        <button onclick="sendReply()" class="bg-blue-600 text-white px-8 rounded-2xl font-black uppercase text-xs hover:bg-blue-700 transition-all">Send</button>
-                        <button onclick="closeTicket()" class="bg-slate-900 text-white px-6 rounded-2xl font-black uppercase text-[10px]">Close Ticket</button>
-                    </div>
-                </div>
-            </div>
+    <div id="login-overlay">
+        <div class="bg-white p-10 rounded-[40px] shadow-2xl w-full max-w-md text-center">
+            <h2 class="text-3xl font-black mb-2 italic text-blue-600">WE KLEO</h2>
+            <input type="password" id="pass-input" placeholder="Password" class="w-full p-4 bg-slate-100 rounded-2xl mb-4 text-center font-bold outline-none border-2 border-transparent focus:border-blue-500 transition-all">
+            <button onclick="checkPass()" class="w-full bg-slate-900 text-white py-4 rounded-2xl font-black uppercase tracking-widest">Login</button>
         </div>
     </div>
 
+    <div class="max-w-6xl mx-auto">
+        <header class="flex justify-between items-end mb-12">
+            <div><h1 class="text-5xl font-black text-slate-900 italic tracking-tighter">SUPPORT<span class="text-blue-600">HQ</span></h1></div>
+            <div class="bg-white px-8 py-4 rounded-[25px] text-center border shadow-sm"><p id="active-count" class="text-4xl font-black text-blue-600">0</p><p class="text-[10px] font-bold text-slate-400 uppercase">Active Threads</p></div>
+        </header>
+        <div id="ticket-container" class="grid grid-cols-1 md:grid-cols-2 gap-8"></div>
+    </div>
+
+    <audio id="alert-sound" src="https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3"></audio>
+
     <script>
-        const firebaseConfig = { 
-            apiKey: "AIzaSyBD_YmzFTA2OKn64h22Z9yM7pCAmmlTl68", 
-            authDomain: "we-kleo.firebaseapp.com", 
-            databaseURL: "https://we-kleo-default-rtdb.europe-west1.firebasedatabase.app", 
-            projectId: "we-kleo", 
-            storageBucket: "we-kleo.firebasestorage.app", 
-            messagingSenderId: "87105321281", 
-            appId: "1:87105321281:web:ec83e4472e5756182749c0" 
-        };
-        
+        const ADMIN_PASSWORD = "KLEO2026";
+        const firebaseConfig = { apiKey: "AIzaSyBD_YmzFTA2OKn64h22Z9yM7pCAmmlTl68", authDomain: "we-kleo.firebaseapp.com", databaseURL: "https://we-kleo-default-rtdb.europe-west1.firebasedatabase.app", projectId: "we-kleo", storageBucket: "we-kleo.firebasestorage.app", messagingSenderId: "87105321281", appId: "1:87105321281:web:ec83e4472e5756182749c0" };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
-        let selectedTicketId = null;
+
+        function checkPass() { if(document.getElementById('pass-input').value === ADMIN_PASSWORD) document.getElementById('login-overlay').style.display = 'none'; else alert("Wrong Pass"); }
 
         db.ref('support_tickets').on('value', (snap) => {
-            const list = document.getElementById('ticket-list');
-            list.innerHTML = "";
-            
+            const container = document.getElementById('ticket-container');
+            let html = ""; let count = 0;
             snap.forEach(child => {
-                const t = child.val();
-                if(t.status === "Open") {
-                    const isActive = selectedTicketId === child.key;
-                    list.insertAdjacentHTML('beforeend', `
-                        <div onclick="selectTicket('${child.key}')" class="ticket-card p-6 shadow-sm ${isActive ? 'ticket-active' : ''}">
-                            <div class="flex justify-between items-center">
-                                <div>
-                                    <p class="text-[10px] font-black text-blue-600 uppercase mb-1">Driver: ${t.customer || 'Unknown'}</p>
-                                    <p class="text-xs text-slate-400 font-bold uppercase tracking-tighter">${new Date(t.timestamp).toLocaleTimeString()}</p>
-                                </div>
-                                <span class="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></span>
-                            </div>
+                const t = child.val(); const id = child.key;
+                if(t.status !== "Resolved") {
+                    count++; let chatHtml = "";
+                    if(t.chat) {
+                        Object.values(t.chat).forEach(m => {
+                            const isDriver = m.sender === "Driver";
+                            chatHtml += `<div class="mb-2 ${isDriver ? 'text-left' : 'text-right'}"><span class="inline-block p-3 rounded-2xl text-xs font-bold ${isDriver ? 'bg-white text-slate-800 border shadow-sm' : 'bg-blue-600 text-white'}">${m.text}</span></div>`;
+                        });
+                    }
+                    html += `
+                    <div class="ticket-card p-8">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-xl font-black italic uppercase">Client: ${t.customer}</h3>
+                            <button onclick="resolveTicket('${id}')" class="text-slate-300 hover:text-red-500 font-bold">✕</button>
                         </div>
-                    `);
+                        <div class="chat-box mb-6 shadow-inner">${chatHtml}</div>
+                        <div class="space-y-4">
+                            <div class="flex gap-2">
+                                <input type="text" id="reply-${id}" placeholder="Type reply..." class="flex-1 p-4 rounded-2xl border-2 border-slate-100 outline-none focus:border-blue-500 transition-all font-bold">
+                                <button onclick="sendReply('${id}')" class="bg-blue-600 text-white px-8 rounded-2xl font-black uppercase text-xs">Reply</button>
+                            </div>
+                            <button onclick="resolveTicket('${id}')" class="w-full py-4 bg-slate-900 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-red-600 transition-colors">Resolve & Close Thread</button>
+                        </div>
+                    </div>`;
                 }
             });
-
-            if (selectedTicketId) {
-                renderMessages(snap.val()[selectedTicketId].chat);
-            }
+            container.innerHTML = html;
+            document.getElementById('active-count').innerText = count;
+            if(count > 0) document.getElementById('alert-sound').play().catch(()=>{});
+            document.querySelectorAll('.chat-box').forEach(box => box.scrollTop = box.scrollHeight);
         });
 
-        function selectTicket(id) {
-            selectedTicketId = id;
-            document.getElementById('input-area').classList.remove('hidden');
-            db.ref('support_tickets/' + id).once('value', (s) => {
-                renderMessages(s.val().chat);
-            });
-        }
-
-        function renderMessages(chatObj) {
-            const container = document.getElementById('chat-messages');
-            if(!chatObj) { container.innerHTML = ""; return; }
-            let html = "";
-            Object.values(chatObj).forEach(m => {
-                html += `<div class="${m.sender === 'Admin' ? 'msg-admin' : 'msg-driver'} shadow-sm">${m.text}</div>`;
-            });
-            container.innerHTML = html;
-            container.scrollTop = container.scrollHeight;
-        }
-
-        function sendReply() {
-            const input = document.getElementById('admin-input');
-            if (!input.value.trim() || !selectedTicketId) return;
-            
-            db.ref('support_tickets/' + selectedTicketId + '/chat').push({
-                sender: "Admin",
-                text: input.value,
-                timestamp: Date.now()
-            });
-            input.value = "";
-        }
-
-        function closeTicket() {
-            if (selectedTicketId && confirm("Archive this conversation?")) {
-                db.ref('support_tickets/' + selectedTicketId).update({ status: "Closed" });
-                selectedTicketId = null;
-                document.getElementById('input-area').classList.add('hidden');
-                document.getElementById('chat-messages').innerHTML = `<div class="h-full flex flex-col items-center justify-center text-center opacity-20"><span class="text-6xl mb-4">🎧</span><p class="font-black uppercase tracking-widest text-xs">Ticket Closed</p></div>`;
+        function sendReply(id) {
+            const input = document.getElementById(`reply-${id}`);
+            if(input.value.trim() !== "") {
+                db.ref('support_tickets/' + id + '/chat').push({ sender: "Admin", text: input.value, timestamp: Date.now() });
+                db.ref('support_tickets/' + id).update({ replyTime: Date.now() });
+                input.value = "";
             }
         }
+
+        function resolveTicket(id) { if(confirm("This will permanently archive and close this chat. Proceed?")) db.ref('support_tickets/' + id).update({ status: "Resolved" }); }
     </script>
 </body>
 </html>
