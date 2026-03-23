@@ -3,57 +3,60 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>DRIVER | WE KLEO Delivery</title>
+    <title>DRIVER | WE KLEO</title>
     
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <link rel="apple-touch-icon" href="WeKleo.png">
 
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
     
     <style>
-        body { font-family: 'Inter', sans-serif; background-color: #060a11; color: white; overflow-x: hidden; }
-        .we-kleo-title { animation: text-shimmer 3s infinite; }
-        @keyframes text-shimmer {
-            0%, 100% { color: #3b82f6; text-shadow: 0 0 10px rgba(59, 130, 246, 0.3); }
-            50% { color: #60a5fa; text-shadow: 0 0 25px rgba(96, 165, 250, 0.6); }
+        body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; overflow: hidden; height: 100vh; }
+        
+        /* Map Background Emulation */
+        #map-bg {
+            position: fixed; top: 0; left: 0; width: 100%; height: 60%;
+            background: url('https://www.google.com/maps/vt/pb=!1m4!1m3!1i14!2i8931!3i5684!2m3!1e0!2sm!3i605151525!3m8!2ssl!3sUS!5e1105!12m4!1e68!2m2!1sset!2sRoadmap!4e0!5m1!5f2');
+            background-size: cover; z-index: 1;
         }
-        .glass { background: rgba(255, 255, 255, 0.02); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.08); }
-        @keyframes pulse-blue { 0%, 100% { border-color: #3b82f6; } 50% { border-color: #60a5fa; box-shadow: 0 0 20px rgba(59, 130, 246, 0.3); } }
-        .driver-card { animation: pulse-blue 2s infinite; border-width: 2px; }
-        #history-sidebar { transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1); z-index: 2000; }
-        .sidebar-open { transform: translateX(0) !important; }
+
+        /* Wolt-Style Bottom Sheet */
+        .bottom-sheet {
+            position: fixed; bottom: 0; left: 0; width: 100%;
+            background: white; border-top-left-radius: 30px; border-top-right-radius: 30px;
+            z-index: 100; box-shadow: 0 -10px 40px rgba(0,0,0,0.15);
+            padding: 24px; padding-bottom: env(safe-area-inset-bottom, 24px);
+            transform: translateY(100%); transition: transform 0.4s cubic-bezier(0.2, 1, 0.3, 1);
+        }
+        .sheet-visible { transform: translateY(0); }
+
+        .payout-text { color: #1e293b; font-size: 42px; font-weight: 900; letter-spacing: -1px; }
+        .btn-accept { background-color: #009de0; color: white; transition: all 0.2s; }
+        .btn-accept:active { transform: scale(0.96); background-color: #0082ba; }
+        
+        #overlay { background: #000; z-index: 5000; }
+        .decline-btn { position: absolute; top: 20px; right: 20px; background: white; padding: 10px 20px; border-radius: 20px; font-weight: 700; color: #cc0000; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
     </style>
 </head>
-<body class="pb-20">
+<body>
 
-    <div id="driver-overlay" class="fixed inset-0 z-[3000] bg-[#060a11] flex flex-col items-center justify-center">
-        <h1 class="text-5xl font-[900] italic uppercase mb-12 we-kleo-title text-center px-6">WE KLEO<br>DRIVER</h1>
-        <button onclick="startDriverMode()" class="px-12 py-6 bg-blue-600 rounded-[32px] text-white font-black text-2xl shadow-2xl active:scale-95 transition-all uppercase italic">Start Shift</button>
+    <div id="overlay" class="fixed inset-0 flex flex-col items-center justify-center p-10 text-center">
+        <h1 class="text-white text-4xl font-black italic mb-8 uppercase tracking-tighter">WE KLEO DRIVER</h1>
+        <button onclick="init()" class="bg-blue-500 text-white px-12 py-5 rounded-full font-black text-xl uppercase tracking-widest">Go Online</button>
     </div>
 
-    <div id="history-sidebar" class="fixed top-0 right-0 h-full w-80 bg-[#0a101a] z-[2000] p-6 transform translate-x-full shadow-2xl border-l border-white/10">
-        <div class="flex justify-between items-center mb-6">
-            <h2 class="text-xl font-black italic uppercase text-blue-400">Total Payout</h2>
-            <button onclick="toggleHistory()" class="text-2xl">✕</button>
-        </div>
-        <div class="bg-blue-600/10 p-8 rounded-[32px] mb-8 border border-blue-500/20 text-center">
-            <p class="text-[10px] uppercase font-bold text-slate-500 tracking-widest mb-2">Shift Earnings</p>
-            <p id="totalEarnings" class="text-5xl font-[900] text-white italic tracking-tighter">€0.00</p>
-        </div>
-        <div id="historyList" class="space-y-4 overflow-y-auto h-[60vh]"></div>
-    </div>
+    <div id="map-bg"></div>
+    <button class="decline-btn">Decline</button>
 
-    <div class="flex flex-col items-center pt-10 pb-6 border-b border-slate-900 mb-8 relative">
-        <button onclick="toggleHistory()" class="absolute right-6 top-10 bg-blue-600 p-3 rounded-full shadow-lg border border-blue-400/20 text-xl">📜</button>
-        <h1 class="text-4xl font-[900] italic uppercase we-kleo-title">WE KLEO</h1>
-        <p class="text-[10px] font-bold text-slate-500 uppercase tracking-[0.4em] mt-2">Delivery Fleet</p>
+    <div id="order-sheet" class="bottom-sheet">
+        <div class="w-12 h-1.5 bg-gray-200 rounded-full mx-auto mb-6"></div>
+        
+        <div id="sheet-content">
+            </div>
     </div>
-
-    <div id="driverList" class="max-w-md mx-auto px-6 space-y-6"></div>
 
     <script>
         const firebaseConfig = {
@@ -67,108 +70,77 @@
         };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
-        
-        let audioCtx = null, alarmInterval = null, isFirstLoad = true;
-        const FEE_PER_DELIVERY = 4.00;
-        
-        // --- YOUR RESTAURANT ADDRESS ---
-        const SHOP_ADDRESS = "Slovenska ulica 15, Maribor"; 
+        let audioCtx = null;
 
-        function startDriverMode() {
+        function init() {
             audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            document.getElementById('driver-overlay').style.display = 'none';
+            document.getElementById('overlay').style.display = 'none';
         }
 
-        function toggleHistory() { document.getElementById('history-sidebar').classList.toggle('sidebar-open'); }
+        db.ref('orders').on('value', (snapshot) => {
+            let activeOrder = null;
+            snapshot.forEach(child => {
+                const order = child.val();
+                if (order.status === "Ready" || order.status === "Delivering") {
+                    activeOrder = { id: child.key, ...order };
+                }
+            });
 
-        function playAlert() {
+            const sheet = document.getElementById('order-sheet');
+            if (activeOrder) {
+                renderSheet(activeOrder);
+                sheet.classList.add('sheet-visible');
+                playPing();
+            } else {
+                sheet.classList.remove('sheet-visible');
+            }
+        });
+
+        function renderSheet(order) {
+            const isPickup = order.status === "Ready";
+            const mapsUrl = `https://www.google.com/maps/dir/?api=1&origin=Slovenska+ulica+15+Maribor&destination=${encodeURIComponent(order.address)}&travelmode=bicycling`;
+            
+            document.getElementById('sheet-content').innerHTML = `
+                <div class="mb-2">
+                    <h1 class="payout-text">€4.00</h1>
+                    <p class="text-gray-500 font-semibold text-sm -mt-2">Payout for this delivery</p>
+                </div>
+
+                <div class="py-6 border-t border-gray-100 mt-4">
+                    <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Delivery from</p>
+                    <h2 class="text-xl font-extrabold text-slate-800">WE KLEO Kitchen</h2>
+                    <p class="text-gray-500 text-sm italic">Slovenska ulica 15, Maribor</p>
+                </div>
+
+                <div class="pb-6">
+                    <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Drop-off to</p>
+                    <h2 class="text-xl font-extrabold text-blue-600 truncate">${order.customer}</h2>
+                    <p class="text-gray-800 font-medium text-sm leading-tight">${order.address}</p>
+                </div>
+
+                <div class="flex gap-3 mb-6">
+                    <a href="${mapsUrl}" target="_blank" class="flex-1 bg-gray-100 text-center py-4 rounded-2xl font-bold text-gray-700">Open Maps</a>
+                    <a href="tel:${order.phone}" class="w-16 bg-gray-100 flex items-center justify-center rounded-2xl">📞</a>
+                </div>
+
+                <button onclick="updateStatus('${order.id}', '${isPickup ? 'Delivering' : 'Completed'}')" 
+                        class="btn-accept w-full py-5 rounded-2xl text-xl font-black uppercase tracking-tight">
+                    ${isPickup ? 'Accept' : 'Delivered'}
+                </button>
+            `;
+        }
+
+        function playPing() {
             if (!audioCtx) return;
             const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
             osc.connect(gain); gain.connect(audioCtx.destination);
-            osc.type = "square"; osc.frequency.setValueAtTime(660, audioCtx.currentTime);
-            gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
-            osc.start(); osc.stop(audioCtx.currentTime + 0.3);
+            osc.type = 'sine'; osc.frequency.setValueAtTime(880, audioCtx.currentTime);
+            gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            osc.start(); osc.stop(audioCtx.currentTime + 0.2);
         }
 
-        db.ref('orders').on('value', (snapshot) => {
-            const list = document.getElementById('driverList');
-            const historyList = document.getElementById('historyList');
-            let readyCount = 0, completedCount = 0;
-            list.innerHTML = ""; historyList.innerHTML = "";
-
-            snapshot.forEach((child) => {
-                const order = child.val();
-                if (order.status === "Ready" || order.status === "Delivering") {
-                    if (order.status === "Ready") readyCount++;
-                    renderDriverCard(child.key, order);
-                } else if (order.status === "Completed") {
-                    completedCount++;
-                    renderHistoryCard(order);
-                }
-            });
-
-            document.getElementById('totalEarnings').innerText = "€" + (completedCount * FEE_PER_DELIVERY).toFixed(2);
-            if (!isFirstLoad && readyCount > 0 && !alarmInterval) alarmInterval = setInterval(playAlert, 1500);
-            if (readyCount === 0) { clearInterval(alarmInterval); alarmInterval = null; }
-            isFirstLoad = false;
-        });
-
-        function renderDriverCard(id, order) {
-            const isDelivering = order.status === "Delivering";
-            const mapsUrl = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(SHOP_ADDRESS)}&destination=${encodeURIComponent(order.address)}&travelmode=driving`;
-            
-            const html = `
-                <div class="glass p-8 rounded-[40px] border border-slate-800 ${!isDelivering ? 'driver-card' : ''}">
-                    <div class="flex justify-between items-center mb-6">
-                        <div class="bg-blue-600 px-4 py-1 rounded-full shadow-lg">
-                            <span class="text-white text-[11px] font-[900] italic uppercase">PAYOUT €4.00</span>
-                        </div>
-                        <span class="text-[10px] text-slate-500 font-bold font-mono">${order.time.split(',')[1]}</span>
-                    </div>
-
-                    <div class="mb-6 flex gap-4">
-                        <div class="flex flex-col items-center">
-                            <div class="w-3 h-3 bg-blue-500 rounded-full shadow-[0_0_10px_#3b82f6]"></div>
-                            <div class="w-0.5 h-12 border-l border-dashed border-slate-700 my-1"></div>
-                            <div class="w-3 h-3 bg-green-500 rounded-full shadow-[0_0_10px_#22c55e]"></div>
-                        </div>
-                        <div class="flex flex-col justify-between h-20">
-                            <div>
-                                <p class="text-[9px] font-black text-slate-500 uppercase tracking-widest">Pickup From</p>
-                                <p class="text-sm font-bold text-white uppercase italic">${SHOP_ADDRESS}</p>
-                            </div>
-                            <div>
-                                <p class="text-[9px] font-black text-slate-500 uppercase tracking-widest">Drop-off To</p>
-                                <p class="text-sm font-bold text-blue-400 uppercase italic">${order.address}</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <h2 class="text-3xl font-[900] italic tracking-tighter uppercase mb-4 text-white">Client: ${order.customer}</h2>
-                    
-                    <div class="grid grid-cols-2 gap-3 mb-6">
-                        <a href="${mapsUrl}" target="_blank" class="flex items-center justify-center bg-slate-800 text-white py-5 rounded-2xl font-black text-xs border border-white/5 active:scale-95 transition-all italic">📍 GO TO MAPS</a>
-                        <a href="tel:${order.phone}" class="flex items-center justify-center bg-white/5 text-blue-400 py-5 rounded-2xl font-black text-xs border border-blue-400/20 active:scale-95 transition-all">📞 CALL CLIENT</a>
-                    </div>
-
-                    <button onclick="updateStatus('${id}', '${isDelivering ? 'Completed' : 'Delivering'}')" class="w-full ${isDelivering ? 'bg-green-600' : 'bg-blue-600'} text-white py-6 rounded-[28px] font-[900] italic uppercase text-lg active:scale-95 transition-all shadow-2xl">
-                        ${isDelivering ? 'Finish Delivery' : 'I am at Kitchen (Pick Up)'}
-                    </button>
-                    
-                    <div class="mt-6 pt-5 border-t border-white/5 text-center">
-                        <p class="text-[10px] font-bold text-slate-500 uppercase italic">Items: ${order.item} (${order.toppings})</p>
-                    </div>
-                </div>`;
-            document.getElementById('driverList').insertAdjacentHTML('beforeend', html);
-        }
-
-        function renderHistoryCard(order) {
-            const html = `<div class="bg-white/5 p-5 rounded-3xl border border-white/5 mb-3 text-sm shadow-xl"><div class="flex justify-between font-[900] text-white italic mb-1 uppercase"><span>${order.customer}</span><span class="text-green-400">+€4.00</span></div><p class="text-xs text-slate-500 font-bold">${order.address}</p></div>`;
-            document.getElementById('historyList').insertAdjacentHTML('afterbegin', html);
-        }
-
-        function updateStatus(id, newStatus) { db.ref('orders/' + id).update({ status: newStatus }); }
+        function updateStatus(id, s) { db.ref('orders/' + id).update({ status: s }); }
     </script>
 </body>
 </html>
