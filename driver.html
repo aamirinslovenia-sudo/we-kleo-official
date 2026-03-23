@@ -41,15 +41,10 @@
 
     <div id="map-bg"></div>
 
-    <div class="fixed top-[50px] left-0 w-full z-[150] px-6 flex justify-between items-center">
+    <div class="fixed top-[50px] left-0 w-full z-[150] px-6">
         <button onclick="toggleHistory()" class="w-12 h-12 bg-white/10 backdrop-blur-md rounded-2xl flex items-center justify-center text-white border border-white/10 active:scale-90 transition-all">
             <span class="text-2xl">≡</span>
         </button>
-        
-        <div onclick="toggleHistory()" class="px-5 py-3 bg-amber-500 rounded-2xl flex items-center gap-3 shadow-lg shadow-amber-500/20 active:scale-95 transition-all cursor-pointer">
-            <span class="text-[10px] font-black uppercase tracking-widest text-black">Shift Stats</span>
-            <span class="text-black font-bold" id="header-total">€0</span>
-        </div>
     </div>
 
     <div id="history-sidebar">
@@ -63,8 +58,7 @@
             <p id="history-total-large" class="text-5xl font-bold text-amber-400 font-['Space_Grotesk']">€0.00</p>
         </div>
 
-        <div id="history-list" class="space-y-4 overflow-y-auto h-[55vh] pr-2">
-            </div>
+        <div id="history-list" class="space-y-4 overflow-y-auto h-[55vh] pr-2"></div>
     </div>
 
     <div id="boot-screen" class="fixed inset-0 z-[3000] bg-[#0a0c10] flex flex-col items-center justify-center p-12 text-center">
@@ -158,9 +152,7 @@
                 }
             });
 
-            const earnings = (completedCount * 4).toFixed(2);
-            document.getElementById('header-total').innerText = "€" + Math.floor(earnings);
-            document.getElementById('history-total-large').innerText = "€" + earnings;
+            document.getElementById('history-total-large').innerText = "€" + (completedCount * 4).toFixed(2);
 
             const sheet = document.getElementById('order-sheet');
             if (active) {
