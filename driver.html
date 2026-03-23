@@ -9,8 +9,9 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;600;900&display=swap" rel="stylesheet">
     <style>
-        body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; font-family: 'Outfit', sans-serif; background: #000; }
-        #map-bg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #111827; z-index: 1; opacity: 0.6; }
+        /* Upgrade 3: Pure Black Background for Battery Saving */
+        body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; font-family: 'Outfit', sans-serif; background: #000000; }
+        #map-bg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #000000; z-index: 1; opacity: 0.4; }
         .glass { background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.3); }
         .dark-glass { background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(15px); border: 1px solid rgba(255, 255, 255, 0.1); }
         .bottom-sheet { position: fixed; bottom: 20px; left: 15px; right: 15px; border-radius: 35px; z-index: 100; transition: all 0.6s cubic-bezier(0.23, 1, 0.32, 1); padding: 30px; }
@@ -24,6 +25,10 @@
         .msg-driver { align-self: flex-end; background: #3b82f6; color: white; border-radius: 20px 20px 0 20px; padding: 12px 16px; margin-bottom: 8px; max-width: 80%; font-size: 14px; font-weight: 600; }
         .msg-admin { align-self: flex-start; background: #f1f5f9; color: #1e293b; border-radius: 20px 20px 20px 0; padding: 12px 16px; margin-bottom: 8px; max-width: 80%; font-size: 14px; font-weight: 600; }
         .currency { font-weight: 900; font-size: 54px; letter-spacing: -3px; color: #1e293b; line-height: 1; }
+        
+        /* Connection Pulse */
+        .status-online { background: #4ade80; box-shadow: 0 0 10px #4ade80; }
+        .status-offline { background: #ef4444; box-shadow: 0 0 10px #ef4444; }
     </style>
 </head>
 <body>
@@ -31,9 +36,10 @@
 
     <div class="fixed top-[50px] left-0 w-full z-[150] px-6 flex justify-between items-center">
         <button onclick="toggleHistory()" class="w-14 h-14 glass rounded-2xl flex items-center justify-center text-2xl shadow-xl active:scale-90 transition-all">≡</button>
+        
         <div class="dark-glass text-white px-5 py-3 rounded-2xl flex items-center gap-2">
-            <span class="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
-            <span class="text-[10px] font-black uppercase tracking-widest">Live Shift</span>
+            <span id="conn-dot" class="w-2 h-2 rounded-full animate-pulse status-online"></span>
+            <span id="conn-text" class="text-[10px] font-black uppercase tracking-widest">Live Shift</span>
         </div>
     </div>
 
@@ -82,7 +88,7 @@
         <div class="w-12 h-1 bg-slate-300 rounded-full mx-auto mb-8"></div>
         <div id="waiting-ui" class="text-center py-2"><p class="text-slate-900 font-black text-xl uppercase italic">Online & Active</p><p class="text-slate-400 text-xs">Scanning...</p></div>
         <div id="order-ui" class="hidden">
-            <div class="flex justify-between items-end mb-8"><div><div class="currency">€4.00</div><p class="text-blue-500 font-black text-[10px] uppercase">Guaranteed</p></div><button onclick="location.reload()" class="bg-red-50 text-red-500 px-4 py-2 rounded-xl text-[10px] font-black">Decline</button></div>
+            <div class="flex justify-between items-end mb-8"><div><div class="currency">€4.00</div><p class="text-blue-500 font-black text-[10px] uppercase">Guaranteed</p></div><button onclick="confirmDecline()" class="bg-red-50 text-red-500 px-4 py-2 rounded-xl text-[10px] font-black">Decline</button></div>
             <div class="bg-white/50 rounded-[30px] p-6 mb-8 border border-white">
                 <div class="mb-6 flex gap-4"><div class="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center text-blue-600 font-bold">1</div><div><p class="text-[9px] font-black text-slate-400 uppercase">Pickup</p><h2 class="text-lg font-black text-slate-800">KLEO Kitchen</h2><p class="text-slate-500 text-xs">Slovenska ulica 15</p></div></div>
                 <div class="flex gap-4"><div class="w-10 h-10 bg-indigo-100 rounded-xl flex items-center justify-center text-indigo-600 font-bold">2</div><div class="flex-1"><p class="text-[9px] font-black text-slate-400 uppercase">Drop</p><h2 id="c-name" class="text-lg font-black text-slate-800 truncate uppercase">---</h2><p id="c-addr" class="text-indigo-600 text-sm font-bold truncate underline">---</p></div></div>
@@ -96,11 +102,25 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
         
-        // SESSION ID for claiming logic
         const driverId = "D-" + Math.floor(Math.random() * 10000);
-        
-        let currentOrder = null; let audioCtx = null; let activeTicketId = null; 
-        let alertInterval = null; 
+        let currentOrder = null; let audioCtx = null; let activeTicketId = null; let alertInterval = null; 
+
+        // Monitor Connection Status
+        db.ref(".info/connected").on("value", (snap) => {
+            const dot = document.getElementById('conn-dot');
+            const txt = document.getElementById('conn-text');
+            if (snap.val() === true) {
+                dot.className = "w-2 h-2 rounded-full animate-pulse status-online";
+                txt.innerText = "Live Shift";
+            } else {
+                dot.className = "w-2 h-2 rounded-full status-offline";
+                txt.innerText = "Offline";
+            }
+        });
+
+        function confirmDecline() {
+            if(confirm("Are you sure you want to decline this €4.00 task?")) location.reload();
+        }
 
         function toggleHistory() { document.getElementById('history-sidebar').classList.toggle('sidebar-active'); }
         function openChat() { document.getElementById('chat-overlay').classList.add('chat-active'); document.getElementById('unread-dot').classList.add('hidden'); }
@@ -153,32 +173,18 @@
         });
 
         db.ref('orders').on('value', (snap) => {
-            let active = null; let totalCompletedCount = 0; const list = document.getElementById('history-list'); list.innerHTML = "";
-            
+            let active = null; let totalComp = 0; const list = document.getElementById('history-list'); list.innerHTML = "";
             snap.forEach(c => {
                 const o = c.val(); 
-                
-                // 1. ACTIVE ORDER LOGIC (Claiming)
                 if ((o.status === "Ready" && !o.claimedBy) || (o.status === "Delivering" && o.claimedBy === driverId)) {
                     active = {id: c.key, ...o};
                 }
-                
-                // 2. GLOBAL HISTORY LOGIC (Shows all money earned today)
                 if (o.status === "Completed") { 
-                    totalCompletedCount++; 
-                    list.insertAdjacentHTML('afterbegin', `
-                        <div class="bg-slate-50 p-4 rounded-2xl flex justify-between items-center mb-2">
-                            <div class="truncate">
-                                <p class="text-slate-900 font-bold text-sm">${o.customer}</p>
-                                <p class="text-slate-400 text-[10px] uppercase">${o.address}</p>
-                            </div>
-                            <div class="text-blue-600 font-black">€4.00</div>
-                        </div>`); 
+                    totalComp++; 
+                    list.insertAdjacentHTML('afterbegin', `<div class="bg-slate-50 p-4 rounded-2xl flex justify-between items-center mb-2"><div class="truncate"><p class="text-slate-900 font-bold text-sm">${o.customer}</p><p class="text-slate-400 text-[10px] uppercase">${o.address}</p></div><div class="text-blue-600 font-black">€4.00</div></div>`); 
                 }
             });
-
-            // Update today's total based on ALL completed orders
-            document.getElementById('history-total-large').innerText = "€" + (totalCompletedCount * 4).toFixed(2);
+            document.getElementById('history-total-large').innerText = "€" + (totalComp * 4).toFixed(2);
             
             if (active) {
                 currentOrder = active; document.getElementById('c-name').innerText = active.customer; document.getElementById('c-addr').innerText = active.address; document.getElementById('c-phone').href = "tel:" + active.phone;
@@ -192,13 +198,10 @@
                         alertInterval = setInterval(() => { playBeep(800, 0.5); }, 1500); 
                     }
                 } else {
-                    clearInterval(alertInterval);
-                    alertInterval = null;
+                    clearInterval(alertInterval); alertInterval = null;
                 }
             } else { 
-                currentOrder = null;
-                clearInterval(alertInterval);
-                alertInterval = null;
+                currentOrder = null; clearInterval(alertInterval); alertInterval = null;
                 document.getElementById('waiting-ui').classList.remove('hidden'); document.getElementById('order-ui').classList.add('hidden'); document.getElementById('order-sheet').classList.replace('sheet-expanded', 'sheet-minimized'); 
             }
         });
@@ -216,14 +219,11 @@
         function playBeep(f, d) { 
             if (!audioCtx) return; 
             if (audioCtx.state === 'suspended') audioCtx.resume();
-            const o = audioCtx.createOscillator(); 
-            const g = audioCtx.createGain(); 
-            o.connect(g); 
-            g.connect(audioCtx.destination); 
+            const o = audioCtx.createOscillator(); const g = audioCtx.createGain(); 
+            o.connect(g); g.connect(audioCtx.destination); 
             o.frequency.setValueAtTime(f, audioCtx.currentTime); 
             g.gain.setValueAtTime(0.1, audioCtx.currentTime); 
-            o.start(); 
-            o.stop(audioCtx.currentTime + d); 
+            o.start(); o.stop(audioCtx.currentTime + d); 
         }
     </script>
 </body>
