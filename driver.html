@@ -35,7 +35,7 @@
         <button onclick="startDriverMode()" class="px-12 py-6 bg-blue-600 rounded-[32px] text-white font-black text-2xl shadow-2xl shadow-blue-500/20 hover:scale-105 active:scale-95 transition-all uppercase italic">
             Start Shift
         </button>
-        <p class="text-slate-500 mt-6 text-[10px] uppercase font-bold tracking-widest">Enables Order Alerts</p>
+        <p class="text-slate-500 mt-6 text-[10px] uppercase font-bold tracking-widest">Enables Auto-Alerts & Sound</p>
     </div>
 
     <div class="flex flex-col items-center pt-10 pb-6 border-b border-slate-900 mb-8">
@@ -44,11 +44,7 @@
     </div>
 
     <div id="driverList" class="max-w-md mx-auto px-6 space-y-6">
-        <div id="emptyState" class="text-center py-20">
-            <p class="text-slate-600 font-bold uppercase text-xs tracking-widest">No active deliveries</p>
-            <p class="text-slate-800 text-sm mt-2 italic">Keep this app open to hear alerts...</p>
         </div>
-    </div>
 
     <script>
         const firebaseConfig = {
@@ -77,13 +73,11 @@
             if (!audioCtx) return;
             const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
-            osc.type = "square"; // Sharper sound for drivers
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.type = "square";
             osc.frequency.setValueAtTime(660, audioCtx.currentTime);
-            gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-            osc.start();
-            osc.stop(audioCtx.currentTime + 0.3);
+            gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+            osc.start(); osc.stop(audioCtx.currentTime + 0.3);
         }
 
         function startAlarm() { if (!alarmInterval) alarmInterval = setInterval(playAlert, 1500); }
@@ -104,9 +98,8 @@
 
             if (!isFirstLoad && readyCount > 0) startAlarm();
             if (readyCount === 0) stopAlarm();
-            
             if (list.innerHTML === "") {
-                list.innerHTML = `<div class="text-center py-20"><p class="text-slate-600 font-bold uppercase text-xs tracking-widest">No active deliveries</p></div>`;
+                list.innerHTML = `<div class="text-center py-20 text-slate-700 font-bold uppercase text-xs tracking-[0.3em]">No Deliveries Pending</div>`;
             }
             isFirstLoad = false;
         });
@@ -127,20 +120,24 @@
                     <h2 class="text-3xl font-[900] italic tracking-tighter uppercase mb-1 text-white">${order.customer}</h2>
                     <p class="text-blue-400 font-bold text-sm mb-6 underline decoration-blue-900 underline-offset-4">${order.address}</p>
 
-                    <div class="space-y-3">
-                        <a href="${mapsUrl}" target="_blank" class="flex items-center justify-center gap-2 w-full bg-slate-800/50 text-white py-4 rounded-2xl font-bold text-sm border border-white/5 active:scale-95 transition-all">
-                            📍 Start Navigation
+                    <div class="grid grid-cols-2 gap-3 mb-6">
+                        <a href="${mapsUrl}" target="_blank" class="flex items-center justify-center gap-2 bg-slate-800/50 text-white py-4 rounded-2xl font-bold text-xs border border-white/5 active:scale-95 transition-all">
+                            📍 Route
                         </a>
                         
-                        ${!isDelivering ? 
-                            `<button onclick="updateStatus('${id}', 'Delivering')" class="w-full bg-blue-600 text-white py-5 rounded-[24px] font-[900] italic uppercase shadow-xl active:scale-95 transition-all">Accept Pickup</button>` :
-                            `<button onclick="updateStatus('${id}', 'Completed')" class="w-full bg-green-600 text-white py-5 rounded-[24px] font-[900] italic uppercase shadow-xl active:scale-95 transition-all">Mark Delivered</button>`
-                        }
+                        <a href="tel:${order.phone}" class="flex items-center justify-center gap-2 bg-white/5 text-blue-400 py-4 rounded-2xl font-bold text-xs border border-blue-400/20 active:scale-95 transition-all">
+                            📞 Call Client
+                        </a>
                     </div>
 
+                    ${!isDelivering ? 
+                        `<button onclick="updateStatus('${id}', 'Delivering')" class="w-full bg-blue-600 text-white py-5 rounded-[24px] font-[900] italic uppercase shadow-xl active:scale-95 transition-all">Accept Pickup</button>` :
+                        `<button onclick="updateStatus('${id}', 'Completed')" class="w-full bg-green-600 text-white py-5 rounded-[24px] font-[900] italic uppercase shadow-xl active:scale-95 transition-all">Mark Delivered</button>`
+                    }
+
                     <div class="mt-6 pt-4 border-t border-white/5">
-                        <p class="text-[10px] text-slate-600 font-bold uppercase tracking-widest">Order Details:</p>
-                        <p class="text-sm font-bold text-slate-400 mt-1 italic">${order.item} (${order.toppings})</p>
+                        <p class="text-[10px] text-slate-600 font-bold uppercase tracking-widest">Package Contents:</p>
+                        <p class="text-sm font-bold text-slate-400 mt-1 italic">${order.item} • ${order.toppings}</p>
                     </div>
                 </div>
             `;
