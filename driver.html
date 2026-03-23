@@ -95,7 +95,8 @@
         const firebaseConfig = { apiKey: "AIzaSyBD_YmzFTA2OKn64h22Z9yM7pCAmmlTl68", authDomain: "we-kleo.firebaseapp.com", databaseURL: "https://we-kleo-default-rtdb.europe-west1.firebasedatabase.app", projectId: "we-kleo", storageBucket: "we-kleo.firebasestorage.app", messagingSenderId: "87105321281", appId: "1:87105321281:web:ec83e4472e5756182749c0" };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
-        let currentOrder = null; let audioCtx = null; let activeTicketId = null; let lastOrderStatus = null;
+        let currentOrder = null; let audioCtx = null; let activeTicketId = null; 
+        let alertInterval = null; // Track repeating alert
 
         function toggleHistory() { document.getElementById('history-sidebar').classList.toggle('sidebar-active'); }
         function openChat() { document.getElementById('chat-overlay').classList.add('chat-active'); document.getElementById('unread-dot').classList.add('hidden'); }
@@ -156,19 +157,30 @@
                 else if (o.status === "Completed") { count++; list.insertAdjacentHTML('afterbegin', `<div class="bg-slate-50 p-4 rounded-2xl flex justify-between items-center"><div class="truncate"><p class="text-slate-900 font-bold text-sm">${o.customer}</p><p class="text-slate-400 text-[10px] uppercase">${o.address}</p></div><div class="text-blue-600 font-black">€4.00</div></div>`); }
             });
             document.getElementById('history-total-large').innerText = "€" + (count * 4).toFixed(2);
+            
             if (active) {
                 currentOrder = active; document.getElementById('c-name').innerText = active.customer; document.getElementById('c-addr').innerText = active.address; document.getElementById('c-phone').href = "tel:" + active.phone;
                 document.getElementById('action-btn').innerText = active.status === "Ready" ? "Confirm Pickup" : "End Mission";
                 document.getElementById('waiting-ui').classList.add('hidden'); document.getElementById('order-ui').classList.remove('hidden');
                 document.getElementById('order-sheet').classList.replace('sheet-minimized', 'sheet-expanded'); 
                 
-                // Sound logic: Trigger beep if order status JUST changed to Ready
-                if (active.status === "Ready" && lastOrderStatus !== "Ready") {
-                    playBeep(800, 0.5);
+                // REPEATING ALERT LOGIC:
+                if (active.status === "Ready") {
+                    if (!alertInterval) {
+                        playBeep(800, 0.5); // Immediate first beep
+                        alertInterval = setInterval(() => {
+                            playBeep(800, 0.5);
+                        }, 10000); // Repeats every 10 seconds
+                    }
+                } else {
+                    // Stop alert if status changes from Ready to Delivering
+                    clearInterval(alertInterval);
+                    alertInterval = null;
                 }
-                lastOrderStatus = active.status;
             } else { 
-                currentOrder = null; lastOrderStatus = null;
+                currentOrder = null;
+                clearInterval(alertInterval);
+                alertInterval = null;
                 document.getElementById('waiting-ui').classList.remove('hidden'); document.getElementById('order-ui').classList.add('hidden'); document.getElementById('order-sheet').classList.replace('sheet-expanded', 'sheet-minimized'); 
             }
         });
