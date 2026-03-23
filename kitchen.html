@@ -14,59 +14,73 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=Outfit:wght@400;900&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Inter', sans-serif; overflow-x: hidden; background-color: #060a11; }
-        @keyframes pulse-red {
-            0%, 100% { border-color: rgba(59, 130, 246, 0.3); }
-            50% { border-color: #ef4444; box-shadow: 0 0 40px rgba(239, 68, 68, 0.4); }
+        body { font-family: 'Outfit', sans-serif; overflow-x: hidden; background-color: #000000; color: white; }
+        
+        /* Rush Mode Animations */
+        @keyframes urgent-blink {
+            0%, 100% { border-color: #ef4444; box-shadow: 0 0 20px rgba(239, 68, 68, 0.2); }
+            50% { border-color: #7f1d1d; box-shadow: 0 0 50px rgba(239, 68, 68, 0.6); }
         }
+        .order-card-urgent { animation: urgent-blink 1s infinite; border-width: 4px; }
+        .order-card-warning { border-color: #f59e0b; box-shadow: 0 0 30px rgba(245, 158, 11, 0.2); border-width: 3px; }
+        
         @keyframes text-shimmer {
             0% { color: #3b82f6; text-shadow: 0 0 10px rgba(59, 130, 246, 0.5); }
             50% { color: #60a5fa; text-shadow: 0 0 30px rgba(96, 165, 250, 0.8); }
             100% { color: #3b82f6; text-shadow: 0 0 10px rgba(59, 130, 246, 0.5); }
         }
-        .urgent-card { animation: pulse-red 1s infinite; border-width: 4px; }
-        .glass { background: rgba(255, 255, 255, 0.02); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.05); }
-        .we-kleo-title { animation: text-shimmer 3s infinite; }
+        .glass { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.08); }
+        .we-kleo-title { animation: text-shimmer 3s infinite; font-family: 'Outfit'; }
         #history-sidebar { transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1); z-index: 2000; }
         .sidebar-open { transform: translateX(0) !important; }
+        
+        .driver-badge { font-size: 10px; font-weight: 900; padding: 4px 10px; border-radius: 50px; text-transform: uppercase; }
+        .driver-busy { background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.2); }
+        .driver-waiting { background: rgba(16, 185, 129, 0.1); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.2); }
     </style>
 </head>
-<body class="text-slate-100 min-h-screen pb-20">
+<body class="min-h-screen pb-20">
 
-    <div id="sync-overlay" class="fixed inset-0 z-[3000] bg-[#060a11] flex flex-col items-center justify-center">
-        <h1 class="text-7xl font-[900] italic tracking-tighter uppercase mb-12 we-kleo-title">WE KLEO</h1>
-        <button onclick="startKitchen()" class="px-12 py-6 bg-blue-600 rounded-[32px] text-white font-black text-2xl shadow-2xl shadow-blue-500/20 hover:scale-105 active:scale-95 transition-all uppercase italic">
-            Open Kitchen System
+    <div id="sync-overlay" class="fixed inset-0 z-[3000] bg-[#000] flex flex-col items-center justify-center text-center px-6">
+        <h1 class="text-8xl font-[900] italic tracking-tighter uppercase mb-6 we-kleo-title">WE KLEO</h1>
+        <p class="text-slate-500 font-bold uppercase tracking-[0.5em] mb-12">Kitchen Command Center</p>
+        <button onclick="startKitchen()" class="px-16 py-8 bg-blue-600 rounded-[40px] text-white font-black text-3xl shadow-[0_0_50px_rgba(59,130,246,0.4)] hover:scale-105 active:scale-95 transition-all uppercase italic">
+            Enter Kitchen
         </button>
     </div>
 
-    <div id="history-sidebar" class="fixed top-0 right-0 h-full w-80 bg-[#0a101a] z-[2000] p-6 transform translate-x-full shadow-2xl border-l border-white/10">
+    <div class="max-w-7xl mx-auto px-6 pt-6">
+        <div class="glass rounded-[30px] p-4 flex flex-wrap items-center justify-between gap-4">
+            <div class="flex items-center gap-4">
+                <span class="text-xs font-black uppercase text-slate-500 tracking-widest ml-2">Live Logistics:</span>
+                <div id="driver-status-container" class="flex gap-2">
+                    <p class="text-[10px] text-slate-600 font-bold italic">Checking for drivers...</p>
+                </div>
+            </div>
+            <div id="clock" class="text-xl font-black text-blue-400 tracking-tighter mr-2">00:00:00</div>
+        </div>
+    </div>
+
+    <div id="history-sidebar" class="fixed top-0 right-0 h-full w-80 bg-[#0a0a0a] z-[2000] p-6 transform translate-x-full shadow-2xl border-l border-white/10">
         <div class="flex justify-between items-center mb-8">
             <h2 class="text-xl font-black italic uppercase text-blue-400">Past Orders</h2>
             <button onclick="toggleHistory()" class="text-slate-500 hover:text-white text-2xl font-bold">✕</button>
         </div>
-        <div id="historyList" class="space-y-4 overflow-y-auto h-[85vh] pr-2">
-            </div>
+        <div id="historyList" class="space-y-4 overflow-y-auto h-[85vh] pr-2"></div>
     </div>
 
     <div class="max-w-7xl mx-auto p-6">
-        
-        <div class="flex flex-col items-center mb-12 py-10 border-b border-slate-900 relative">
-            <button onclick="toggleHistory()" class="absolute right-0 top-10 bg-white/5 px-6 py-2 rounded-full border border-white/10 text-xs font-bold uppercase tracking-widest hover:bg-white/10 transition-all">
-                📜 View History
+        <div class="flex flex-col items-center mb-16 py-10 border-b border-white/5 relative">
+            <button onclick="toggleHistory()" class="absolute right-0 top-10 glass px-6 py-3 rounded-full text-[10px] font-black uppercase tracking-widest hover:bg-white/5 transition-all">
+                📜 Production History
             </button>
-            <h1 class="text-6xl font-[900] italic tracking-tighter uppercase mb-2 we-kleo-title">WE KLEO</h1>
-            <div class="flex items-center gap-3">
-                <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-                <p class="text-slate-500 font-bold text-xs uppercase tracking-[0.4em]">Kitchen Command</p>
-            </div>
-            <p id="clock" class="text-4xl font-black text-slate-200 tracking-tighter mt-6">00:00:00</p>
+            <h1 class="text-7xl font-[900] italic tracking-tighter uppercase mb-2 we-kleo-title">WE KLEO</h1>
+            <p class="text-slate-500 font-bold text-xs uppercase tracking-[0.4em]">Maribor Production Unit</p>
         </div>
 
-        <div id="orderList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
-            </div>
+        <div id="orderList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"></div>
     </div>
 
     <script>
@@ -86,49 +100,60 @@
         let alarmInterval = null;
         let activeCount = 0;
 
-        // CLOCK LOGIC
         setInterval(() => {
             document.getElementById('clock').innerText = new Date().toLocaleTimeString('sl-SI');
+            updateTimers();
         }, 1000);
 
         function startKitchen() {
             audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            const osc = audioCtx.createOscillator();
-            osc.connect(audioCtx.destination);
-            osc.start(); osc.stop(audioCtx.currentTime + 0.1);
+            if(audioCtx.state === 'suspended') audioCtx.resume();
+            playKitchenBell(); 
             document.getElementById('sync-overlay').style.opacity = "0";
             setTimeout(() => { document.getElementById('sync-overlay').style.display = "none"; }, 500);
         }
 
-        function playBeep() {
+        // Upgrade 3: Professional Kitchen Bell Sound
+        function playKitchenBell() {
             if (!audioCtx) return;
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.connect(gain); gain.connect(audioCtx.destination);
-            osc.type = "sine";
-            osc.frequency.setValueAtTime(800, audioCtx.currentTime);
-            gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
-            osc.start(); osc.stop(audioCtx.currentTime + 0.2);
+            const t = audioCtx.currentTime;
+            [800, 1000].forEach((freq, i) => {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain); gain.connect(audioCtx.destination);
+                osc.frequency.setValueAtTime(freq, t + (i * 0.1));
+                gain.gain.setValueAtTime(0.1, t + (i * 0.1));
+                gain.gain.exponentialRampToValueAtTime(0.001, t + (i * 0.1) + 0.5);
+                osc.start(t + (i * 0.1)); osc.stop(t + (i * 0.1) + 0.5);
+            });
         }
 
-        function startAlarm() { if (!alarmInterval) alarmInterval = setInterval(playBeep, 1200); }
+        function startAlarm() { if (!alarmInterval) alarmInterval = setInterval(playKitchenBell, 3000); }
         function stopAlarm() { clearInterval(alarmInterval); alarmInterval = null; }
 
         function toggleHistory() {
             document.getElementById('history-sidebar').classList.toggle('sidebar-open');
         }
 
-        // UNIFIED ENGINE (Fixes the Sync Issue)
+        // Upgrade 2: Driver Monitor
         db.ref('orders').on('value', (snapshot) => {
             const orderList = document.getElementById('orderList');
             const historyList = document.getElementById('historyList');
+            const driverContainer = document.getElementById('driver-status-container');
+            
             orderList.innerHTML = "";
             historyList.innerHTML = "";
+            let drivers = {};
             activeCount = 0;
 
             snapshot.forEach((child) => {
                 const order = child.val();
                 const id = child.key;
+
+                // Track Drivers
+                if(order.claimedBy) {
+                    drivers[order.claimedBy] = (order.status === "Delivering") ? "Busy" : "Waiting";
+                }
 
                 if (order.status === "New") {
                     activeCount++;
@@ -138,41 +163,87 @@
                 }
             });
 
+            // Render Driver Badges
+            driverContainer.innerHTML = Object.keys(drivers).map(dId => `
+                <div class="driver-badge ${drivers[dId] === 'Busy' ? 'driver-busy' : 'driver-waiting'}">
+                    ${dId}: ${drivers[dId]}
+                </div>
+            `).join('') || '<p class="text-[10px] text-slate-700 italic">No drivers active</p>';
+
             if (activeCount > 0 && !alarmInterval) startAlarm();
             if (activeCount === 0) stopAlarm();
         });
 
+        // Upgrade 4: Professional Card UI with Live Timers
         function renderOrder(id, order) {
+            const timestamp = order.timestamp || Date.now();
             const html = `
-                <div class="glass border border-slate-800 p-8 rounded-[40px] shadow-2xl urgent-card transition-all">
+                <div id="card-${id}" data-time="${timestamp}" class="glass p-8 rounded-[40px] border border-white/5 transition-all duration-500">
                     <div class="flex justify-between items-start mb-6">
                         <div>
-                            <span class="bg-red-600 text-[10px] px-3 py-1 rounded-full font-black uppercase mb-2 inline-block animate-pulse">New Order</span>
-                            <h2 class="text-3xl font-[900] italic tracking-tighter uppercase text-white">${order.item}</h2>
+                            <div class="flex items-center gap-2 mb-2">
+                                <span class="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></span>
+                                <span class="text-[10px] font-black uppercase text-blue-400 tracking-widest">In Production</span>
+                            </div>
+                            <h2 class="text-4xl font-[900] italic tracking-tighter uppercase text-white leading-tight">${order.item}</h2>
                         </div>
-                        <p class="text-2xl font-black text-blue-400">${order.totalPrice}</p>
+                        <p class="text-xl font-black text-slate-500">${order.totalPrice}</p>
                     </div>
-                    <div class="bg-blue-600/10 rounded-3xl p-5 mb-8 border border-blue-500/20 text-center text-blue-100 italic">"${order.toppings}"</div>
-                    <div class="space-y-2 mb-8 text-xs text-slate-400">
-                        <p><span class="font-bold text-slate-100 uppercase">Customer:</span> ${order.customer}</p>
-                        <p><span class="font-bold text-slate-100 uppercase">Phone:</span> ${order.phone}</p>
-                        <p><span class="font-bold text-slate-100 uppercase">Address:</span> ${order.address}</p>
+                    
+                    <div class="bg-white/5 rounded-3xl p-5 mb-8 border border-white/5 text-center text-slate-300 italic text-lg">
+                        "${order.toppings}"
                     </div>
-                    <button onclick="setStatus('${id}', 'Ready')" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-[900] py-5 rounded-[24px] text-lg shadow-xl uppercase italic tracking-tighter">Ready for Driver</button>
+
+                    <div class="grid grid-cols-2 gap-4 mb-8">
+                        <div class="glass p-4 rounded-2xl">
+                            <p class="text-[9px] font-black text-slate-500 uppercase mb-1">Elapsed Time</p>
+                            <p id="timer-${id}" class="text-xl font-black text-white tabular-nums">00:00</p>
+                        </div>
+                        <div class="glass p-4 rounded-2xl">
+                            <p class="text-[9px] font-black text-slate-500 uppercase mb-1">Customer</p>
+                            <p class="text-sm font-bold text-white truncate uppercase">${order.customer}</p>
+                        </div>
+                    </div>
+
+                    <button onclick="setStatus('${id}', 'Ready')" class="w-full bg-white text-black hover:bg-blue-500 hover:text-white font-black py-6 rounded-[28px] text-lg shadow-xl uppercase italic tracking-tighter transition-all">
+                        Mark as Ready
+                    </button>
                 </div>
             `;
             document.getElementById('orderList').insertAdjacentHTML('afterbegin', html);
         }
 
+        // Upgrade 1: Rush Mode Timer Logic
+        function updateTimers() {
+            document.querySelectorAll('[id^="card-"]').forEach(card => {
+                const id = card.id.replace('card-', '');
+                const startTime = parseInt(card.getAttribute('data-time'));
+                const elapsedSec = Math.floor((Date.now() - startTime) / 1000);
+                
+                const mins = Math.floor(elapsedSec / 60);
+                const secs = elapsedSec % 60;
+                document.getElementById(`timer-${id}`).innerText = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+
+                // Color Coding
+                if (mins >= 20) {
+                    card.className = "glass p-8 rounded-[40px] border transition-all duration-500 order-card-urgent";
+                    document.getElementById(`timer-${id}`).className = "text-xl font-black text-red-500 animate-pulse";
+                } else if (mins >= 10) {
+                    card.className = "glass p-8 rounded-[40px] border transition-all duration-500 order-card-warning";
+                    document.getElementById(`timer-${id}`).className = "text-xl font-black text-orange-500";
+                }
+            });
+        }
+
         function renderHistory(id, order) {
             const html = `
-                <div class="bg-white/5 p-4 rounded-2xl border border-white/5 mb-3 text-sm">
-                    <div class="flex justify-between items-center mb-2">
+                <div class="glass p-5 rounded-3xl mb-3">
+                    <div class="flex justify-between items-center mb-1">
                         <p class="font-black text-white italic uppercase truncate w-32">${order.item}</p>
                         <span class="text-[9px] text-blue-400 font-bold uppercase tracking-widest">${order.status}</span>
                     </div>
-                    <p class="text-xs text-slate-500 mb-3">${order.customer}</p>
-                    <button onclick="setStatus('${id}', 'New')" class="text-[9px] font-black uppercase text-blue-500 hover:underline tracking-widest">↩ Undo Dispatch</button>
+                    <p class="text-[10px] text-slate-500 mb-4">Completed for ${order.customer}</p>
+                    <button onclick="setStatus('${id}', 'New')" class="w-full py-2 rounded-xl bg-white/5 text-[9px] font-black uppercase text-slate-400 hover:text-white tracking-widest transition-all">↩ Undo</button>
                 </div>
             `;
             document.getElementById('historyList').insertAdjacentHTML('afterbegin', html);
