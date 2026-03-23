@@ -34,7 +34,7 @@
 
     <div id="driver-overlay" class="fixed inset-0 z-[3000] bg-[#060a11] flex flex-col items-center justify-center">
         <h1 class="text-5xl font-[900] italic uppercase mb-12 we-kleo-title text-center px-6">WE KLEO<br>DRIVER</h1>
-        <button onclick="startDriverMode()" class="px-12 py-6 bg-blue-600 rounded-[32px] text-white font-black text-2xl shadow-2xl shadow-blue-500/20 hover:scale-105 active:scale-95 transition-all uppercase italic">Start Shift</button>
+        <button onclick="startDriverMode()" class="px-12 py-6 bg-blue-600 rounded-[32px] text-white font-black text-2xl shadow-2xl shadow-blue-500/20 active:scale-95 transition-all uppercase italic">Start Shift</button>
     </div>
 
     <div id="history-sidebar" class="fixed top-0 right-0 h-full w-80 bg-[#0a101a] z-[2000] p-6 transform translate-x-full shadow-2xl border-l border-white/10">
@@ -46,20 +46,16 @@
             <p class="text-[10px] uppercase font-bold text-slate-500 tracking-widest mb-2">Shift Earnings</p>
             <p id="totalEarnings" class="text-5xl font-[900] text-white italic tracking-tighter">€0.00</p>
         </div>
-        <div id="historyList" class="space-y-4 overflow-y-auto h-[60vh] pr-2">
-            </div>
+        <div id="historyList" class="space-y-4 overflow-y-auto h-[60vh] pr-2"></div>
     </div>
 
     <div class="flex flex-col items-center pt-10 pb-6 border-b border-slate-900 mb-8 relative">
-        <button onclick="toggleHistory()" class="absolute right-6 top-10 bg-blue-600 p-3 rounded-full shadow-lg shadow-blue-900/40 border border-blue-400/20">
-            <span class="text-xl">📜</span>
-        </button>
+        <button onclick="toggleHistory()" class="absolute right-6 top-10 bg-blue-600 p-3 rounded-full shadow-lg border border-blue-400/20">📜</button>
         <h1 class="text-4xl font-[900] italic uppercase we-kleo-title">WE KLEO</h1>
         <p class="text-[10px] font-bold text-slate-500 uppercase tracking-[0.4em] mt-2">Delivery Fleet</p>
     </div>
 
-    <div id="driverList" class="max-w-md mx-auto px-6 space-y-6">
-        </div>
+    <div id="driverList" class="max-w-md mx-auto px-6 space-y-6"></div>
 
     <script>
         const firebaseConfig = {
@@ -76,6 +72,7 @@
         
         let audioCtx = null, alarmInterval = null, isFirstLoad = true;
         const FEE_PER_DELIVERY = 4.00;
+        const RESTAURANT_ADDRESS = "Slovenska ulica 15, 2000 Maribor"; // Your Store Address
 
         function startDriverMode() {
             audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -114,38 +111,39 @@
             document.getElementById('totalEarnings').innerText = "€" + (completedCount * FEE_PER_DELIVERY).toFixed(2);
             if (!isFirstLoad && readyCount > 0 && !alarmInterval) alarmInterval = setInterval(playAlert, 1500);
             if (readyCount === 0) { clearInterval(alarmInterval); alarmInterval = null; }
-            if (list.innerHTML === "") list.innerHTML = `<div class="text-center py-20 text-slate-700 font-bold uppercase text-xs tracking-[0.3em]">No Active Deliveries</div>`;
             isFirstLoad = false;
         });
 
-        function renderDriverCard(id, order) {
+        async function renderDriverCard(id, order) {
             const isDelivering = order.status === "Delivering";
-            const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(order.address)}`;
+            const mapsUrl = `https://www.google.com/maps/dir/${encodeURIComponent(RESTAURANT_ADDRESS)}/${encodeURIComponent(order.address)}`;
             
             const html = `
                 <div class="glass p-8 rounded-[40px] border border-slate-800 ${!isDelivering ? 'driver-card' : ''}">
                     <div class="flex justify-between items-center mb-6">
-                        <div class="earning-badge px-5 py-2 rounded-full shadow-lg shadow-blue-900/40">
-                            <span class="text-white text-sm font-[900] italic">EARN €4.00</span>
+                        <div class="earning-badge px-5 py-2 rounded-full shadow-lg">
+                            <span class="text-white text-sm font-[900] italic uppercase">EARN €4.00</span>
                         </div>
                         <span class="text-[10px] text-slate-500 font-bold font-mono">${order.time.split(',')[1]}</span>
                     </div>
 
                     <h2 class="text-4xl font-[900] italic tracking-tighter uppercase mb-1 text-white">${order.customer}</h2>
-                    <p class="text-blue-400 font-bold text-lg mb-6 underline underline-offset-8 decoration-blue-900 leading-tight">${order.address}</p>
+                    <p class="text-blue-400 font-bold text-lg mb-4 leading-tight">${order.address}</p>
+                    
+                    <div class="flex items-center gap-2 mb-6 text-slate-500 font-bold text-xs uppercase tracking-widest bg-white/5 p-3 rounded-xl border border-white/5">
+                        <span>📍 Shop</span>
+                        <span class="text-blue-600">→</span>
+                        <span>🏠 Drop-off</span>
+                    </div>
                     
                     <div class="grid grid-cols-2 gap-3 mb-6">
-                        <a href="${mapsUrl}" target="_blank" class="flex items-center justify-center bg-slate-800 text-white py-5 rounded-2xl font-black text-xs border border-white/5 active:scale-95 transition-all">📍 NAVIGATION</a>
-                        <a href="tel:${order.phone}" class="flex items-center justify-center bg-white/5 text-blue-400 py-5 rounded-2xl font-black text-xs border border-blue-400/20 active:scale-95 transition-all uppercase">📞 Call Client</a>
+                        <a href="${mapsUrl}" target="_blank" class="flex items-center justify-center bg-slate-800 text-white py-5 rounded-2xl font-black text-xs border border-white/5 active:scale-95 transition-all italic">NAVIGATE</a>
+                        <a href="tel:${order.phone}" class="flex items-center justify-center bg-white/5 text-blue-400 py-5 rounded-2xl font-black text-xs border border-blue-400/20 active:scale-95 transition-all">📞 CALL</a>
                     </div>
 
                     <button onclick="updateStatus('${id}', '${isDelivering ? 'Completed' : 'Delivering'}')" class="w-full ${isDelivering ? 'bg-green-600' : 'bg-blue-600'} text-white py-6 rounded-[28px] font-[900] italic uppercase text-lg active:scale-95 transition-all shadow-2xl">
                         ${isDelivering ? 'Complete Delivery' : 'Accept Pickup'}
                     </button>
-                    
-                    <div class="mt-6 pt-5 border-t border-white/5 flex justify-between items-center">
-                        <p class="text-xs font-bold text-slate-400 italic">${order.item} (${order.toppings})</p>
-                    </div>
                 </div>`;
             document.getElementById('driverList').insertAdjacentHTML('beforeend', html);
         }
