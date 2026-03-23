@@ -2,103 +2,96 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>DRIVER | WE KLEO</title>
     
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
     
     <style>
-        body { font-family: 'Inter', sans-serif; background-color: #e5e7eb; overflow: hidden; height: 100vh; }
+        body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; background: #f3f4f6; font-family: 'Inter', sans-serif; }
         
-        /* Map Background */
-        #map-bg {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: url('https://maps.googleapis.com/maps/api/staticmap?center=46.5547,15.6459&zoom=14&size=600x1200&scale=2&maptype=roadmap&style=feature:poi|visibility:off&key=YOUR_API_KEY_OPTIONAL');
-            background-size: cover; z-index: 1;
+        /* Map Simulation Background */
+        #map-bg { 
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
+            background: #e5e7eb; z-index: 1;
         }
 
-        /* Wolt-Style Bottom Sheet */
+        /* The Bottom Sheet Fix */
         .bottom-sheet {
             position: fixed; bottom: 0; left: 0; width: 100%;
-            background: white; border-top-left-radius: 24px; border-top-right-radius: 24px;
-            z-index: 100; box-shadow: 0 -8px 30px rgba(0,0,0,0.1);
-            padding: 20px; padding-bottom: env(safe-area-inset-bottom, 30px);
-            transition: all 0.4s cubic-bezier(0.2, 1, 0.3, 1);
+            background: white; border-top-left-radius: 30px; border-top-right-radius: 30px;
+            z-index: 100; box-shadow: 0 -10px 40px rgba(0,0,0,0.1);
+            transition: transform 0.4s cubic-bezier(0.2, 1, 0.3, 1);
+            /* Added extra safe padding to prevent "hiding" text */
+            padding: 24px 24px 60px 24px; 
         }
 
-        /* Statuses */
-        .sheet-hidden { transform: translateY(calc(100% - 80px)); } /* Shows only "Online" tab */
-        .sheet-visible { transform: translateY(0); }
+        .sheet-minimized { transform: translateY(calc(100% - 130px)); }
+        .sheet-expanded { transform: translateY(0); }
 
-        .btn-wolt { background-color: #009de0; color: white; border-radius: 14px; font-weight: 800; }
-        .btn-wolt:active { opacity: 0.8; transform: scale(0.98); }
-
-        .payout-value { font-size: 38px; font-weight: 900; color: #202125; letter-spacing: -1px; }
+        .payout-text { font-size: 48px; font-weight: 900; color: #1a1a1a; letter-spacing: -2px; }
         
-        .top-ui { position: fixed; top: 50px; left: 0; width: 100%; z-index: 50; padding: 0 20px; display: flex; justify-content: space-between; align-items: flex-start; }
-        .circle-btn { width: 48px; height: 48px; background: white; border-radius: 50%; display: flex; items-center; justify-center; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-        .decline-pill { background: white; color: #cc0000; padding: 10px 24px; border-radius: 25px; font-weight: 800; font-size: 14px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        .top-ui { position: fixed; top: 50px; left: 20px; right: 20px; z-index: 50; display: flex; justify-content: space-between; }
+        .circle-btn { width: 50px; height: 50px; background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(0,0,0,0.1); font-size: 20px; }
+        .decline-pill { background: white; color: #ef4444; padding: 12px 24px; border-radius: 30px; font-weight: 800; font-size: 14px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
     </style>
 </head>
 <body>
 
-    <div id="overlay" class="fixed inset-0 z-[1000] bg-white flex flex-col items-center justify-center p-10 text-center">
-        <div class="mb-10 text-blue-500 font-black text-4xl italic">WE KLEO</div>
-        <button onclick="goOnline()" class="btn-wolt w-full py-5 text-xl uppercase tracking-widest">Go Online</button>
-    </div>
-
     <div id="map-bg"></div>
 
     <div class="top-ui">
-        <div class="circle-btn"><span class="text-2xl">☰</span></div>
-        <div id="decline-btn" class="decline-pill hidden" onclick="location.reload()">Decline</div>
+        <div class="circle-btn">☰</div>
+        <div id="decline-ui" class="decline-pill hidden" onclick="location.reload()">Decline</div>
     </div>
 
-    <div id="order-sheet" class="bottom-sheet sheet-hidden">
-        <div class="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-4"></div>
+    <div id="boot-screen" class="fixed inset-0 z-[1000] bg-white flex flex-col items-center justify-center p-10 text-center">
+        <div class="text-[#009de0] font-black text-5xl italic mb-10">WE KLEO</div>
+        <button onclick="goOnline()" class="bg-[#009de0] text-white w-full py-5 rounded-2xl text-xl font-black uppercase tracking-widest shadow-xl">Go Online</button>
+    </div>
+
+    <div id="order-sheet" class="bottom-sheet sheet-minimized">
+        <div class="w-12 h-1.5 bg-gray-200 rounded-full mx-auto mb-8"></div>
         
-        <div id="waiting-content" class="text-center py-2">
+        <div id="waiting-ui" class="text-center py-4">
             <div class="flex items-center justify-center gap-3">
-                <span class="w-2.5 h-2.5 bg-green-500 rounded-full animate-pulse"></span>
-                <p class="font-bold text-gray-800 uppercase tracking-widest text-sm">You're Online</p>
+                <span class="w-3 h-3 bg-green-500 rounded-full animate-pulse"></span>
+                <p class="font-black text-gray-900 text-lg uppercase tracking-tighter">You're Online</p>
             </div>
-            <p class="text-gray-400 text-xs mt-1">Waiting for next delivery...</p>
+            <p class="text-gray-400 font-bold text-sm mt-1">Ready for next delivery...</p>
         </div>
 
-        <div id="order-content" class="hidden">
-            <div class="mb-1">
-                <h1 class="payout-value">€4.00</h1>
-                <p class="text-gray-400 text-sm font-semibold -mt-1">Expected earnings for delivery</p>
+        <div id="order-ui" class="hidden">
+            <div class="mb-4">
+                <h1 class="payout-text">€4.00</h1>
+                <p class="text-gray-400 font-bold text-sm -mt-1 uppercase">Total Payout</p>
             </div>
 
-            <div class="mt-6 border-t border-gray-100 pt-5 space-y-5">
-                <div>
-                    <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Delivery from</p>
-                    <h2 class="text-lg font-extrabold text-slate-800">WE KLEO Kitchen</h2>
-                    <p class="text-gray-400 text-xs italic">Slovenska ulica 15, Maribor</p>
-                </div>
-
-                <div class="flex items-center gap-4">
-                    <div class="flex-1">
-                        <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Drop-off to</p>
-                        <h2 id="cust-name" class="text-lg font-extrabold text-blue-500 uppercase italic truncate">---</h2>
-                        <p id="cust-addr" class="text-gray-600 text-sm font-medium">---</p>
+            <div class="space-y-6 mb-10 mt-8 border-t pt-8">
+                <div class="flex gap-4">
+                    <div class="text-xl">🏪</div>
+                    <div>
+                        <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Store Pickup</p>
+                        <p class="font-black text-gray-900 text-lg">WE KLEO Kitchen</p>
                     </div>
-                    <a id="cust-tel" href="#" class="w-12 h-12 bg-gray-100 rounded-2xl flex items-center justify-center text-xl shadow-inner">📞</a>
+                </div>
+                <div class="flex gap-4">
+                    <div class="text-xl">📍</div>
+                    <div class="flex-1">
+                        <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Customer Drop-off</p>
+                        <p id="c-name" class="font-black text-[#009de0] text-lg uppercase">---</p>
+                        <p id="c-addr" class="text-gray-600 font-bold">---</p>
+                    </div>
+                    <a id="c-phone" href="#" class="w-14 h-14 bg-gray-100 rounded-2xl flex items-center justify-center text-2xl">📞</a>
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 mt-8">
-                <button id="main-btn" onclick="handleAction()" class="btn-wolt py-5 text-xl shadow-lg shadow-blue-200">
-                    Accept
-                </button>
-            </div>
+            <button id="action-btn" onclick="handleOrder()" class="bg-[#009de0] w-full py-6 rounded-2xl text-white text-xl font-black uppercase shadow-lg active:scale-95 transition-all">
+                Accept
+            </button>
         </div>
     </div>
 
@@ -119,64 +112,59 @@
 
         function goOnline() {
             audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            document.getElementById('overlay').style.display = 'none';
+            document.getElementById('boot-screen').style.display = 'none';
         }
 
-        db.ref('orders').on('value', (snapshot) => {
+        db.ref('orders').on('value', (snap) => {
             let active = null;
-            snapshot.forEach(child => {
-                const o = child.val();
-                if (o.status === "Ready" || o.status === "Delivering") {
-                    active = { id: child.key, ...o };
-                }
+            snap.forEach(c => {
+                const o = c.val();
+                if (o.status === "Ready" || o.status === "Delivering") active = {id: c.key, ...o};
             });
 
             const sheet = document.getElementById('order-sheet');
-            const waiting = document.getElementById('waiting-content');
-            const content = document.getElementById('order-content');
-            const decline = document.getElementById('decline-btn');
+            const waiting = document.getElementById('waiting-ui');
+            const orderUi = document.getElementById('order-ui');
+            const decline = document.getElementById('decline-ui');
 
             if (active) {
                 currentOrder = active;
-                document.getElementById('cust-name').innerText = active.customer;
-                document.getElementById('cust-addr').innerText = active.address;
-                document.getElementById('cust-tel').href = "tel:" + active.phone;
-                document.getElementById('main-btn').innerText = active.status === "Ready" ? "Accept" : "Complete Delivery";
+                document.getElementById('c-name').innerText = active.customer;
+                document.getElementById('c-addr').innerText = active.address;
+                document.getElementById('c-phone').href = "tel:" + active.phone;
+                document.getElementById('action-btn').innerText = active.status === "Ready" ? "Accept Pickup" : "Mark Delivered";
                 
                 waiting.classList.add('hidden');
-                content.classList.remove('hidden');
+                orderUi.classList.remove('hidden');
                 decline.classList.remove('hidden');
-                sheet.classList.remove('sheet-hidden');
-                sheet.classList.add('sheet-visible');
-                playPing();
+                sheet.classList.remove('sheet-minimized');
+                sheet.classList.add('sheet-expanded');
+                playAlert();
             } else {
                 currentOrder = null;
                 waiting.classList.remove('hidden');
-                content.classList.add('hidden');
+                orderUi.classList.add('hidden');
                 decline.classList.add('hidden');
-                sheet.classList.add('sheet-hidden');
-                sheet.classList.remove('sheet-visible');
+                sheet.classList.remove('sheet-expanded');
+                sheet.classList.add('sheet-minimized');
             }
         });
 
-        function handleAction() {
+        function handleOrder() {
             if (!currentOrder) return;
-            const nextStatus = currentOrder.status === "Ready" ? "Delivering" : "Completed";
-            db.ref('orders/' + currentOrder.id).update({ status: nextStatus });
-            if (nextStatus === "Delivering") {
-                const mapsUrl = `https://www.google.com/maps/dir/?api=1&origin=Slovenska+ulica+15+Maribor&destination=${encodeURIComponent(currentOrder.address)}&travelmode=bicycling`;
-                window.open(mapsUrl, '_blank');
-            }
+            const next = currentOrder.status === "Ready" ? "Delivering" : "Completed";
+            db.ref('orders/' + currentOrder.id).update({status: next});
+            if(next === "Delivering") window.open(`https://www.google.com/maps/dir/?api=1&origin=Slovenska+ulica+15+Maribor&destination=${encodeURIComponent(currentOrder.address)}`);
         }
 
-        function playPing() {
+        function playAlert() {
             if (!audioCtx) return;
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.connect(gain); gain.connect(audioCtx.destination);
-            osc.type = 'sine'; osc.frequency.setValueAtTime(880, audioCtx.currentTime);
-            gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
-            osc.start(); osc.stop(audioCtx.currentTime + 0.15);
+            const o = audioCtx.createOscillator();
+            const g = audioCtx.createGain();
+            o.connect(g); g.connect(audioCtx.destination);
+            o.type = 'sine'; o.frequency.setValueAtTime(880, audioCtx.currentTime);
+            g.gain.setValueAtTime(0.05, audioCtx.currentTime);
+            o.start(); o.stop(audioCtx.currentTime + 0.1);
         }
     </script>
 </body>
