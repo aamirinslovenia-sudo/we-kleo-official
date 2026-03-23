@@ -3,92 +3,163 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>KLEO COMMAND</title>
+    <title>KLEO PRO | DRIVER</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;600;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800;900&display=swap" rel="stylesheet">
     <style>
-        body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; font-family: 'Outfit', sans-serif; background: #000000; }
-        #map-bg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #000000; z-index: 1; opacity: 0.4; }
-        .glass { background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.3); }
-        .dark-glass { background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(15px); border: 1px solid rgba(255, 255, 255, 0.1); }
-        #history-sidebar, #chat-overlay, #stats-overlay { position: fixed; top: 0; right: 0; width: 100%; height: 100%; background: #ffffff; z-index: 2000; transform: translateX(100%); transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1); padding: 50px 25px; display: flex; flex-direction: column; }
+        :root { --accent: #3b82f6; --bg: #000000; }
+        body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; font-family: 'Outfit', sans-serif; background: var(--bg); color: white; }
+        
+        /* Premium Glassmorphism */
+        .glass-panel { background: rgba(255, 255, 255, 0.08); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 32px; }
+        .white-panel { background: #ffffff; border-radius: 35px 35px 0 0; box-shadow: 0 -10px 40px rgba(0,0,0,0.5); }
+        
+        /* Sidebars & Overlays */
+        #history-sidebar, #chat-overlay, #stats-overlay { position: fixed; top: 0; right: 0; width: 100%; height: 100%; background: #ffffff; z-index: 2000; transform: translateX(100%); transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1); padding: 60px 25px; display: flex; flex-direction: column; color: #000; }
         .sidebar-active, .chat-active, .stats-active { transform: translateX(0) !important; }
-        .tab-btn { padding: 8px 14px; border-radius: 12px; font-weight: 600; font-size: 13px; color: #64748b; transition: all 0.2s; }
-        .tab-btn.active { background: #f1f5f9; color: #000; }
-        .stat-row { display: flex; justify-content: space-between; padding: 18px 0; border-bottom: 1px solid #f8fafc; }
-        .stat-label { color: #1e293b; font-weight: 500; font-size: 15px; }
-        .stat-value { color: #64748b; font-weight: 600; }
-        .bottom-sheet { position: fixed; bottom: 20px; left: 15px; right: 15px; border-radius: 35px; z-index: 100; transition: all 0.6s cubic-bezier(0.23, 1, 0.32, 1); padding: 30px; }
-        .sheet-minimized { transform: translateY(calc(100% - 130px)); }
+
+        /* Navigation Sheet */
+        .bottom-sheet { position: fixed; bottom: 20px; left: 12px; right: 12px; z-index: 100; transition: all 0.6s cubic-bezier(0.23, 1, 0.32, 1); }
+        .sheet-minimized { transform: translateY(calc(100% - 140px)); }
         .sheet-expanded { transform: translateY(0); }
-        .currency { font-weight: 900; font-size: 54px; letter-spacing: -3px; color: #1e293b; line-height: 1; }
-        .status-online { background: #4ade80; box-shadow: 0 0 10px #4ade80; }
-        .status-offline { background: #ef4444; box-shadow: 0 0 10px #ef4444; }
+
+        /* Pulse Animations */
+        .status-online { background: #10b981; box-shadow: 0 0 15px #10b981; }
+        .status-offline { background: #ef4444; box-shadow: 0 0 15px #ef4444; }
+        
+        .btn-primary { background: #3b82f6; color: white; border-radius: 24px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; transition: all 0.2s; box-shadow: 0 10px 20px rgba(59, 130, 246, 0.3); }
+        .btn-primary:active { transform: scale(0.96); box-shadow: 0 4px 10px rgba(59, 130, 246, 0.2); }
+        
+        .currency-lg { font-size: 64px; font-weight: 900; letter-spacing: -4px; line-height: 1; color: #1e293b; }
+        
+        /* Wolt Style Stats */
+        .tab-btn { padding: 10px 18px; border-radius: 14px; font-weight: 700; font-size: 14px; color: #64748b; }
+        .tab-btn.active { background: #f1f5f9; color: #000; }
+        .stat-row { display: flex; justify-content: space-between; padding: 20px 0; border-bottom: 1px solid #f1f5f9; font-size: 16px; }
     </style>
 </head>
 <body>
-    <div id="map-bg"></div>
 
-    <div class="fixed top-[50px] left-0 w-full z-[150] px-6 flex justify-between items-center">
-        <button onclick="toggleSidebar()" class="w-14 h-14 glass rounded-2xl flex items-center justify-center text-2xl shadow-xl active:scale-90 transition-all">≡</button>
-        <div class="dark-glass text-white px-5 py-3 rounded-2xl flex items-center gap-2">
-            <span id="conn-dot" class="w-2 h-2 rounded-full animate-pulse status-online"></span>
-            <span id="conn-text" class="text-[10px] font-black uppercase tracking-widest">Live Shift</span>
+    <div class="absolute inset-0 z-0 opacity-30 bg-[radial-gradient(circle_at_50%_50%,_#1e293b_0%,_#000_100%)]"></div>
+
+    <div class="fixed top-[60px] left-0 w-full z-[150] px-6 flex justify-between items-center">
+        <button onclick="toggleSidebar()" class="w-14 h-14 glass-panel flex items-center justify-center text-2xl active:scale-90 transition-all">
+            <span class="mt-[-4px]">≡</span>
+        </button>
+        <div class="glass-panel px-5 py-3 flex items-center gap-3">
+            <span id="conn-dot" class="w-2.5 h-2.5 rounded-full animate-pulse status-online"></span>
+            <span id="conn-text" class="text-[11px] font-extrabold uppercase tracking-[0.2em]">Live Shift</span>
         </div>
     </div>
 
     <div id="history-sidebar">
-        <div class="flex justify-between items-center mb-10"><h2 class="text-3xl font-black text-slate-900 uppercase italic">Menu</h2><button onclick="toggleSidebar()" class="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center font-bold">✕</button></div>
-        <div class="space-y-6">
-            <button onclick="openStats()" class="w-full flex items-center gap-5 p-5 hover:bg-slate-50 rounded-3xl transition-all"><span class="text-2xl">📊</span><span class="text-lg font-bold text-slate-800">Your stats</span></button>
-            <button onclick="openChat()" class="w-full flex items-center gap-5 p-5 hover:bg-slate-50 rounded-3xl transition-all"><span class="text-2xl">🎧</span><span class="text-lg font-bold text-slate-800">Support</span></button>
+        <div class="flex justify-between items-center mb-12">
+            <h2 class="text-4xl font-black text-slate-900 italic tracking-tighter">KLEO<span class="text-blue-600">PRO</span></h2>
+            <button onclick="toggleSidebar()" class="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center text-xl">✕</button>
+        </div>
+        <div class="space-y-4">
+            <button onclick="openStats()" class="w-full flex items-center gap-5 p-6 bg-slate-50 rounded-[28px] hover:bg-slate-100 transition-all">
+                <span class="text-2xl">📊</span><span class="text-xl font-bold text-slate-800">Your Stats</span>
+            </button>
+            <button onclick="openChat()" class="w-full flex items-center gap-5 p-6 bg-slate-50 rounded-[28px] hover:bg-slate-100 transition-all">
+                <span class="text-2xl">🎧</span><span class="text-xl font-bold text-slate-800">Support Chat</span>
+            </button>
+        </div>
+        <div class="mt-auto p-4 bg-blue-50 rounded-3xl">
+            <p class="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-1">Driver ID</p>
+            <p id="display-driver-id" class="text-blue-900 font-bold">---</p>
         </div>
     </div>
 
     <div id="stats-overlay">
-        <div class="flex items-center gap-4 mb-8"><button onclick="closeStats()" class="text-2xl font-bold">←</button><h2 class="text-3xl font-black text-slate-900">Your stats</h2></div>
-        <div class="flex justify-between bg-slate-50 p-1 rounded-2xl mb-8">
-            <button onclick="filterStats('today')" id="tab-today" class="tab-btn active">Today</button>
-            <button onclick="filterStats('week')" id="tab-week" class="tab-btn">Week</button>
-            <button onclick="filterStats('month')" id="tab-month" class="tab-btn">Month</button>
-            <button onclick="showCustomRange()" id="tab-custom" class="tab-btn">Custom</button>
+        <div class="flex items-center gap-6 mb-10">
+            <button onclick="closeStats()" class="w-12 h-12 flex items-center justify-center bg-slate-50 rounded-full text-2xl">←</button>
+            <h2 class="text-3xl font-black text-slate-900">Performance</h2>
         </div>
-        <div id="custom-picker" class="hidden grid grid-cols-2 gap-3 mb-6">
-            <div><label class="text-[10px] font-bold text-slate-400 uppercase ml-2">From</label><input type="date" id="date-from" onchange="runCustomFilter()" class="w-full bg-slate-50 p-3 rounded-xl border-none font-bold text-xs"></div>
-            <div><label class="text-[10px] font-bold text-slate-400 uppercase ml-2">To</label><input type="date" id="date-to" onchange="runCustomFilter()" class="w-full bg-slate-50 p-3 rounded-xl border-none font-bold text-xs"></div>
+        <div class="flex justify-between bg-slate-50 p-1.5 rounded-2xl mb-10">
+            <button onclick="filterStats('today')" id="tab-today" class="tab-btn active flex-1">Today</button>
+            <button onclick="filterStats('week')" id="tab-week" class="tab-btn flex-1">Week</button>
+            <button onclick="filterStats('month')" id="tab-month" class="tab-btn flex-1">Month</button>
+            <button onclick="showCustomRange()" id="tab-custom" class="tab-btn flex-1">Custom</button>
         </div>
-        <h3 id="stat-date-label" class="text-lg font-black mb-4">-- --</h3>
+        <div id="custom-picker" class="hidden grid grid-cols-2 gap-4 mb-8">
+            <input type="date" id="date-from" onchange="runCustomFilter()" class="bg-slate-100 p-4 rounded-2xl font-bold text-sm">
+            <input type="date" id="date-to" onchange="runCustomFilter()" class="bg-slate-100 p-4 rounded-2xl font-bold text-sm">
+        </div>
+        <h3 id="stat-date-label" class="text-xl font-extrabold text-blue-600 mb-6">---</h3>
         <div class="space-y-1">
-            <div class="stat-row"><span class="stat-label">Deliveries completed</span><span id="stat-count" class="stat-value">0</span></div>
-            <div class="stat-row"><span class="stat-label">Earnings (estimate)</span><span id="stat-total" class="stat-value text-slate-900">€4.00</span></div>
-            <div class="stat-row"><span class="stat-label">Earnings without tips</span><span id="stat-base" class="stat-value">€4.00</span></div>
-            <div class="stat-row border-none"><span class="stat-label">Tips</span><span class="stat-value">€0.00</span></div>
+            <div class="stat-row"><span class="stat-label">Total Deliveries</span><span id="stat-count" class="stat-value text-slate-900">0</span></div>
+            <div class="stat-row"><span class="stat-label">Gross Earnings</span><span id="stat-total" class="stat-value text-green-600">€0.00</span></div>
+            <div class="stat-row"><span class="stat-label">Base Fee</span><span id="stat-base" class="stat-value">€0.00</span></div>
+            <div class="stat-row border-none"><span class="stat-label">Tips Received</span><span class="stat-value">€0.00</span></div>
         </div>
     </div>
 
     <div id="chat-overlay">
-        <div class="flex justify-between items-center mb-6"><h2 class="text-2xl font-black text-slate-900 uppercase italic">Support</h2><button onclick="closeChat()" class="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center font-bold">✕</button></div>
-        <div id="chat-messages" class="flex-1 overflow-y-auto mb-4"></div>
-        <div class="flex gap-2"><input type="text" id="chat-input" placeholder="Type..." class="flex-1 bg-slate-100 p-4 rounded-2xl font-bold"><button onclick="sendMessage()" class="bg-blue-600 text-white px-6 rounded-2xl font-black uppercase text-xs">Send</button></div>
+        <div class="flex justify-between items-center mb-8">
+            <h2 class="text-2xl font-black text-slate-900 italic uppercase">Support HQ</h2>
+            <button onclick="closeChat()" class="text-slate-400 font-bold">Close</button>
+        </div>
+        <div id="chat-messages" class="flex-1 space-y-4 mb-6"></div>
+        <div class="flex gap-3">
+            <input type="text" id="chat-input" placeholder="Message base..." class="flex-1 bg-slate-100 p-5 rounded-[25px] font-bold outline-none">
+            <button onclick="sendMessage()" class="w-16 h-16 bg-blue-600 text-white rounded-full flex items-center justify-center text-xl shadow-lg">➤</button>
+        </div>
     </div>
 
-    <div id="boot-screen" class="fixed inset-0 z-[3000] bg-white flex flex-col items-center justify-center p-12 text-center">
-        <div class="text-blue-600 font-black text-6xl tracking-tighter mb-16 italic">KLEO</div>
-        <button onclick="goOnline()" class="bg-blue-600 text-white w-full py-6 rounded-3xl text-sm font-black uppercase tracking-widest shadow-2xl">Go Online</button>
+    <div id="boot-screen" class="fixed inset-0 z-[3000] bg-black flex flex-col items-center justify-center p-12 text-center">
+        <div class="text-blue-500 font-black text-7xl tracking-tighter mb-4 italic">KLEO</div>
+        <p class="text-slate-500 font-bold uppercase tracking-[0.4em] text-[10px] mb-20">Logistics v2.0</p>
+        <button onclick="goOnline()" class="bg-blue-600 text-white w-full py-7 rounded-[35px] text-lg font-black uppercase tracking-widest shadow-[0_20px_50px_rgba(59,130,246,0.4)] active:scale-95 transition-all">Start Shift</button>
     </div>
 
-    <div id="order-sheet" class="bottom-sheet glass sheet-minimized shadow-2xl">
-        <div class="w-12 h-1 bg-slate-300 rounded-full mx-auto mb-8"></div>
-        <div id="waiting-ui" class="text-center py-2"><p class="text-slate-900 font-black text-xl uppercase italic tracking-tighter">Online & Active</p></div>
-        <div id="order-ui" class="hidden">
-            <div class="flex justify-between items-end mb-8"><div><div class="currency">€4.00</div><p class="text-blue-500 font-black text-[10px] uppercase">Guaranteed</p></div><button onclick="confirmDecline()" class="bg-red-50 text-red-500 px-4 py-2 rounded-xl text-[10px] font-black">Decline</button></div>
-            <div class="bg-white/50 rounded-[30px] p-6 mb-8 border border-white">
-                <div class="mb-6 flex gap-4"><div class="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center text-blue-600 font-bold">1</div><div><p class="text-[9px] font-black text-slate-400 uppercase">Pickup</p><h2 class="text-lg font-black text-slate-800">KLEO Kitchen</h2></div></div>
-                <div class="flex gap-4"><div class="w-10 h-10 bg-indigo-100 rounded-xl flex items-center justify-center text-indigo-600 font-bold">2</div><div class="flex-1"><p class="text-[9px] font-black text-slate-400 uppercase">Drop</p><h2 id="c-name" class="text-lg font-black text-slate-800 truncate uppercase">---</h2><p id="c-addr" class="text-indigo-600 text-sm font-bold truncate underline">---</p></div></div>
+    <div id="order-sheet" class="bottom-sheet glass-panel sheet-minimized">
+        <div id="order-content" class="p-8">
+            <div class="w-16 h-1.5 bg-white/20 rounded-full mx-auto mb-10"></div>
+            
+            <div id="waiting-ui" class="text-center py-6">
+                <div class="w-20 h-20 bg-blue-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <div class="w-10 h-10 bg-blue-500 rounded-full animate-ping"></div>
+                </div>
+                <h3 class="text-2xl font-black italic mb-2 uppercase tracking-tighter">Scanning Maribor</h3>
+                <p class="text-slate-400 font-bold text-xs uppercase tracking-widest">Awaiting Kitchen Signal...</p>
             </div>
-            <div class="flex gap-4"><a id="c-phone" href="#" class="w-20 h-20 bg-white rounded-[25px] flex items-center justify-center text-2xl shadow-sm border border-slate-100">📞</a><button id="action-btn" onclick="processOrder()" class="flex-1 bg-slate-900 text-white rounded-[25px] text-lg font-black uppercase tracking-tight shadow-xl">Accept Task</button></div>
+
+            <div id="order-ui" class="hidden">
+                <div class="flex justify-between items-start mb-10">
+                    <div>
+                        <p class="text-blue-400 font-black text-xs uppercase tracking-widest mb-1">New Delivery</p>
+                        <div class="currency-lg">€4.00</div>
+                    </div>
+                    <button onclick="confirmDecline()" class="bg-red-500/10 text-red-500 px-5 py-3 rounded-2xl text-[11px] font-black uppercase">Decline</button>
+                </div>
+
+                <div class="space-y-6 mb-10">
+                    <div class="flex gap-5 items-start">
+                        <div class="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center font-black">1</div>
+                        <div>
+                            <p class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Pickup Location</p>
+                            <h4 class="text-xl font-black">KLEO Kitchen HQ</h4>
+                            <p class="text-slate-400 text-sm italic">Slovenska ulica 15</p>
+                        </div>
+                    </div>
+                    <div class="flex gap-5 items-start">
+                        <div class="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center font-black">2</div>
+                        <div class="flex-1">
+                            <p class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Destination</p>
+                            <h4 id="c-name" class="text-xl font-black truncate uppercase">---</h4>
+                            <p id="c-addr" class="text-blue-400 text-sm font-extrabold underline truncate">---</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex gap-4">
+                    <a id="c-phone" href="#" class="w-20 h-20 glass-panel flex items-center justify-center text-3xl">📞</a>
+                    <button id="action-btn" onclick="processOrder()" class="flex-1 btn-primary text-xl">Confirm Pickup</button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -99,23 +170,25 @@
         
         let driverId = localStorage.getItem('kleo_driver_id');
         if (!driverId) { driverId = "D-" + Math.floor(Math.random() * 10000); localStorage.setItem('kleo_driver_id', driverId); }
+        document.getElementById('display-driver-id').innerText = driverId;
 
         let currentOrder = null; let audioCtx = null; let alertInterval = null; let activeTicketId = null;
         let allCompletedOrders = [];
 
         db.ref(".info/connected").on("value", (snap) => {
             const dot = document.getElementById('conn-dot');
-            if (snap.val() === true) dot.className = "w-2 h-2 rounded-full animate-pulse status-online";
-            else dot.className = "w-2 h-2 rounded-full status-offline";
+            const txt = document.getElementById('conn-text');
+            if (snap.val() === true) { dot.className = "w-2.5 h-2.5 rounded-full animate-pulse status-online"; txt.innerText = "Live Shift"; }
+            else { dot.className = "w-2.5 h-2.5 rounded-full status-offline"; txt.innerText = "Offline"; }
         });
 
-        function confirmDecline() { if(confirm("Are you sure you want to decline this €4.00 task?")) location.reload(); }
         function toggleSidebar() { document.getElementById('history-sidebar').classList.toggle('sidebar-active'); }
         function openStats() { document.getElementById('stats-overlay').classList.add('stats-active'); toggleSidebar(); filterStats('today'); }
-        function closeStats() { document.getElementById('stats-overlay').classList.remove('stats-active'); document.getElementById('custom-picker').classList.add('hidden'); }
+        function closeStats() { document.getElementById('stats-overlay').classList.remove('stats-active'); }
         function openChat() { document.getElementById('chat-overlay').classList.add('chat-active'); toggleSidebar(); }
         function closeChat() { document.getElementById('chat-overlay').classList.remove('chat-active'); }
         function showCustomRange() { document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active')); document.getElementById('tab-custom').classList.add('active'); document.getElementById('custom-picker').classList.remove('hidden'); }
+        function confirmDecline() { if(confirm("Confirm: Skip this task?")) location.reload(); }
 
         function updateStatDisplay(count, label) {
             document.getElementById('stat-count').innerText = count;
@@ -154,46 +227,22 @@
         }
 
         db.ref('orders').on('value', (snap) => {
-            let activeTask = null; 
-            let availableOrder = null;
-            allCompletedOrders = [];
-
+            let activeTask = null; let availableOrder = null; allCompletedOrders = [];
             snap.forEach(c => {
                 const o = c.val(); o.id = c.key;
-                
-                // If I am ALREADY delivering something, this is my focus
-                if (o.status === "Delivering" && o.claimedBy === driverId) {
-                    activeTask = o;
-                }
-                
-                // If an order is Ready and unclaimed
-                if (o.status === "Ready" && !o.claimedBy) {
-                    availableOrder = o;
-                }
-
+                if (o.status === "Delivering" && o.claimedBy === driverId) activeTask = o;
+                if (o.status === "Ready" && !o.claimedBy) availableOrder = o;
                 if (o.status === "Completed") allCompletedOrders.push(o);
             });
 
-            // LOGIC: If I have an active task, show ONLY that. 
-            // Do not show new orders even if the kitchen marks them ready.
             if (activeTask) {
-                currentOrder = activeTask;
-                renderUI(activeTask, "End Mission");
-                clearInterval(alertInterval); alertInterval = null; // No beeps when driving
-            } 
-            // If I am free and a new order is ready
-            else if (availableOrder) {
-                currentOrder = availableOrder;
-                renderUI(availableOrder, "Confirm Pickup");
-                if (!alertInterval) {
-                    playBeep(800, 0.5);
-                    alertInterval = setInterval(() => playBeep(800, 0.5), 1500);
-                }
-            } 
-            // If I am free and nothing is ready
-            else {
-                currentOrder = null;
+                currentOrder = activeTask; renderUI(activeTask, "End Mission");
                 clearInterval(alertInterval); alertInterval = null;
+            } else if (availableOrder) {
+                currentOrder = availableOrder; renderUI(availableOrder, "Confirm Pickup");
+                if (!alertInterval) { playBeep(800, 0.5); alertInterval = setInterval(() => playBeep(800, 0.5), 1500); }
+            } else {
+                currentOrder = null; clearInterval(alertInterval); alertInterval = null;
                 document.getElementById('order-ui').classList.add('hidden');
                 document.getElementById('waiting-ui').classList.remove('hidden');
                 document.getElementById('order-sheet').classList.replace('sheet-expanded', 'sheet-minimized');
