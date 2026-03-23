@@ -76,22 +76,41 @@
         const db = firebase.database();
         let currentOrder = null;
         let audioCtx = null;
-        let lastReplySeen = "";
+        let activeTicketId = null; 
 
         function toggleHistory() { document.getElementById('history-sidebar').classList.toggle('sidebar-active'); }
         function goOnline() { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); if (audioCtx.state === 'suspended') audioCtx.resume(); document.getElementById('boot-screen').style.display = 'none'; }
 
         function contactSupport() {
-            const msg = prompt("Describe the issue:");
-            if (msg && msg.trim() !== "") {
-                db.ref('support_tickets').push({ orderId: currentOrder ? currentOrder.id : "N/A", customer: currentOrder ? currentOrder.customer : "None", issue: msg, timestamp: Date.now(), status: "Open" });
+            const msg = prompt("Type your message to Support:");
+            if (!msg || msg.trim() === "") return;
+
+            if (activeTicketId) {
+                db.ref('support_tickets/' + activeTicketId).update({
+                    issue: msg,
+                    timestamp: Date.now(),
+                    adminReply: "" 
+                });
+                alert("Message updated!");
+            } else {
+                const newTicketRef = db.ref('support_tickets').push();
+                activeTicketId = newTicketRef.key;
+                newTicketRef.set({
+                    orderId: currentOrder ? currentOrder.id : "No Order",
+                    customer: currentOrder ? currentOrder.customer : "None",
+                    issue: msg,
+                    timestamp: Date.now(),
+                    status: "Open"
+                });
                 alert("Support notified!");
             }
         }
 
-        // LISTEN FOR ADMIN REPLIES
         db.ref('support_tickets').on('child_changed', (snap) => {
             const t = snap.val();
+            if (t.status === "Resolved" && snap.key === activeTicketId) {
+                activeTicketId = null; 
+            }
             if (t.adminReply && t.replyTime > (Date.now() - 5000)) {
                 playBeep(1000, 0.5);
                 alert("MESSAGE FROM HQ: " + t.adminReply);
