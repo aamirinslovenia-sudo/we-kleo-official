@@ -4,35 +4,24 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>KLEO COMMAND</title>
-    
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
-    
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;600;900&display=swap" rel="stylesheet">
-    
     <style>
         body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; font-family: 'Outfit', sans-serif; background: #000; }
         #map-bg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #111827; z-index: 1; opacity: 0.6; }
-        
         .glass { background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.3); }
         .dark-glass { background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(15px); border: 1px solid rgba(255, 255, 255, 0.1); }
-        
         .bottom-sheet { position: fixed; bottom: 20px; left: 15px; right: 15px; border-radius: 35px; z-index: 100; transition: all 0.6s cubic-bezier(0.23, 1, 0.32, 1); padding: 30px; }
         .sheet-minimized { transform: translateY(calc(100% - 130px)); }
         .sheet-expanded { transform: translateY(0); }
-
-        #history-sidebar {
-            position: fixed; top: 0; right: 0; width: 100%; height: 100%;
-            background: #ffffff; z-index: 2000; transform: translateX(100%); transition: transform 0.5s ease;
-            padding: 50px 25px; display: flex; flex-direction: column;
-        }
+        #history-sidebar { position: fixed; top: 0; right: 0; width: 100%; height: 100%; background: #ffffff; z-index: 2000; transform: translateX(100%); transition: transform 0.5s ease; padding: 50px 25px; display: flex; flex-direction: column; }
         .sidebar-active { transform: translateX(0) !important; }
         .currency { font-weight: 900; font-size: 54px; letter-spacing: -3px; color: #1e293b; line-height: 1; }
     </style>
 </head>
 <body>
-
     <div id="map-bg"></div>
 
     <div class="fixed top-[50px] left-0 w-full z-[150] px-6 flex justify-between items-center">
@@ -48,30 +37,18 @@
             <h2 class="text-3xl font-black text-slate-900 uppercase italic">Control</h2>
             <button onclick="toggleHistory()" class="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center font-bold">✕</button>
         </div>
-
-        <div class="bg-blue-600 p-6 rounded-[30px] text-white shadow-xl mb-6">
+        <div class="bg-blue-600 p-6 rounded-[30px] text-white shadow-xl mb-6 text-center">
             <p class="text-blue-100 text-[9px] font-black uppercase tracking-widest mb-1">Today's Total</p>
             <p id="history-total-large" class="text-4xl font-black">€0.00</p>
         </div>
-
         <p class="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-3">Recent Tasks</p>
         <div id="history-list" class="flex-1 space-y-3 overflow-y-auto pr-2 mb-6 border-b border-slate-100"></div>
-
         <div class="mt-auto">
-            <p class="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-4">Need Help?</p>
+            <p class="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-4">Support</p>
             <button onclick="contactSupport()" class="w-full bg-slate-900 text-white p-5 rounded-3xl flex items-center justify-between active:scale-95 transition-all mb-3">
-                <div class="flex items-center gap-4">
-                    <span class="text-xl">🎧</span>
-                    <div class="text-left">
-                        <p class="text-xs font-black uppercase">Customer Support</p>
-                        <p class="text-[9px] text-slate-400">Message Admin Team</p>
-                    </div>
-                </div>
+                <div class="flex items-center gap-4"><span>🎧</span><p class="text-xs font-black uppercase text-left">Customer Support</p></div>
                 <span>→</span>
             </button>
-            <a href="tel:+386XXXXXXXX" class="w-full bg-blue-50 text-blue-600 p-4 rounded-3xl flex items-center justify-center gap-3 font-black text-xs uppercase border border-blue-100">
-                <span>📞</span> Emergency HQ Call
-            </a>
         </div>
     </div>
 
@@ -82,124 +59,64 @@
 
     <div id="order-sheet" class="bottom-sheet glass sheet-minimized shadow-2xl">
         <div class="w-12 h-1 bg-slate-300 rounded-full mx-auto mb-8"></div>
-        
-        <div id="waiting-ui" class="text-center py-2">
-            <p class="text-slate-900 font-black text-xl uppercase tracking-tighter italic">Online & Active</p>
-            <p class="text-slate-400 text-xs font-medium">Scanning for missions...</p>
-        </div>
-
+        <div id="waiting-ui" class="text-center py-2"><p class="text-slate-900 font-black text-xl uppercase italic">Online & Active</p><p class="text-slate-400 text-xs">Scanning...</p></div>
         <div id="order-ui" class="hidden">
-            <div class="flex justify-between items-end mb-8">
-                <div>
-                    <div class="currency">€4.00</div>
-                    <p class="text-blue-500 font-black text-[10px] uppercase mt-1">Guaranteed Payout</p>
-                </div>
-                <button onclick="location.reload()" class="bg-red-50 text-red-500 px-4 py-2 rounded-xl text-[10px] font-black uppercase">Decline</button>
-            </div>
-
+            <div class="flex justify-between items-end mb-8"><div><div class="currency">€4.00</div><p class="text-blue-500 font-black text-[10px] uppercase">Guaranteed</p></div><button onclick="location.reload()" class="bg-red-50 text-red-500 px-4 py-2 rounded-xl text-[10px] font-black">Decline</button></div>
             <div class="bg-white/50 rounded-[30px] p-6 mb-8 border border-white">
-                <div class="mb-6 flex gap-4">
-                    <div class="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center text-blue-600 font-bold">1</div>
-                    <div>
-                        <p class="text-[9px] font-black text-slate-400 uppercase">Pickup</p>
-                        <h2 class="text-lg font-black text-slate-800">KLEO Kitchen</h2>
-                        <p class="text-slate-500 text-xs">Slovenska ulica 15</p>
-                    </div>
-                </div>
-                <div class="flex gap-4">
-                    <div class="w-10 h-10 bg-indigo-100 rounded-xl flex items-center justify-center text-indigo-600 font-bold">2</div>
-                    <div class="flex-1">
-                        <p class="text-[9px] font-black text-slate-400 uppercase">Drop</p>
-                        <h2 id="c-name" class="text-lg font-black text-slate-800 truncate uppercase">---</h2>
-                        <p id="c-addr" class="text-indigo-600 text-sm font-bold truncate underline">---</p>
-                    </div>
-                </div>
+                <div class="mb-6 flex gap-4"><div class="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center text-blue-600 font-bold">1</div><div><p class="text-[9px] font-black text-slate-400 uppercase">Pickup</p><h2 class="text-lg font-black text-slate-800">KLEO Kitchen</h2><p class="text-slate-500 text-xs">Slovenska ulica 15</p></div></div>
+                <div class="flex gap-4"><div class="w-10 h-10 bg-indigo-100 rounded-xl flex items-center justify-center text-indigo-600 font-bold">2</div><div class="flex-1"><p class="text-[9px] font-black text-slate-400 uppercase">Drop</p><h2 id="c-name" class="text-lg font-black text-slate-800 truncate uppercase">---</h2><p id="c-addr" class="text-indigo-600 text-sm font-bold truncate underline">---</p></div></div>
             </div>
-
-            <div class="flex gap-4">
-                <a id="c-phone" href="#" class="w-20 h-20 bg-white rounded-[25px] flex items-center justify-center text-2xl shadow-sm border border-slate-100">📞</a>
-                <button id="action-btn" onclick="processOrder()" class="flex-1 bg-slate-900 text-white rounded-[25px] text-lg font-black uppercase tracking-tight shadow-xl">
-                    Accept Task
-                </button>
-            </div>
+            <div class="flex gap-4"><a id="c-phone" href="#" class="w-20 h-20 bg-white rounded-[25px] flex items-center justify-center text-2xl shadow-sm border border-slate-100">📞</a><button id="action-btn" onclick="processOrder()" class="flex-1 bg-slate-900 text-white rounded-[25px] text-lg font-black uppercase tracking-tight shadow-xl">Accept Task</button></div>
         </div>
     </div>
 
     <script>
-        // 1. FIREBASE SETUP
-        const firebaseConfig = {
-          apiKey: "AIzaSyBD_YmzFTA2OKn64h22Z9yM7pCAmmlTl68",
-          authDomain: "we-kleo.firebaseapp.com",
-          databaseURL: "https://we-kleo-default-rtdb.europe-west1.firebasedatabase.app",
-          projectId: "we-kleo",
-          storageBucket: "we-kleo.firebasestorage.app",
-          messagingSenderId: "87105321281",
-          appId: "1:87105321281:web:ec83e4472e5756182749c0"
-        };
+        const firebaseConfig = { apiKey: "AIzaSyBD_YmzFTA2OKn64h22Z9yM7pCAmmlTl68", authDomain: "we-kleo.firebaseapp.com", databaseURL: "https://we-kleo-default-rtdb.europe-west1.firebasedatabase.app", projectId: "we-kleo", storageBucket: "we-kleo.firebasestorage.app", messagingSenderId: "87105321281", appId: "1:87105321281:web:ec83e4472e5756182749c0" };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
         let currentOrder = null;
         let audioCtx = null;
+        let lastReplySeen = "";
 
         function toggleHistory() { document.getElementById('history-sidebar').classList.toggle('sidebar-active'); }
+        function goOnline() { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); if (audioCtx.state === 'suspended') audioCtx.resume(); document.getElementById('boot-screen').style.display = 'none'; }
 
-        function goOnline() {
-            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            if (audioCtx.state === 'suspended') audioCtx.resume();
-            document.getElementById('boot-screen').style.display = 'none';
-        }
-
-        // 2. SUPPORT LOGIC
         function contactSupport() {
-            const msg = prompt("Describe the issue (e.g., Cannot find customer, Restaurant closed):");
+            const msg = prompt("Describe the issue:");
             if (msg && msg.trim() !== "") {
-                const ticketData = {
-                    orderId: currentOrder ? currentOrder.id : "No Active Order",
-                    customer: currentOrder ? currentOrder.customer : "None",
-                    issue: msg,
-                    timestamp: Date.now(),
-                    status: "URGENT"
-                };
-                db.ref('support_tickets').push(ticketData).then(() => {
-                    alert("Support notified! They will contact you shortly.");
-                });
+                db.ref('support_tickets').push({ orderId: currentOrder ? currentOrder.id : "N/A", customer: currentOrder ? currentOrder.customer : "None", issue: msg, timestamp: Date.now(), status: "Open" });
+                alert("Support notified!");
             }
         }
 
-        // 3. CORE APP LOGIC
+        // LISTEN FOR ADMIN REPLIES
+        db.ref('support_tickets').on('child_changed', (snap) => {
+            const t = snap.val();
+            if (t.adminReply && t.replyTime > (Date.now() - 5000)) {
+                playBeep(1000, 0.5);
+                alert("MESSAGE FROM HQ: " + t.adminReply);
+            }
+        });
+
         db.ref('orders').on('value', (snap) => {
-            let active = null;
-            let count = 0;
+            let active = null; let count = 0;
             const historyList = document.getElementById('history-list');
             historyList.innerHTML = "";
-
             snap.forEach(c => {
                 const o = c.val();
-                if (o.status === "Ready" || o.status === "Delivering") {
-                    active = {id: c.key, ...o};
-                } else if (o.status === "Completed") {
-                    count++;
-                    historyList.insertAdjacentHTML('afterbegin', `<div class="bg-slate-50 p-4 rounded-2xl flex justify-between items-center"><div class="truncate"><p class="text-slate-900 font-bold text-sm">${o.customer}</p><p class="text-slate-400 text-[10px] uppercase">${o.address}</p></div><div class="text-blue-600 font-black">€4.00</div></div>`);
-                }
+                if (o.status === "Ready" || o.status === "Delivering") active = {id: c.key, ...o};
+                else if (o.status === "Completed") { count++; historyList.insertAdjacentHTML('afterbegin', `<div class="bg-slate-50 p-4 rounded-2xl flex justify-between items-center"><div class="truncate"><p class="text-slate-900 font-bold text-sm">${o.customer}</p><p class="text-slate-400 text-[10px] uppercase">${o.address}</p></div><div class="text-blue-600 font-black">€4.00</div></div>`); }
             });
-
             document.getElementById('history-total-large').innerText = "€" + (count * 4).toFixed(2);
             const sheet = document.getElementById('order-sheet');
-
             if (active) {
                 currentOrder = active;
-                document.getElementById('c-name').innerText = active.customer;
-                document.getElementById('c-addr').innerText = active.address;
-                document.getElementById('c-phone').href = "tel:" + active.phone;
+                document.getElementById('c-name').innerText = active.customer; document.getElementById('c-addr').innerText = active.address; document.getElementById('c-phone').href = "tel:" + active.phone;
                 document.getElementById('action-btn').innerText = active.status === "Ready" ? "Confirm Pickup" : "End Mission";
-                document.getElementById('waiting-ui').classList.add('hidden');
-                document.getElementById('order-ui').classList.remove('hidden');
-                sheet.classList.replace('sheet-minimized', 'sheet-expanded');
-                if (active.status === "Ready") playBeep();
+                document.getElementById('waiting-ui').classList.add('hidden'); document.getElementById('order-ui').classList.remove('hidden');
+                sheet.classList.replace('sheet-minimized', 'sheet-expanded'); if (active.status === "Ready") playBeep(800, 0.2);
             } else {
-                currentOrder = null;
-                document.getElementById('waiting-ui').classList.remove('hidden');
-                document.getElementById('order-ui').classList.add('hidden');
+                currentOrder = null; document.getElementById('waiting-ui').classList.remove('hidden'); document.getElementById('order-ui').classList.add('hidden');
                 sheet.classList.replace('sheet-expanded', 'sheet-minimized');
             }
         });
@@ -208,18 +125,10 @@
             if (!currentOrder) return;
             const next = currentOrder.status === "Ready" ? "Delivering" : "Completed";
             db.ref('orders/' + currentOrder.id).update({status: next});
-            if(next === "Delivering") window.open(`https://www.google.com/maps/dir/?api=1&origin=Slovenska+ulica+15+Maribor&destination=${encodeURIComponent(currentOrder.address)}`);
+            if(next === "Delivering") window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(currentOrder.address)}`);
         }
 
-        function playBeep() {
-            if (!audioCtx) return;
-            const o = audioCtx.createOscillator();
-            const g = audioCtx.createGain();
-            o.connect(g); g.connect(audioCtx.destination);
-            o.frequency.setValueAtTime(800, audioCtx.currentTime);
-            g.gain.setValueAtTime(0.1, audioCtx.currentTime);
-            o.start(); o.stop(audioCtx.currentTime + 0.2);
-        }
+        function playBeep(f, d) { if (!audioCtx) return; const o = audioCtx.createOscillator(); const g = audioCtx.createGain(); o.connect(g); g.connect(audioCtx.destination); o.frequency.setValueAtTime(f, audioCtx.currentTime); g.gain.setValueAtTime(0.1, audioCtx.currentTime); o.start(); o.stop(audioCtx.currentTime + d); }
     </script>
 </body>
 </html>
