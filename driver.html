@@ -3,105 +3,131 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>DRIVER COMMAND | WE KLEO</title>
+    <title>KLEO COMMAND</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@700&family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;600;900&display=swap" rel="stylesheet">
     
     <style>
-        body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; background: #0a0c10; font-family: 'Inter', sans-serif; }
-        #map-bg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #111827; z-index: 1; opacity: 0.4; }
-
-        .premium-panel {
-            position: fixed; bottom: 0; left: 0; width: 100%;
-            background: white; border-top-left-radius: 40px; border-top-right-radius: 40px;
-            z-index: 100; box-shadow: 0 -20px 50px rgba(0,0,0,0.4);
-            transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
-            padding: 24px 24px 60px 24px; 
+        body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; font-family: 'Outfit', sans-serif; background: #000; }
+        
+        /* High-Definition Map Background */
+        #map-bg { 
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
+            background: url('https://api.mapbox.com/styles/v1/mapbox/navigation-guidance-night-v4/static/-122.4241,37.78,14.25,0,60/600x600?access_token=pk.eyJ1IjoiZGVsaXZlcnlhcnQiLCJhIjoiY2wxeXpueXFvMGlyZTNqcW9uZXJ3bmh6MiJ9.8-L3F8O4S5nL-5_pX9S6wQ');
+            background-size: cover; z-index: 1; filter: saturate(1.2) brightness(0.8);
         }
-        .panel-minimized { transform: translateY(calc(100% - 130px)); background: #111827; border-top: 1px solid #1f2937; }
-        .panel-expanded { transform: translateY(0); background: white; }
+
+        /* Glass-Morphism Panels */
+        .glass {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .dark-glass {
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .bottom-sheet {
+            position: fixed; bottom: 20px; left: 15px; right: 15px;
+            border-radius: 35px; z-index: 100;
+            transition: all 0.6s cubic-bezier(0.23, 1, 0.32, 1);
+            padding: 30px;
+        }
+
+        .sheet-minimized { transform: translateY(calc(100% - 130px)); }
+        .sheet-expanded { transform: translateY(0); }
+
+        .neon-glow { box-shadow: 0 0 20px rgba(59, 130, 246, 0.5); }
+        .currency { font-weight: 900; font-size: 54px; letter-spacing: -3px; color: #1e293b; line-height: 1; }
+        
+        /* Floating Header Icons */
+        .nav-icon { width: 55px; height: 55px; border-radius: 20px; display: flex; align-items: center; justify-content: center; font-size: 24px; transition: 0.3s; }
+        .nav-icon:active { transform: scale(0.9); }
 
         #history-sidebar {
             position: fixed; top: 0; right: 0; width: 100%; height: 100%;
-            background: rgba(10, 12, 16, 0.98); backdrop-filter: blur(25px);
-            z-index: 2000; transform: translateX(100%); transition: transform 0.4s ease;
-            padding: 60px 30px;
+            background: #f8fafc; z-index: 2000; transform: translateX(100%); transition: transform 0.5s ease;
+            padding: 40px 25px;
         }
         .sidebar-active { transform: translateX(0) !important; }
-
-        .currency-big { font-family: 'Space Grotesk', sans-serif; font-size: 52px; font-weight: 700; color: #0f172a; letter-spacing: -2px; line-height: 1; }
-        .step-line { width: 2px; height: 100%; background: #f1f5f9; position: absolute; left: 7px; top: 20px; }
-        .step-dot { width: 16px; height: 16px; border-radius: 50%; border: 4px solid #fff; position: relative; z-index: 2; }
     </style>
 </head>
 <body>
 
     <div id="map-bg"></div>
 
-    <div class="fixed top-[50px] left-0 w-full z-[150] px-6">
-        <button onclick="toggleHistory()" class="w-12 h-12 bg-white/10 backdrop-blur-md rounded-2xl flex items-center justify-center text-white border border-white/10 active:scale-90 transition-all">
-            <span class="text-2xl">≡</span>
-        </button>
+    <div class="fixed top-[60px] left-0 w-full z-[150] px-6 flex justify-between items-center">
+        <button onclick="toggleHistory()" class="nav-icon glass shadow-xl">≡</button>
+        <div class="dark-glass text-white px-5 py-3 rounded-2xl flex items-center gap-2">
+            <span class="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
+            <span class="text-[10px] font-black uppercase tracking-[0.2em]">Live Tracking</span>
+        </div>
     </div>
 
     <div id="history-sidebar">
         <div class="flex justify-between items-center mb-10">
-            <h2 class="text-white text-2xl font-black italic uppercase tracking-tighter">Shift Log</h2>
-            <button onclick="toggleHistory()" class="text-white bg-white/10 w-10 h-10 rounded-full flex items-center justify-center">✕</button>
+            <h2 class="text-3xl font-black text-slate-900">Shift History</h2>
+            <button onclick="toggleHistory()" class="w-12 h-12 bg-slate-100 rounded-2xl flex items-center justify-center font-bold">✕</button>
         </div>
-        <div class="bg-white/5 border border-white/10 p-8 rounded-[32px] mb-10 text-center">
-            <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">Total Earnings</p>
-            <p id="history-total-large" class="text-5xl font-bold text-amber-400 font-['Space_Grotesk']">€0.00</p>
+        <div class="bg-blue-600 p-8 rounded-[35px] text-white shadow-2xl shadow-blue-200 mb-8">
+            <p class="text-blue-100 text-[10px] font-bold uppercase tracking-widest mb-1">Total Earned Today</p>
+            <p id="history-total-large" class="text-5xl font-black">€0.00</p>
         </div>
-        <div id="history-list" class="space-y-4 overflow-y-auto h-[55vh] pr-2"></div>
+        <div id="history-list" class="space-y-4 overflow-y-auto h-[50vh] pr-2"></div>
     </div>
 
-    <div id="boot-screen" class="fixed inset-0 z-[3000] bg-[#0a0c10] flex flex-col items-center justify-center p-12 text-center">
-        <div class="text-white font-black text-5xl tracking-tighter mb-4 italic uppercase">WE KLEO</div>
-        <p class="text-gray-500 uppercase tracking-[0.4em] text-[10px] mb-16 font-bold">Driver Command Center</p>
-        <button onclick="goOnline()" class="bg-white text-black w-full py-6 rounded-full text-sm font-bold uppercase tracking-widest shadow-2xl active:scale-95 transition-all">Go Online</button>
+    <div id="boot-screen" class="fixed inset-0 z-[3000] bg-slate-50 flex flex-col items-center justify-center p-12 text-center">
+        <div class="text-blue-600 font-black text-6xl tracking-tighter mb-4 italic">KLEO</div>
+        <p class="text-slate-400 font-medium tracking-[0.3em] text-[10px] mb-20 uppercase">Next Gen Delivery</p>
+        <button onclick="goOnline()" class="bg-blue-600 text-white w-full py-6 rounded-3xl text-sm font-black uppercase tracking-widest shadow-2xl shadow-blue-300">Start Shift</button>
     </div>
 
-    <div id="order-sheet" class="premium-panel panel-minimized">
-        <div class="w-16 h-1 bg-gray-600/20 rounded-full mx-auto mb-8"></div>
-        <div id="waiting-ui" class="flex flex-col items-center py-4">
-            <div class="flex items-center gap-4">
-                <div class="relative flex h-3 w-3"><span class="animate-ping absolute h-full w-full rounded-full bg-amber-400 opacity-75"></span><span class="relative rounded-full h-3 w-3 bg-amber-500"></span></div>
-                <p class="text-white font-bold uppercase tracking-widest text-xs">Searching for missions...</p>
-            </div>
+    <div id="order-sheet" class="bottom-sheet glass sheet-minimized shadow-2xl">
+        <div class="w-12 h-1.5 bg-slate-300/50 rounded-full mx-auto mb-10"></div>
+        
+        <div id="waiting-ui" class="text-center py-4">
+            <p class="text-slate-900 font-black text-xl uppercase tracking-tighter italic">Online & Active</p>
+            <p class="text-slate-400 text-sm font-medium">Scanning for nearby orders...</p>
         </div>
 
         <div id="order-ui" class="hidden">
-            <div class="flex justify-between items-start mb-8">
+            <div class="flex justify-between items-end mb-8">
                 <div>
-                    <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Commission</p>
-                    <div class="currency-big">€4,00</div>
+                    <div class="currency">€4.00</div>
+                    <p class="text-blue-500 font-black text-[10px] uppercase tracking-widest mt-1">Guaranteed Payout</p>
                 </div>
-                <button onclick="location.reload()" class="text-red-500 text-[10px] font-black uppercase tracking-widest mt-2 border border-red-500/20 px-3 py-1 rounded-lg">Decline</button>
+                <button onclick="location.reload()" class="bg-red-50 text-red-500 px-4 py-2 rounded-xl text-[10px] font-black uppercase">Decline</button>
             </div>
 
-            <div class="relative pl-10 space-y-10 mb-10">
-                <div class="step-line"></div>
-                <div class="relative">
-                    <div class="step-dot bg-amber-500 absolute -left-[33px]"></div>
-                    <p class="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-0.5">Pickup Point</p>
-                    <h2 class="text-lg font-bold text-gray-900 leading-tight">WE KLEO Kitchen</h2>
-                    <p class="text-gray-500 text-sm italic font-medium">Slovenska ulica 15, Maribor</p>
+            <div class="bg-white/50 rounded-[30px] p-6 mb-8 border border-white/50">
+                <div class="mb-6 flex gap-4">
+                    <div class="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center text-blue-600 text-xl font-bold">1</div>
+                    <div>
+                        <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Store Pickup</p>
+                        <h2 class="text-lg font-black text-slate-800">WE KLEO KITCHEN</h2>
+                        <p class="text-slate-500 text-xs font-medium">Slovenska ulica 15</p>
+                    </div>
                 </div>
-                <div class="relative">
-                    <div class="step-dot bg-black absolute -left-[33px]"></div>
-                    <p class="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-0.5">Destination</p>
-                    <h2 id="c-name" class="text-lg font-bold text-gray-900 truncate leading-tight">---</h2>
-                    <p id="c-addr" class="text-blue-600 text-sm font-bold underline">---</p>
+                <div class="flex gap-4">
+                    <div class="w-10 h-10 bg-indigo-100 rounded-xl flex items-center justify-center text-indigo-600 text-xl font-bold">2</div>
+                    <div class="flex-1">
+                        <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Client Drop</p>
+                        <h2 id="c-name" class="text-lg font-black text-slate-800 truncate uppercase">---</h2>
+                        <p id="c-addr" class="text-indigo-600 text-sm font-bold truncate">---</p>
+                    </div>
                 </div>
             </div>
 
             <div class="flex gap-4">
-                <a id="c-phone" href="#" class="w-16 h-16 bg-gray-50 rounded-2xl flex items-center justify-center text-xl shadow-inner border border-gray-100">📞</a>
-                <button id="action-btn" onclick="processOrder()" class="flex-1 bg-black text-white rounded-2xl text-sm font-black uppercase tracking-widest shadow-xl active:scale-95 transition-all">
+                <a id="c-phone" href="#" class="w-20 h-20 bg-white rounded-[25px] flex items-center justify-center text-2xl shadow-sm">📞</a>
+                <button id="action-btn" onclick="processOrder()" class="flex-1 bg-slate-900 text-white rounded-[25px] text-lg font-black uppercase tracking-tight shadow-xl shadow-slate-300">
                     Accept Task
                 </button>
             </div>
@@ -122,18 +148,11 @@
         const db = firebase.database();
         let currentOrder = null;
         let audioCtx = null;
-        let lastPlayedId = null; // Prevent repeated beeps for the same order
 
         function toggleHistory() { document.getElementById('history-sidebar').classList.toggle('sidebar-active'); }
-        
         function goOnline() {
-            // CRITICAL: Initialize audio on user click to bypass browser restrictions
             audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            if (audioCtx.state === 'suspended') {
-                audioCtx.resume();
-            }
-            // Test beep so driver knows it's working
-            playAlert(440, 0.1); 
+            if (audioCtx.state === 'suspended') audioCtx.resume();
             document.getElementById('boot-screen').style.display = 'none';
         }
 
@@ -149,7 +168,7 @@
                     active = {id: c.key, ...o};
                 } else if (o.status === "Completed") {
                     completedCount++;
-                    const item = `<div class="bg-white/5 p-5 rounded-3xl border border-white/5 flex justify-between items-center"><div class="truncate pr-4"><p class="text-white font-bold text-sm truncate uppercase tracking-tighter">${o.customer}</p><p class="text-gray-500 text-[10px] uppercase font-bold">${o.address}</p></div><div class="text-amber-400 font-bold text-sm whitespace-nowrap">+ €4.00</div></div>`;
+                    const item = `<div class="bg-slate-50 p-6 rounded-[25px] border border-slate-100 flex justify-between items-center"><div><p class="text-slate-900 font-bold text-sm">${o.customer}</p><p class="text-slate-400 text-[10px] font-bold uppercase tracking-widest">${o.address}</p></div><div class="text-blue-600 font-black text-lg">€4.00</div></div>`;
                     historyList.insertAdjacentHTML('afterbegin', item);
                 }
             });
@@ -162,22 +181,16 @@
                 document.getElementById('c-name').innerText = active.customer;
                 document.getElementById('c-addr').innerText = active.address;
                 document.getElementById('c-phone').href = "tel:" + active.phone;
-                document.getElementById('action-btn').innerText = active.status === "Ready" ? "Accept Task" : "Finish Mission";
+                document.getElementById('action-btn').innerText = active.status === "Ready" ? "Confirm Pickup" : "End Mission";
                 document.getElementById('waiting-ui').classList.add('hidden');
                 document.getElementById('order-ui').classList.remove('hidden');
-                sheet.classList.replace('panel-minimized', 'panel-expanded');
-                
-                // Play sound ONLY if it's a new "Ready" order
-                if (active.status === "Ready" && lastPlayedId !== active.id) {
-                    playAlert(880, 0.4); 
-                    lastPlayedId = active.id;
-                }
+                sheet.classList.replace('sheet-minimized', 'sheet-expanded');
+                if (active.status === "Ready") playAlert();
             } else {
                 currentOrder = null;
-                lastPlayedId = null;
                 document.getElementById('waiting-ui').classList.remove('hidden');
                 document.getElementById('order-ui').classList.add('hidden');
-                sheet.classList.replace('panel-expanded', 'panel-minimized');
+                sheet.classList.replace('sheet-expanded', 'sheet-minimized');
             }
         });
 
@@ -188,20 +201,15 @@
             if(next === "Delivering") window.open(`https://www.google.com/maps/dir/?api=1&origin=Slovenska+ulica+15+Maribor&destination=${encodeURIComponent(currentOrder.address)}`);
         }
 
-        function playAlert(freq, duration) {
+        function playAlert() {
             if (!audioCtx) return;
-            // Resume context if browser paused it
             if (audioCtx.state === 'suspended') audioCtx.resume();
-            
             const o = audioCtx.createOscillator();
             const g = audioCtx.createGain();
-            o.connect(g); 
-            g.connect(audioCtx.destination);
-            o.type = 'sine'; 
-            o.frequency.setValueAtTime(freq, audioCtx.currentTime);
-            g.gain.setValueAtTime(0.15, audioCtx.currentTime); // Volume increased to 15%
-            o.start(); 
-            o.stop(audioCtx.currentTime + duration);
+            o.connect(g); g.connect(audioCtx.destination);
+            o.type = 'sine'; o.frequency.setValueAtTime(800, audioCtx.currentTime);
+            g.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            o.start(); o.stop(audioCtx.currentTime + 0.2);
         }
     </script>
 </body>
