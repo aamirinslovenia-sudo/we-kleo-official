@@ -15,15 +15,13 @@
     </style>
 </head>
 <body class="p-8">
-
     <div id="login-overlay">
         <div class="bg-white p-10 rounded-[40px] shadow-2xl w-full max-w-md text-center">
-            <h2 class="text-3xl font-black mb-2 italic text-blue-600">WE KLEO</h2>
+            <h2 class="text-3xl font-black mb-2 italic text-blue-600">KLEO ADMIN</h2>
             <input type="password" id="pass-input" placeholder="Password" class="w-full p-4 bg-slate-100 rounded-2xl mb-4 text-center font-bold outline-none border-2 border-transparent focus:border-blue-500 transition-all">
             <button onclick="checkPass()" class="w-full bg-slate-900 text-white py-4 rounded-2xl font-black uppercase tracking-widest">Login</button>
         </div>
     </div>
-
     <div class="max-w-6xl mx-auto">
         <header class="flex justify-between items-end mb-12">
             <div><h1 class="text-5xl font-black text-slate-900 italic tracking-tighter">SUPPORT<span class="text-blue-600">HQ</span></h1></div>
@@ -31,17 +29,13 @@
         </header>
         <div id="ticket-container" class="grid grid-cols-1 md:grid-cols-2 gap-8"></div>
     </div>
-
     <audio id="alert-sound" src="https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3"></audio>
-
     <script>
-        const ADMIN_PASSWORD = "KLEO2026";
+        const PASS = "KLEO2026";
         const firebaseConfig = { apiKey: "AIzaSyBD_YmzFTA2OKn64h22Z9yM7pCAmmlTl68", authDomain: "we-kleo.firebaseapp.com", databaseURL: "https://we-kleo-default-rtdb.europe-west1.firebasedatabase.app", projectId: "we-kleo", storageBucket: "we-kleo.firebasestorage.app", messagingSenderId: "87105321281", appId: "1:87105321281:web:ec83e4472e5756182749c0" };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
-
-        function checkPass() { if(document.getElementById('pass-input').value === ADMIN_PASSWORD) document.getElementById('login-overlay').style.display = 'none'; else alert("Wrong Pass"); }
-
+        function checkPass() { if(document.getElementById('pass-input').value === PASS) document.getElementById('login-overlay').style.display = 'none'; else alert("Wrong Pass"); }
         db.ref('support_tickets').on('value', (snap) => {
             const container = document.getElementById('ticket-container');
             let html = ""; let count = 0;
@@ -49,45 +43,16 @@
                 const t = child.val(); const id = child.key;
                 if(t.status !== "Resolved") {
                     count++; let chatHtml = "";
-                    if(t.chat) {
-                        Object.values(t.chat).forEach(m => {
-                            const isDriver = m.sender === "Driver";
-                            chatHtml += `<div class="mb-2 ${isDriver ? 'text-left' : 'text-right'}"><span class="inline-block p-3 rounded-2xl text-xs font-bold ${isDriver ? 'bg-white text-slate-800 border shadow-sm' : 'bg-blue-600 text-white'}">${m.text}</span></div>`;
-                        });
-                    }
-                    html += `
-                    <div class="ticket-card p-8">
-                        <div class="flex justify-between items-center mb-4">
-                            <h3 class="text-xl font-black italic uppercase">Client: ${t.customer}</h3>
-                            <button onclick="resolveTicket('${id}')" class="text-slate-300 hover:text-red-500 font-bold">✕</button>
-                        </div>
-                        <div class="chat-box mb-6 shadow-inner">${chatHtml}</div>
-                        <div class="space-y-4">
-                            <div class="flex gap-2">
-                                <input type="text" id="reply-${id}" placeholder="Type reply..." class="flex-1 p-4 rounded-2xl border-2 border-slate-100 outline-none focus:border-blue-500 transition-all font-bold">
-                                <button onclick="sendReply('${id}')" class="bg-blue-600 text-white px-8 rounded-2xl font-black uppercase text-xs">Reply</button>
-                            </div>
-                            <button onclick="resolveTicket('${id}')" class="w-full py-4 bg-slate-900 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-red-600 transition-colors">Resolve & Close Thread</button>
-                        </div>
-                    </div>`;
+                    if(t.chat) { Object.values(t.chat).forEach(m => { const isD = m.sender === "Driver"; chatHtml += `<div class="mb-2 ${isD ? 'text-left' : 'text-right'}"><span class="inline-block p-3 rounded-2xl text-xs font-bold ${isD ? 'bg-white text-slate-800 border' : 'bg-blue-600 text-white'}">${m.text}</span></div>`; }); }
+                    html += `<div class="ticket-card p-8"><div class="flex justify-between items-center mb-4"><h3 class="text-xl font-black uppercase italic">Client: ${t.customer}</h3><button onclick="resolveTicket('${id}')" class="text-slate-300">✕</button></div><div class="chat-box mb-6">${chatHtml}</div><div class="space-y-4"><div class="flex gap-2"><input type="text" id="reply-${id}" placeholder="Type reply..." class="flex-1 p-4 rounded-2xl border-2 outline-none focus:border-blue-500 font-bold"><button onclick="sendReply('${id}')" class="bg-blue-600 text-white px-8 rounded-2xl font-black uppercase text-xs">Reply</button></div><button onclick="resolveTicket('${id}')" class="w-full py-4 bg-slate-900 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest">Resolve & Close</button></div></div>`;
                 }
             });
-            container.innerHTML = html;
-            document.getElementById('active-count').innerText = count;
+            container.innerHTML = html; document.getElementById('active-count').innerText = count;
             if(count > 0) document.getElementById('alert-sound').play().catch(()=>{});
             document.querySelectorAll('.chat-box').forEach(box => box.scrollTop = box.scrollHeight);
         });
-
-        function sendReply(id) {
-            const input = document.getElementById(`reply-${id}`);
-            if(input.value.trim() !== "") {
-                db.ref('support_tickets/' + id + '/chat').push({ sender: "Admin", text: input.value, timestamp: Date.now() });
-                db.ref('support_tickets/' + id).update({ replyTime: Date.now() });
-                input.value = "";
-            }
-        }
-
-        function resolveTicket(id) { if(confirm("This will permanently archive and close this chat. Proceed?")) db.ref('support_tickets/' + id).update({ status: "Resolved" }); }
+        function sendReply(id) { const input = document.getElementById(`reply-${id}`); if(input.value.trim() !== "") { db.ref('support_tickets/' + id + '/chat').push({ sender: "Admin", text: input.value, timestamp: Date.now() }); input.value = ""; } }
+        function resolveTicket(id) { if(confirm("Close thread?")) db.ref('support_tickets/' + id).update({ status: "Resolved" }); }
     </script>
 </body>
 </html>
