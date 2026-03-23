@@ -27,30 +27,33 @@
         .driver-card { animation: pulse-blue 2s infinite; border-width: 2px; }
         #history-sidebar { transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1); z-index: 2000; }
         .sidebar-open { transform: translateX(0) !important; }
+        .earning-badge { background: linear-gradient(90deg, #1e3a8a 0%, #3b82f6 100%); }
     </style>
 </head>
 <body class="pb-20">
 
     <div id="driver-overlay" class="fixed inset-0 z-[3000] bg-[#060a11] flex flex-col items-center justify-center">
         <h1 class="text-5xl font-[900] italic uppercase mb-12 we-kleo-title text-center px-6">WE KLEO<br>DRIVER</h1>
-        <button onclick="startDriverMode()" class="px-12 py-6 bg-blue-600 rounded-[32px] text-white font-black text-2xl shadow-2xl shadow-blue-500/20 active:scale-95 transition-all uppercase italic">Start Shift</button>
+        <button onclick="startDriverMode()" class="px-12 py-6 bg-blue-600 rounded-[32px] text-white font-black text-2xl shadow-2xl shadow-blue-500/20 hover:scale-105 active:scale-95 transition-all uppercase italic">Start Shift</button>
     </div>
 
     <div id="history-sidebar" class="fixed top-0 right-0 h-full w-80 bg-[#0a101a] z-[2000] p-6 transform translate-x-full shadow-2xl border-l border-white/10">
         <div class="flex justify-between items-center mb-6">
-            <h2 class="text-xl font-black italic uppercase text-blue-400">Shift Earnings</h2>
+            <h2 class="text-xl font-black italic uppercase text-blue-400">Total Payout</h2>
             <button onclick="toggleHistory()" class="text-2xl">✕</button>
         </div>
-        <div class="bg-blue-600/10 p-4 rounded-2xl mb-6 border border-blue-500/20 text-center">
-            <p class="text-[10px] uppercase font-bold text-slate-500">Total Earned Today</p>
-            <p id="totalEarnings" class="text-3xl font-black text-white italic">€0.00</p>
+        <div class="bg-blue-600/10 p-8 rounded-[32px] mb-8 border border-blue-500/20 text-center">
+            <p class="text-[10px] uppercase font-bold text-slate-500 tracking-widest mb-2">Shift Earnings</p>
+            <p id="totalEarnings" class="text-5xl font-[900] text-white italic tracking-tighter">€0.00</p>
         </div>
-        <div id="historyList" class="space-y-4 overflow-y-auto h-[70vh] pr-2">
+        <div id="historyList" class="space-y-4 overflow-y-auto h-[60vh] pr-2">
             </div>
     </div>
 
     <div class="flex flex-col items-center pt-10 pb-6 border-b border-slate-900 mb-8 relative">
-        <button onclick="toggleHistory()" class="absolute right-6 top-10 bg-white/5 p-3 rounded-full border border-white/10">📜</button>
+        <button onclick="toggleHistory()" class="absolute right-6 top-10 bg-blue-600 p-3 rounded-full shadow-lg shadow-blue-900/40 border border-blue-400/20">
+            <span class="text-xl">📜</span>
+        </button>
         <h1 class="text-4xl font-[900] italic uppercase we-kleo-title">WE KLEO</h1>
         <p class="text-[10px] font-bold text-slate-500 uppercase tracking-[0.4em] mt-2">Delivery Fleet</p>
     </div>
@@ -122,24 +125,33 @@
             const html = `
                 <div class="glass p-8 rounded-[40px] border border-slate-800 ${!isDelivering ? 'driver-card' : ''}">
                     <div class="flex justify-between items-center mb-6">
-                        <span class="bg-blue-600/20 text-blue-400 text-[10px] px-3 py-1 rounded-full font-black uppercase tracking-tighter italic">Earn €4.00</span>
+                        <div class="earning-badge px-5 py-2 rounded-full shadow-lg shadow-blue-900/40">
+                            <span class="text-white text-sm font-[900] italic">EARN €4.00</span>
+                        </div>
                         <span class="text-[10px] text-slate-500 font-bold font-mono">${order.time.split(',')[1]}</span>
                     </div>
-                    <h2 class="text-3xl font-[900] italic tracking-tighter uppercase mb-1 text-white">${order.customer}</h2>
-                    <p class="text-blue-400 font-bold text-sm mb-6 underline underline-offset-4 decoration-blue-900">${order.address}</p>
+
+                    <h2 class="text-4xl font-[900] italic tracking-tighter uppercase mb-1 text-white">${order.customer}</h2>
+                    <p class="text-blue-400 font-bold text-lg mb-6 underline underline-offset-8 decoration-blue-900 leading-tight">${order.address}</p>
+                    
                     <div class="grid grid-cols-2 gap-3 mb-6">
-                        <a href="${mapsUrl}" target="_blank" class="flex items-center justify-center bg-slate-800/50 text-white py-4 rounded-2xl font-bold text-xs border border-white/5 active:scale-95 transition-all">📍 Route</a>
-                        <a href="tel:${order.phone}" class="flex items-center justify-center bg-white/5 text-blue-400 py-4 rounded-2xl font-bold text-xs border border-blue-400/20 active:scale-95 transition-all">📞 Call Client</a>
+                        <a href="${mapsUrl}" target="_blank" class="flex items-center justify-center bg-slate-800 text-white py-5 rounded-2xl font-black text-xs border border-white/5 active:scale-95 transition-all">📍 NAVIGATION</a>
+                        <a href="tel:${order.phone}" class="flex items-center justify-center bg-white/5 text-blue-400 py-5 rounded-2xl font-black text-xs border border-blue-400/20 active:scale-95 transition-all uppercase">📞 Call Client</a>
                     </div>
-                    <button onclick="updateStatus('${id}', '${isDelivering ? 'Completed' : 'Delivering'}')" class="w-full ${isDelivering ? 'bg-green-600' : 'bg-blue-600'} text-white py-5 rounded-[24px] font-[900] italic uppercase active:scale-95 transition-all shadow-xl">
-                        ${isDelivering ? 'Mark Delivered' : 'Accept Pickup'}
+
+                    <button onclick="updateStatus('${id}', '${isDelivering ? 'Completed' : 'Delivering'}')" class="w-full ${isDelivering ? 'bg-green-600' : 'bg-blue-600'} text-white py-6 rounded-[28px] font-[900] italic uppercase text-lg active:scale-95 transition-all shadow-2xl">
+                        ${isDelivering ? 'Complete Delivery' : 'Accept Pickup'}
                     </button>
+                    
+                    <div class="mt-6 pt-5 border-t border-white/5 flex justify-between items-center">
+                        <p class="text-xs font-bold text-slate-400 italic">${order.item} (${order.toppings})</p>
+                    </div>
                 </div>`;
             document.getElementById('driverList').insertAdjacentHTML('beforeend', html);
         }
 
         function renderHistoryCard(order) {
-            const html = `<div class="bg-white/5 p-4 rounded-2xl border border-white/5 text-xs"><div class="flex justify-between font-bold text-white mb-1"><span>${order.customer}</span><span class="text-green-400">+€4.00</span></div><p class="text-slate-500">${order.address}</p></div>`;
+            const html = `<div class="bg-white/5 p-5 rounded-3xl border border-white/5 mb-3 text-sm shadow-xl"><div class="flex justify-between font-[900] text-white italic mb-1 uppercase"><span>${order.customer}</span><span class="text-green-400">+€4.00</span></div><p class="text-xs text-slate-500 font-bold">${order.address}</p></div>`;
             document.getElementById('historyList').insertAdjacentHTML('afterbegin', html);
         }
 
