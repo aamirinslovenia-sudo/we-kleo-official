@@ -95,12 +95,17 @@
         const firebaseConfig = { apiKey: "AIzaSyBD_YmzFTA2OKn64h22Z9yM7pCAmmlTl68", authDomain: "we-kleo.firebaseapp.com", databaseURL: "https://we-kleo-default-rtdb.europe-west1.firebasedatabase.app", projectId: "we-kleo", storageBucket: "we-kleo.firebasestorage.app", messagingSenderId: "87105321281", appId: "1:87105321281:web:ec83e4472e5756182749c0" };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
-        let currentOrder = null; let audioCtx = null; let activeTicketId = null;
+        let currentOrder = null; let audioCtx = null; let activeTicketId = null; let lastOrderStatus = null;
 
         function toggleHistory() { document.getElementById('history-sidebar').classList.toggle('sidebar-active'); }
         function openChat() { document.getElementById('chat-overlay').classList.add('chat-active'); document.getElementById('unread-dot').classList.add('hidden'); }
         function closeChat() { document.getElementById('chat-overlay').classList.remove('chat-active'); }
-        function goOnline() { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); document.getElementById('boot-screen').style.display = 'none'; }
+        
+        function goOnline() { 
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)(); 
+            if(audioCtx.state === 'suspended') audioCtx.resume();
+            document.getElementById('boot-screen').style.display = 'none'; 
+        }
 
         function endChatSession() { if(confirm("End this support session?")) { if(activeTicketId) db.ref('support_tickets/' + activeTicketId).update({ status: "Resolved" }); closeChat(); } }
 
@@ -155,12 +160,32 @@
                 currentOrder = active; document.getElementById('c-name').innerText = active.customer; document.getElementById('c-addr').innerText = active.address; document.getElementById('c-phone').href = "tel:" + active.phone;
                 document.getElementById('action-btn').innerText = active.status === "Ready" ? "Confirm Pickup" : "End Mission";
                 document.getElementById('waiting-ui').classList.add('hidden'); document.getElementById('order-ui').classList.remove('hidden');
-                document.getElementById('order-sheet').classList.replace('sheet-minimized', 'sheet-expanded'); if (active.status === "Ready") playBeep(800, 0.2);
-            } else { currentOrder = null; document.getElementById('waiting-ui').classList.remove('hidden'); document.getElementById('order-ui').classList.add('hidden'); document.getElementById('order-sheet').classList.replace('sheet-expanded', 'sheet-minimized'); }
+                document.getElementById('order-sheet').classList.replace('sheet-minimized', 'sheet-expanded'); 
+                
+                // Sound logic: Trigger beep if order status JUST changed to Ready
+                if (active.status === "Ready" && lastOrderStatus !== "Ready") {
+                    playBeep(800, 0.5);
+                }
+                lastOrderStatus = active.status;
+            } else { 
+                currentOrder = null; lastOrderStatus = null;
+                document.getElementById('waiting-ui').classList.remove('hidden'); document.getElementById('order-ui').classList.add('hidden'); document.getElementById('order-sheet').classList.replace('sheet-expanded', 'sheet-minimized'); 
+            }
         });
 
         function processOrder() { if (!currentOrder) return; const next = currentOrder.status === "Ready" ? "Delivering" : "Completed"; db.ref('orders/' + currentOrder.id).update({status: next}); if(next === "Delivering") window.open(`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(currentOrder.address)}`); }
-        function playBeep(f, d) { if (!audioCtx) return; const o = audioCtx.createOscillator(); const g = audioCtx.createGain(); o.connect(g); g.connect(audioCtx.destination); o.frequency.setValueAtTime(f, audioCtx.currentTime); g.gain.setValueAtTime(0.1, audioCtx.currentTime); o.start(); o.stop(audioCtx.currentTime + d); }
+        function playBeep(f, d) { 
+            if (!audioCtx) return; 
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const o = audioCtx.createOscillator(); 
+            const g = audioCtx.createGain(); 
+            o.connect(g); 
+            g.connect(audioCtx.destination); 
+            o.frequency.setValueAtTime(f, audioCtx.currentTime); 
+            g.gain.setValueAtTime(0.1, audioCtx.currentTime); 
+            o.start(); 
+            o.stop(audioCtx.currentTime + d); 
+        }
     </script>
 </body>
 </html>
