@@ -85,35 +85,31 @@
             const msg = prompt("Type your message to Support:");
             if (!msg || msg.trim() === "") return;
 
+            const messageData = { sender: "Driver", text: msg, timestamp: Date.now() };
+
             if (activeTicketId) {
-                db.ref('support_tickets/' + activeTicketId).update({
-                    issue: msg,
-                    timestamp: Date.now(),
-                    adminReply: "" 
-                });
-                alert("Message updated!");
+                db.ref('support_tickets/' + activeTicketId + '/chat').push(messageData);
+                db.ref('support_tickets/' + activeTicketId).update({ lastUpdate: Date.now(), status: "Open" });
+                alert("Message sent!");
             } else {
                 const newTicketRef = db.ref('support_tickets').push();
                 activeTicketId = newTicketRef.key;
-                newTicketRef.set({
-                    orderId: currentOrder ? currentOrder.id : "No Order",
-                    customer: currentOrder ? currentOrder.customer : "None",
-                    issue: msg,
-                    timestamp: Date.now(),
-                    status: "Open"
-                });
+                newTicketRef.set({ orderId: currentOrder ? currentOrder.id : "No Order", customer: currentOrder ? currentOrder.customer : "None", timestamp: Date.now(), status: "Open" });
+                db.ref('support_tickets/' + activeTicketId + '/chat').push(messageData);
                 alert("Support notified!");
             }
         }
 
         db.ref('support_tickets').on('child_changed', (snap) => {
             const t = snap.val();
-            if (t.status === "Resolved" && snap.key === activeTicketId) {
-                activeTicketId = null; 
-            }
-            if (t.adminReply && t.replyTime > (Date.now() - 5000)) {
-                playBeep(1000, 0.5);
-                alert("MESSAGE FROM HQ: " + t.adminReply);
+            if (t.status === "Resolved" && snap.key === activeTicketId) { activeTicketId = null; }
+            if (t.chat) {
+                const messages = Object.values(t.chat);
+                const lastMsg = messages[messages.length - 1];
+                if (lastMsg.sender === "Admin" && lastMsg.timestamp > (Date.now() - 4000)) {
+                    playBeep(1000, 0.5);
+                    alert("HQ REPLY: " + lastMsg.text);
+                }
             }
         });
 
@@ -144,7 +140,7 @@
             if (!currentOrder) return;
             const next = currentOrder.status === "Ready" ? "Delivering" : "Completed";
             db.ref('orders/' + currentOrder.id).update({status: next});
-            if(next === "Delivering") window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(currentOrder.address)}`);
+            if(next === "Delivering") window.open(`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(currentOrder.address)}`);
         }
 
         function playBeep(f, d) { if (!audioCtx) return; const o = audioCtx.createOscillator(); const g = audioCtx.createGain(); o.connect(g); g.connect(audioCtx.destination); o.frequency.setValueAtTime(f, audioCtx.currentTime); g.gain.setValueAtTime(0.1, audioCtx.currentTime); o.start(); o.stop(audioCtx.currentTime + d); }
