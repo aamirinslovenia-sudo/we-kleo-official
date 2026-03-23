@@ -3,111 +3,111 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KLEO COMMAND | KITCHEN</title>
-
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="mobile-web-app-capable" content="yes">
+    <title>KITCHEN | WE KLEO Command</title>
 
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800;900&display=swap" rel="stylesheet">
+    
     <style>
-        body { font-family: 'Outfit', sans-serif; background-color: #000000; color: white; margin: 0; padding: 0; }
+        :root { --bg: #030303; --panel: #0a0a0a; --accent: #3b82f6; --text: #ffffff; }
+        body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; font-family: 'Outfit', sans-serif; background-color: var(--bg); color: var(--text); -webkit-font-smoothing: antialiased; }
         
-        /* Premium Glassmorphism */
-        .glass { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(30px); border: 1px solid rgba(255, 255, 255, 0.08); }
-        .we-kleo-title { animation: text-shimmer 3s infinite; }
+        /* Command Center Layout */
+        .app-shell { display: flex; height: 100vh; width: 100vw; }
+        .sidebar { width: 320px; background: var(--panel); border-right: 1px solid rgba(255,255,255,0.05); display: flex; flex-direction: column; padding: 40px; }
+        .main-production { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
         
-        @keyframes text-shimmer {
-            0%, 100% { color: #3b82f6; text-shadow: 0 0 15px rgba(59, 130, 246, 0.3); }
-            50% { color: #ffffff; text-shadow: 0 0 25px rgba(255, 255, 255, 0.5); }
-        }
+        /* Production Line (Horizontal Scroll) */
+        .production-line { flex: 1; display: flex; overflow-x: auto; gap: 20px; padding: 40px; scroll-behavior: smooth; -webkit-overflow-scrolling: touch; }
+        .production-line::-webkit-scrollbar { height: 8px; }
+        .production-line::-webkit-scrollbar-track { background: var(--panel); }
+        .production-line::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
 
-        /* Order State Styles */
-        .order-card { border-radius: 30px; transition: all 0.4s ease; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.1); }
-        .order-card-warning { border: 2px solid #f59e0b; box-shadow: 0 0 30px rgba(245, 158, 11, 0.15); }
+        /* The Order Tile (Hardware Interface Look) */
+        .order-tile { flex: 0 0 380px; height: 100%; background: #111111; border-radius: 24px; border: 1px solid rgba(255,255,255,0.08); display: flex; flex-direction: column; transition: all 0.3s ease; position: relative; overflow: hidden; }
         
-        @keyframes urgent-pulse {
-            0% { border-color: #ef4444; box-shadow: 0 0 10px rgba(239, 68, 68, 0.2); }
-            50% { border-color: #7f1d1d; box-shadow: 0 0 40px rgba(239, 68, 68, 0.5); }
-            100% { border-color: #ef4444; box-shadow: 0 0 10px rgba(239, 68, 68, 0.2); }
-        }
-        .order-card-urgent { animation: urgent-pulse 1s infinite; border-width: 3px; }
+        /* State Backgrounds (No Borders) */
+        .tile-new { background: linear-gradient(135deg, #111 0%, #030a1a 100%); border-color: rgba(59,130,246,0.3); }
+        .tile-warning { background: linear-gradient(135deg, #111 0%, #1a1103 100%); border-color: rgba(245,158,11,0.3); }
+        .tile-urgent { background: linear-gradient(135deg, #111 0%, #1a0303 100%); border-color: rgba(239,68,68,0.3); animation: urgent-bg 1.5s infinite; }
+        
+        @keyframes urgent-bg { 0%, 100% { border-color: rgba(239,68,68,0.3); } 50% { border-color: rgba(239,68,68,0.8); box-shadow: 0 0 40px rgba(239,68,68,0.15); } }
 
-        .driver-badge { font-size: 10px; font-weight: 800; padding: 5px 12px; border-radius: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
-        .driver-busy { background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); }
-        .driver-waiting { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+        .btn-ready { background: #ffffff; color: #000; transition: all 0.2s; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; border-radius: 16px; width: 100%; padding: 20px; font-size: 14px; }
+        .btn-ready:hover { background: var(--accent); color: white; }
 
-        #history-sidebar { transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1); z-index: 2000; }
+        .shimmer { animation: shimmer-text 3s infinite; }
+        @keyframes shimmer-text { 0%, 100% { opacity: 0.5; color: #64748b; } 50% { opacity: 1; color: #fff; text-shadow: 0 0 10px #fff; } }
+
+        .driver-status { font-size: 10px; font-weight: 800; padding: 5px 12px; border-radius: 8px; text-transform: uppercase; border: 1px solid transparent; }
+        .d-busy { background: rgba(239, 68, 68, 0.1); color: #ef4444; border-color: rgba(239, 68, 68, 0.2); }
+        .d-waiting { background: rgba(16, 185, 129, 0.1); color: #10b981; border-color: rgba(16, 185, 129, 0.2); }
+
+        /* History Sidebar */
+        #history-sidebar { position: fixed; top: 0; right: 0; h-full; w-[400px]; bg-[#080808]; z-[2000]; transform: translateX(100%); transition: transform 0.4s ease; border-l border-white/5; padding: 40px; display: flex; flex-direction: column; }
         .sidebar-open { transform: translateX(0) !important; }
-
-        .scroll-hide::-webkit-scrollbar { display: none; }
-        .scroll-hide { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
 </head>
-<body class="min-h-screen overflow-y-auto scroll-hide">
+<body>
 
-    <div id="sync-overlay" class="fixed inset-0 z-[3000] bg-black flex flex-col items-center justify-center">
-        <h1 class="text-7xl font-black italic tracking-tighter uppercase mb-2 we-kleo-title">WE KLEO</h1>
-        <p class="text-slate-500 font-bold uppercase tracking-[0.5em] text-[10px] mb-12">Production Command</p>
-        <button onclick="startKitchen()" class="px-14 py-7 bg-blue-600 rounded-[30px] text-white font-black text-xl shadow-2xl hover:bg-blue-500 transition-all uppercase italic">
-            Activate System
+    <div id="sync-overlay" class="fixed inset-0 z-[3000] bg-black flex flex-col items-center justify-center text-center">
+        <h1 class="text-7xl font-black italic tracking-tighter uppercase mb-2 text-white">WE KLEO</h1>
+        <p class="text-slate-600 font-bold uppercase tracking-[0.5em] text-[10px] mb-16">Maribor Production Unit v3.0</p>
+        <button onclick="startKitchen()" class="px-12 py-6 bg-blue-600 rounded-[24px] text-white font-black text-xl shadow-2xl hover:bg-blue-500 transition-all uppercase italic">
+            Enter Command Center
         </button>
     </div>
 
-    <div class="max-w-[1600px] mx-auto px-6 pt-10">
-        <div class="glass p-6 rounded-[35px] flex items-center justify-between">
-            <div class="flex items-center gap-6">
-                <div class="flex flex-col">
-                    <span class="text-[9px] font-black text-slate-500 uppercase tracking-widest">System Status</span>
-                    <div class="flex items-center gap-2">
-                        <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-                        <span class="text-sm font-bold uppercase tracking-tighter">Live Logistics</span>
-                    </div>
+    <div class="app-shell">
+        
+        <div class="sidebar">
+            <div class="mb-12">
+                <h1 class="text-4xl font-black italic tracking-tighter text-white leading-none">KLEO</h1>
+                <p class="text-slate-600 font-bold text-[9px] uppercase tracking-[0.3em] mt-1.5">Command Center</p>
+            </div>
+
+            <div class="space-y-6 mb-12">
+                <div class="bg-blue-600/5 border border-blue-500/10 p-6 rounded-2xl">
+                    <p class="text-[9px] font-black text-blue-400 uppercase tracking-widest mb-1">In Production</p>
+                    <p id="active-count" class="text-6xl font-black text-white leading-none">0</p>
+                    <p class="text-sm font-bold text-slate-500 mt-1">Active Tickets</p>
                 </div>
-                <div id="driver-status-container" class="flex gap-2 border-l border-white/10 pl-6"></div>
+                <div class="bg-white/3 border border-white/5 p-6 rounded-2xl">
+                    <p class="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-2">Logistics Hub</p>
+                    <div id="driver-status-container" class="space-y-2">
+                        </div>
+                </div>
             </div>
-            <div class="text-right">
-                <span id="clock" class="text-3xl font-black tabular-nums text-white">00:00:00</span>
-            </div>
-        </div>
-    </div>
 
-    <div class="max-w-[1600px] mx-auto p-6 mt-4">
-        <div class="flex justify-between items-end mb-10 pb-10 border-b border-white/5">
-            <div>
-                <h1 class="text-6xl font-black italic tracking-tighter uppercase we-kleo-title leading-none">Orders</h1>
-                <p class="text-slate-500 font-bold text-xs uppercase tracking-[0.3em] mt-3">Maribor Production Unit</p>
-            </div>
-            <button onclick="toggleHistory()" class="glass px-8 py-4 rounded-[20px] text-[10px] font-black uppercase tracking-widest hover:bg-white/5 transition-all">
-                📜 Production History
+            <button onclick="toggleHistory()" class="w-full bg-white/5 py-4 rounded-xl border border-white/5 text-[10px] font-black uppercase tracking-widest hover:bg-white/10 transition-all text-slate-300">
+                📜 View History
             </button>
+
+            <div class="mt-auto pt-6 border-t border-white/5 text-right">
+                <p id="clock" class="text-4xl font-black tabular-nums text-white leading-none">00:00:00</p>
+                <p class="text-slate-600 font-bold text-[9px] uppercase tracking-[0.3em] mt-1.5">Maribor local time</p>
+            </div>
         </div>
 
-        <div id="orderList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pb-20"></div>
+        <div class="main-production">
+            <div id="orderList" class="production-line">
+                </div>
+        </div>
+
     </div>
 
-    <div id="history-sidebar" class="fixed top-0 right-0 h-full w-[400px] bg-black z-[2000] p-10 transform translate-x-full border-l border-white/10 shadow-2xl">
+    <div id="history-sidebar">
         <div class="flex justify-between items-center mb-10">
             <h2 class="text-2xl font-black italic uppercase text-blue-500">History</h2>
-            <button onclick="toggleHistory()" class="text-white text-2xl">✕</button>
+            <button onclick="toggleHistory()" class="text-slate-500 text-3xl">✕</button>
         </div>
-        <div id="historyList" class="space-y-4 overflow-y-auto h-[80vh] scroll-hide"></div>
+        <div id="historyList" class="flex-1 overflow-y-auto space-y-4 pr-2"></div>
     </div>
 
     <script>
-        const firebaseConfig = {
-          apiKey: "AIzaSyBD_YmzFTA2OKn64h22Z9yM7pCAmmlTl68",
-          authDomain: "we-kleo.firebaseapp.com",
-          databaseURL: "https://we-kleo-default-rtdb.europe-west1.firebasedatabase.app",
-          projectId: "we-kleo",
-          storageBucket: "we-kleo.firebasestorage.app",
-          messagingSenderId: "87105321281",
-          appId: "1:87105321281:web:ec83e4472e5756182749c0"
-        };
-
+        const firebaseConfig = { apiKey: "AIzaSyBD_YmzFTA2OKn64h22Z9yM7pCAmmlTl68", authDomain: "we-kleo.firebaseapp.com", databaseURL: "https://we-kleo-default-rtdb.europe-west1.firebasedatabase.app", projectId: "we-kleo", storageBucket: "we-kleo.firebasestorage.app", messagingSenderId: "87105321281", appId: "1:87105321281:web:ec83e4472e5756182749c0" };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
         let audioCtx = null;
@@ -129,14 +129,14 @@
         function playKitchenBell() {
             if (!audioCtx) return;
             const t = audioCtx.currentTime;
-            [880, 1100].forEach((freq, i) => {
+            [900, 1100].forEach((freq, i) => {
                 const osc = audioCtx.createOscillator();
                 const gain = audioCtx.createGain();
                 osc.connect(gain); gain.connect(audioCtx.destination);
                 osc.frequency.setValueAtTime(freq, t + (i * 0.12));
-                gain.gain.setValueAtTime(0.08, t + (i * 0.12));
-                gain.gain.exponentialRampToValueAtTime(0.001, t + (i * 0.12) + 0.6);
-                osc.start(t + (i * 0.12)); osc.stop(t + (i * 0.12) + 0.6);
+                gain.gain.setValueAtTime(0.06, t + (i * 0.12));
+                gain.gain.exponentialRampToValueAtTime(0.001, t + (i * 0.12) + 0.5);
+                osc.start(t + (i * 0.12)); osc.stop(t + (i * 0.12) + 0.5);
             });
         }
 
@@ -162,73 +162,84 @@
                 else { renderHistory(child.key, order); }
             });
 
+            document.getElementById('active-count').innerText = activeCount;
+
             driverContainer.innerHTML = Object.keys(drivers).map(dId => `
-                <div class="driver-badge ${drivers[dId] === 'Busy' ? 'driver-busy' : 'driver-waiting'}">${dId}</div>
-            `).join('') || '<span class="text-[10px] text-slate-700 font-bold uppercase">No Drivers Active</span>';
+                <div class="driver-status ${drivers[dId] === 'Busy' ? 'd-busy' : 'd-waiting'} flex justify-between items-center">
+                    <span>${dId}</span><span>${drivers[dId]}</span>
+                </div>
+            `).join('') || '<p class="text-[10px] text-slate-700 font-bold uppercase">No Drivers</p>';
 
             if (activeCount > 0 && !alarmInterval) startAlarm();
             if (activeCount === 0) stopAlarm();
         });
 
+        // Compact Horizontal Tile (v3.0)
         function renderOrder(id, order) {
             const timestamp = order.timestamp || Date.now();
             const html = `
-                <div id="card-${id}" data-time="${timestamp}" class="order-card p-6 flex flex-col h-full">
-                    <div class="flex justify-between items-start mb-4">
-                        <span class="text-[10px] font-black text-blue-500 uppercase tracking-[0.2em]">Live Order</span>
-                        <span class="text-sm font-black text-slate-400">${order.totalPrice}</span>
-                    </div>
-                    
-                    <h2 class="text-2xl font-black uppercase italic tracking-tighter mb-4 leading-none">${order.item}</h2>
-                    
-                    <div class="bg-white/5 p-4 rounded-2xl mb-6 border border-white/5 flex-grow">
-                        <p class="text-[10px] font-black text-slate-500 uppercase mb-2 tracking-widest">Modifications</p>
-                        <p class="text-sm italic font-medium text-slate-200">"${order.toppings}"</p>
-                    </div>
-
-                    <div class="grid grid-cols-2 gap-3 mb-6">
-                        <div class="bg-white/5 p-3 rounded-xl">
-                            <p class="text-[8px] font-black text-slate-500 uppercase mb-1">Time</p>
-                            <p id="timer-${id}" class="text-lg font-black tabular-nums">00:00</p>
+                <div id="tile-${id}" data-time="${timestamp}" class="order-tile p-8 tile-new flex flex-col justify-between">
+                    <div>
+                        <div class="flex justify-between items-center mb-1">
+                            <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Active Ticket</span>
+                            <span class="text-sm font-black text-white tabular-nums tracking-tight">${order.totalPrice}</span>
                         </div>
-                        <div class="bg-white/5 p-3 rounded-xl">
-                            <p class="text-[8px] font-black text-slate-500 uppercase mb-1">Customer</p>
-                            <p class="text-[11px] font-bold truncate uppercase text-blue-400">${order.customer}</p>
+                        <h2 class="text-5xl font-black uppercase italic tracking-tighter text-white leading-none mb-6">${order.item}</h2>
+                        
+                        <div class="bg-black/20 p-5 rounded-xl border border-white/5 mb-6 min-h-[100px]">
+                            <p class="text-[8px] font-black text-slate-600 uppercase mb-1.5 tracking-widest">Instructions</p>
+                            <p class="text-base italic font-medium text-slate-200 leading-snug">"${order.toppings}"</p>
                         </div>
                     </div>
 
-                    <button onclick="setStatus('${id}', 'Ready')" class="w-full bg-white text-black font-black py-4 rounded-2xl text-xs uppercase tracking-widest hover:bg-blue-600 hover:text-white transition-all">
-                        Dispatch Ready
-                    </button>
+                    <div>
+                        <div class="grid grid-cols-2 gap-4 mb-6">
+                            <div>
+                                <p class="text-[8px] font-black text-slate-600 uppercase mb-1">Elasped Time</p>
+                                <p id="timer-${id}" class="text-4xl font-black tabular-nums text-white leading-none">00:00</p>
+                            </div>
+                            <div>
+                                <p class="text-[8px] font-black text-slate-600 uppercase mb-1">Customer</p>
+                                <p class="text-sm font-bold text-slate-100 truncate uppercase leading-tight">${order.customer}</p>
+                                <p class="text-xs text-slate-500 font-mono">${order.phone}</p>
+                            </div>
+                        </div>
+                        <button onclick="setStatus('${id}', 'Ready')" class="btn-ready">Mark Complete</button>
+                    </div>
                 </div>
             `;
-            document.getElementById('orderList').insertAdjacentHTML('afterbegin', html);
+            document.getElementById('orderList').insertAdjacentHTML('beforeend', html); // New orders go to the end (left to right flow)
         }
 
         function updateTimers() {
-            document.querySelectorAll('[id^="card-"]').forEach(card => {
-                const id = card.id.replace('card-', '');
-                const startTime = parseInt(card.getAttribute('data-time'));
+            document.querySelectorAll('[id^="tile-"]').forEach(tile => {
+                const id = tile.id.replace('tile-', '');
+                const startTime = parseInt(tile.getAttribute('data-time'));
                 const elapsedSec = Math.floor((Date.now() - startTime) / 1000);
                 const mins = Math.floor(elapsedSec / 60);
                 const secs = elapsedSec % 60;
                 
                 document.getElementById(`timer-${id}`).innerText = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 
-                if (mins >= 20) card.className = "order-card p-6 flex flex-col h-full order-card-urgent";
-                else if (mins >= 10) card.className = "order-card p-6 flex flex-col h-full order-card-warning";
+                if (mins >= 20) {
+                    tile.className = "order-tile p-8 flex flex-col justify-between tile-urgent";
+                    document.getElementById(`timer-${id}`).className = "text-4xl font-black tabular-nums text-red-500 leading-none animate-pulse";
+                } else if (mins >= 10) {
+                    tile.className = "order-tile p-8 flex flex-col justify-between tile-warning";
+                    document.getElementById(`timer-${id}`).className = "text-4xl font-black tabular-nums text-orange-400 leading-none";
+                }
             });
         }
 
         function renderHistory(id, order) {
             const html = `
-                <div class="glass p-5 rounded-3xl mb-3">
+                <div class="bg-white/3 p-5 rounded-xl border border-white/5 text-sm">
                     <div class="flex justify-between items-center mb-1">
-                        <p class="font-black italic uppercase truncate text-sm">${order.item}</p>
+                        <p class="font-black italic uppercase truncate text-white">${order.item}</p>
                         <span class="text-[8px] text-blue-500 font-bold uppercase tracking-widest">${order.status}</span>
                     </div>
-                    <p class="text-[9px] text-slate-500 mb-4 font-bold uppercase">${order.customer}</p>
-                    <button onclick="setStatus('${id}', 'New')" class="w-full py-2 bg-white/5 rounded-xl text-[8px] font-black uppercase text-slate-400 hover:text-white transition-all">↩ Re-Dispatch</button>
+                    <p class="text-[10px] text-slate-500 mb-4 font-bold uppercase truncate">${order.customer}</p>
+                    <button onclick="setStatus('${id}', 'New')" class="w-full py-2 bg-white/5 rounded-lg text-[8px] font-black uppercase text-slate-400 hover:text-white transition-all">↩ Re-Dispatch</button>
                 </div>
             `;
             document.getElementById('historyList').insertAdjacentHTML('afterbegin', html);
