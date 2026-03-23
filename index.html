@@ -25,10 +25,22 @@
         .glass { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.08); }
         .active-item { border-color: #3b82f6 !important; background: rgba(59, 130, 246, 0.15) !important; transform: scale(1.02); }
         input::placeholder { color: rgba(148, 163, 184, 0.5); }
+        
+        /* Login Overlay */
+        #login-overlay { position: fixed; inset: 0; background: #060a11; z-index: 5000; display: flex; align-items: center; justify-content: center; padding: 20px; }
     </style>
 </head>
 <body class="pb-32">
     
+    <div id="login-overlay">
+        <div class="glass p-10 rounded-[40px] shadow-2xl w-full max-w-md text-center border border-white/10">
+            <h2 class="text-3xl font-black mb-2 italic text-blue-500 we-kleo-title">WE KLEO</h2>
+            <p class="text-slate-500 text-[10px] font-bold uppercase mb-6 tracking-widest">Premium Access Only</p>
+            <input type="password" id="pass-input" placeholder="Enter Password" class="w-full p-5 bg-white/5 rounded-3xl mb-4 text-center font-bold text-white outline-none border border-white/10 focus:border-blue-500 transition-all">
+            <button onclick="checkPass()" class="w-full bg-blue-600 text-white py-5 rounded-3xl font-black uppercase tracking-widest active:scale-95 transition-all">Enter Store</button>
+        </div>
+    </div>
+
     <div class="flex flex-col items-center pt-10 pb-6 border-b border-slate-900 mb-8">
         <h1 class="text-5xl font-[900] italic tracking-tighter uppercase we-kleo-title">WE KLEO</h1>
         <p class="text-[10px] font-bold text-slate-500 uppercase tracking-[0.4em] mt-2 text-center">Premium Delivery • Maribor</p>
@@ -99,6 +111,7 @@
     </div>
 
     <script>
+        const PASS = "KLEO2026";
         const firebaseConfig = {
           apiKey: "AIzaSyBD_YmzFTA2OKn64h22Z9yM7pCAmmlTl68",
           authDomain: "we-kleo.firebaseapp.com",
@@ -113,6 +126,14 @@
         const db = firebase.database();
         let selectedItem = "";
         let basePrice = 0;
+
+        function checkPass() {
+            if(document.getElementById('pass-input').value === PASS) {
+                document.getElementById('login-overlay').style.display = 'none';
+            } else {
+                alert("Wrong Pass");
+            }
+        }
 
         window.onload = function() {
             const savedName = localStorage.getItem('kleo_name');
@@ -137,7 +158,8 @@
         function selectItem(name, price, id) {
             selectedItem = name;
             basePrice = price;
-            document.querySelectorAll('.glass').forEach(el => el.classList.remove('active-item'));
+            // Remove active from food cards only
+            document.querySelectorAll('#card-Pizza, #card-Burger').forEach(el => el.classList.remove('active-item'));
             document.getElementById('card-' + id).classList.add('active-item');
             updateTotal();
         }
@@ -162,14 +184,14 @@
             localStorage.setItem('kleo_address', addr);
 
             db.ref('orders').push({
+                customer: name,
+                address: addr,
+                phone: phone,
                 item: selectedItem,
                 toppings: extras.join(", ") || "None",
                 totalPrice: document.getElementById('priceDisplay').innerText,
-                customer: name,
-                phone: phone,
-                address: addr,
                 time: new Date().toLocaleString(),
-                status: 'New'
+                status: 'Pending'
             }).then(() => {
                 alert('🚀 Order received! WE KLEO is preparing your meal!');
                 location.reload();
