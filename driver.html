@@ -14,7 +14,6 @@
         body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; background: #0a0c10; font-family: 'Inter', sans-serif; }
         #map-bg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #111827; z-index: 1; opacity: 0.4; }
 
-        /* Panel Transitions */
         .premium-panel {
             position: fixed; bottom: 0; left: 0; width: 100%;
             background: white; border-top-left-radius: 40px; border-top-right-radius: 40px;
@@ -25,16 +24,15 @@
         .panel-minimized { transform: translateY(calc(100% - 130px)); background: #111827; border-top: 1px solid #1f2937; }
         .panel-expanded { transform: translateY(0); background: white; }
 
-        /* Sidebar History */
         #history-sidebar {
-            position: fixed; top: 0; right: 0; width: 85%; height: 100%;
-            background: rgba(10, 12, 16, 0.98); backdrop-filter: blur(20px);
+            position: fixed; top: 0; right: 0; width: 100%; height: 100%;
+            background: rgba(10, 12, 16, 0.98); backdrop-filter: blur(25px);
             z-index: 2000; transform: translateX(100%); transition: transform 0.4s ease;
-            border-left: 1px solid rgba(255,255,255,0.1); padding: 40px 30px;
+            padding: 60px 30px;
         }
         .sidebar-active { transform: translateX(0) !important; }
 
-        .currency-big { font-family: 'Space Grotesk', sans-serif; font-size: 52px; font-weight: 700; color: #0f172a; letter-spacing: -2px; }
+        .currency-big { font-family: 'Space Grotesk', sans-serif; font-size: 52px; font-weight: 700; color: #0f172a; letter-spacing: -2px; line-height: 1; }
         .step-line { width: 2px; height: 100%; background: #f1f5f9; position: absolute; left: 7px; top: 20px; }
         .step-dot { width: 16px; height: 16px; border-radius: 50%; border: 4px solid #fff; position: relative; z-index: 2; }
     </style>
@@ -44,7 +42,10 @@
     <div id="map-bg"></div>
 
     <div class="fixed top-[50px] left-0 w-full z-[150] px-6 flex justify-between items-center">
-        <div class="w-12 h-12 bg-white/10 backdrop-blur-md rounded-2xl flex items-center justify-center text-white border border-white/10">≡</div>
+        <button onclick="toggleHistory()" class="w-12 h-12 bg-white/10 backdrop-blur-md rounded-2xl flex items-center justify-center text-white border border-white/10 active:scale-90 transition-all">
+            <span class="text-2xl">≡</span>
+        </button>
+        
         <div onclick="toggleHistory()" class="px-5 py-3 bg-amber-500 rounded-2xl flex items-center gap-3 shadow-lg shadow-amber-500/20 active:scale-95 transition-all cursor-pointer">
             <span class="text-[10px] font-black uppercase tracking-widest text-black">Shift Stats</span>
             <span class="text-black font-bold" id="header-total">€0</span>
@@ -54,7 +55,7 @@
     <div id="history-sidebar">
         <div class="flex justify-between items-center mb-10">
             <h2 class="text-white text-2xl font-black italic uppercase tracking-tighter">Shift Log</h2>
-            <button onclick="toggleHistory()" class="text-gray-500 text-2xl">✕</button>
+            <button onclick="toggleHistory()" class="text-white bg-white/10 w-10 h-10 rounded-full flex items-center justify-center">✕</button>
         </div>
         
         <div class="bg-white/5 border border-white/10 p-8 rounded-[32px] mb-10 text-center">
@@ -62,13 +63,14 @@
             <p id="history-total-large" class="text-5xl font-bold text-amber-400 font-['Space_Grotesk']">€0.00</p>
         </div>
 
-        <div id="history-list" class="space-y-4 overflow-y-auto h-[60vh] pr-2">
+        <div id="history-list" class="space-y-4 overflow-y-auto h-[55vh] pr-2">
             </div>
     </div>
 
     <div id="boot-screen" class="fixed inset-0 z-[3000] bg-[#0a0c10] flex flex-col items-center justify-center p-12 text-center">
-        <div class="text-white font-black text-5xl tracking-tighter mb-16 italic uppercase">WE KLEO</div>
-        <button onclick="goOnline()" class="bg-white text-black w-full py-5 rounded-full text-sm font-bold uppercase tracking-widest shadow-2xl">Go Online</button>
+        <div class="text-white font-black text-5xl tracking-tighter mb-4 italic uppercase">WE KLEO</div>
+        <p class="text-gray-500 uppercase tracking-[0.4em] text-[10px] mb-16 font-bold">Driver Command Center</p>
+        <button onclick="goOnline()" class="bg-white text-black w-full py-6 rounded-full text-sm font-bold uppercase tracking-widest shadow-2xl active:scale-95 transition-all">Go Online</button>
     </div>
 
     <div id="order-sheet" class="premium-panel panel-minimized">
@@ -77,37 +79,40 @@
         <div id="waiting-ui" class="flex flex-col items-center py-4">
             <div class="flex items-center gap-4">
                 <div class="relative flex h-3 w-3"><span class="animate-ping absolute h-full w-full rounded-full bg-amber-400 opacity-75"></span><span class="relative rounded-full h-3 w-3 bg-amber-500"></span></div>
-                <p class="text-white font-bold uppercase tracking-widest text-xs">Awaiting Missions</p>
+                <p class="text-white font-bold uppercase tracking-widest text-xs">Searching for missions...</p>
             </div>
         </div>
 
         <div id="order-ui" class="hidden">
-            <div class="flex justify-between items-end mb-8">
+            <div class="flex justify-between items-start mb-8">
                 <div>
                     <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Commission</p>
                     <div class="currency-big">€4,00</div>
                 </div>
-                <div onclick="location.reload()" class="text-red-500 text-[10px] font-black uppercase tracking-widest mb-4">Decline</div>
+                <button onclick="location.reload()" class="text-red-500 text-[10px] font-black uppercase tracking-widest mt-2 border border-red-500/20 px-3 py-1 rounded-lg">Decline</button>
             </div>
 
             <div class="relative pl-10 space-y-10 mb-10">
                 <div class="step-line"></div>
+                
                 <div class="relative">
                     <div class="step-dot bg-amber-500 absolute -left-[33px]"></div>
-                    <p class="text-[9px] font-black text-gray-400 uppercase tracking-widest">Pickup</p>
-                    <h2 class="text-lg font-bold text-gray-900">WE KLEO KITCHEN</h2>
+                    <p class="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-0.5">Pickup Point</p>
+                    <h2 class="text-lg font-bold text-gray-900 leading-tight">WE KLEO Kitchen</h2>
+                    <p class="text-gray-500 text-sm italic font-medium">Slovenska ulica 15, Maribor</p>
                 </div>
+
                 <div class="relative">
                     <div class="step-dot bg-black absolute -left-[33px]"></div>
-                    <p class="text-[9px] font-black text-gray-400 uppercase tracking-widest">Destination</p>
-                    <h2 id="c-name" class="text-lg font-bold text-gray-900 truncate">---</h2>
-                    <p id="c-addr" class="text-gray-500 text-sm">---</p>
+                    <p class="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-0.5">Destination</p>
+                    <h2 id="c-name" class="text-lg font-bold text-gray-900 truncate leading-tight">---</h2>
+                    <p id="c-addr" class="text-blue-600 text-sm font-bold underline">---</p>
                 </div>
             </div>
 
             <div class="flex gap-4">
-                <a id="c-phone" href="#" class="w-16 h-16 bg-gray-50 rounded-2xl flex items-center justify-center text-xl">📞</a>
-                <button id="action-btn" onclick="processOrder()" class="flex-1 bg-black text-white rounded-2xl text-sm font-black uppercase tracking-widest shadow-xl">
+                <a id="c-phone" href="#" class="w-16 h-16 bg-gray-50 rounded-2xl flex items-center justify-center text-xl shadow-inner border border-gray-100">📞</a>
+                <button id="action-btn" onclick="processOrder()" class="flex-1 bg-black text-white rounded-2xl text-sm font-black uppercase tracking-widest shadow-xl active:scale-95 transition-all">
                     Accept Task
                 </button>
             </div>
@@ -130,6 +135,7 @@
         let audioCtx = null;
 
         function toggleHistory() { document.getElementById('history-sidebar').classList.toggle('sidebar-active'); }
+        
         function goOnline() {
             audioCtx = new (window.AudioContext || window.webkitAudioContext)();
             document.getElementById('boot-screen').style.display = 'none';
@@ -147,7 +153,7 @@
                     active = {id: c.key, ...o};
                 } else if (o.status === "Completed") {
                     completedCount++;
-                    const item = `<div class="bg-white/5 p-5 rounded-3xl border border-white/5 flex justify-between items-center"><div class="truncate"><p class="text-white font-bold text-sm truncate">${o.customer}</p><p class="text-gray-500 text-[10px] uppercase">${o.address}</p></div><div class="text-amber-400 font-bold">€4.00</div></div>`;
+                    const item = `<div class="bg-white/5 p-5 rounded-3xl border border-white/5 flex justify-between items-center"><div class="truncate pr-4"><p class="text-white font-bold text-sm truncate uppercase tracking-tighter">${o.customer}</p><p class="text-gray-500 text-[10px] uppercase font-bold">${o.address}</p></div><div class="text-amber-400 font-bold text-sm whitespace-nowrap">+ €4.00</div></div>`;
                     historyList.insertAdjacentHTML('afterbegin', item);
                 }
             });
@@ -162,11 +168,11 @@
                 document.getElementById('c-name').innerText = active.customer;
                 document.getElementById('c-addr').innerText = active.address;
                 document.getElementById('c-phone').href = "tel:" + active.phone;
-                document.getElementById('action-btn').innerText = active.status === "Ready" ? "Accept Task" : "Finish Task";
+                document.getElementById('action-btn').innerText = active.status === "Ready" ? "Accept Task" : "Finish Mission";
                 document.getElementById('waiting-ui').classList.add('hidden');
                 document.getElementById('order-ui').classList.remove('hidden');
                 sheet.classList.replace('panel-minimized', 'panel-expanded');
-                playBeep();
+                playAlert();
             } else {
                 currentOrder = null;
                 document.getElementById('waiting-ui').classList.remove('hidden');
@@ -182,14 +188,14 @@
             if(next === "Delivering") window.open(`https://www.google.com/maps/dir/?api=1&origin=Slovenska+ulica+15+Maribor&destination=${encodeURIComponent(currentOrder.address)}`);
         }
 
-        function playBeep() {
+        function playAlert() {
             if (!audioCtx) return;
             const o = audioCtx.createOscillator();
             const g = audioCtx.createGain();
             o.connect(g); g.connect(audioCtx.destination);
-            o.type = 'sine'; o.frequency.setValueAtTime(660, audioCtx.currentTime);
+            o.type = 'sine'; o.frequency.setValueAtTime(600, audioCtx.currentTime);
             g.gain.setValueAtTime(0.05, audioCtx.currentTime);
-            o.start(); o.stop(audioCtx.currentTime + 0.1);
+            o.start(); o.stop(audioCtx.currentTime + 0.15);
         }
     </script>
 </body>
