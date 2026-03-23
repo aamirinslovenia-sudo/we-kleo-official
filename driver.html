@@ -12,153 +12,130 @@
         :root { --accent: #3b82f6; --bg: #000000; }
         body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; font-family: 'Outfit', sans-serif; background: var(--bg); color: white; }
         
-        /* Premium Glassmorphism */
-        .glass-panel { background: rgba(255, 255, 255, 0.08); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 32px; }
-        .white-panel { background: #ffffff; border-radius: 35px 35px 0 0; box-shadow: 0 -10px 40px rgba(0,0,0,0.5); }
+        /* Premium Dark Glass */
+        .glass-panel { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(25px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 32px; }
+        .dark-sheet { background: #0a0a0a; border-radius: 35px 35px 0 0; border-top: 1px solid rgba(255,255,255,0.1); }
         
-        /* Sidebars & Overlays */
-        #history-sidebar, #chat-overlay, #stats-overlay { position: fixed; top: 0; right: 0; width: 100%; height: 100%; background: #ffffff; z-index: 2000; transform: translateX(100%); transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1); padding: 60px 25px; display: flex; flex-direction: column; color: #000; }
+        /* Overlays - Now Dark & Professional */
+        #history-sidebar, #chat-overlay, #stats-overlay { position: fixed; top: 0; right: 0; width: 100%; height: 100%; background: #000000; z-index: 2000; transform: translateX(100%); transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1); padding: 60px 25px; display: flex; flex-direction: column; color: #fff; }
         .sidebar-active, .chat-active, .stats-active { transform: translateX(0) !important; }
 
-        /* Navigation Sheet */
         .bottom-sheet { position: fixed; bottom: 20px; left: 12px; right: 12px; z-index: 100; transition: all 0.6s cubic-bezier(0.23, 1, 0.32, 1); }
         .sheet-minimized { transform: translateY(calc(100% - 140px)); }
         .sheet-expanded { transform: translateY(0); }
 
-        /* Pulse Animations */
         .status-online { background: #10b981; box-shadow: 0 0 15px #10b981; }
         .status-offline { background: #ef4444; box-shadow: 0 0 15px #ef4444; }
         
-        .btn-primary { background: #3b82f6; color: white; border-radius: 24px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; transition: all 0.2s; box-shadow: 0 10px 20px rgba(59, 130, 246, 0.3); }
-        .btn-primary:active { transform: scale(0.96); box-shadow: 0 4px 10px rgba(59, 130, 246, 0.2); }
+        .btn-primary { background: #3b82f6; color: white; border-radius: 24px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; transition: all 0.2s; }
         
-        .currency-lg { font-size: 64px; font-weight: 900; letter-spacing: -4px; line-height: 1; color: #1e293b; }
-        
-        /* Wolt Style Stats */
-        .tab-btn { padding: 10px 18px; border-radius: 14px; font-weight: 700; font-size: 14px; color: #64748b; }
-        .tab-btn.active { background: #f1f5f9; color: #000; }
-        .stat-row { display: flex; justify-content: space-between; padding: 20px 0; border-bottom: 1px solid #f1f5f9; font-size: 16px; }
+        /* Professional Stats UI */
+        .tab-btn { padding: 10px 18px; border-radius: 14px; font-weight: 700; font-size: 13px; color: #64748b; border: 1px solid transparent; }
+        .tab-btn.active { background: rgba(59, 130, 246, 0.1); color: #3b82f6; border-color: rgba(59, 130, 246, 0.3); }
+        .stat-row { display: flex; justify-content: space-between; padding: 22px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .stat-label { color: #94a3b8; font-weight: 500; }
+        .stat-value { color: #f8fafc; font-weight: 700; }
+
+        /* Subtle Scanner Animation (Not Blinking) */
+        .radar-ring { border: 2px solid rgba(59, 130, 246, 0.3); border-radius: 50%; position: absolute; animation: radar 4s infinite linear; }
+        @keyframes radar { from { width: 40px; height: 40px; opacity: 1; } to { width: 150px; height: 150px; opacity: 0; } }
     </style>
 </head>
 <body>
 
-    <div class="absolute inset-0 z-0 opacity-30 bg-[radial-gradient(circle_at_50%_50%,_#1e293b_0%,_#000_100%)]"></div>
-
     <div class="fixed top-[60px] left-0 w-full z-[150] px-6 flex justify-between items-center">
-        <button onclick="toggleSidebar()" class="w-14 h-14 glass-panel flex items-center justify-center text-2xl active:scale-90 transition-all">
-            <span class="mt-[-4px]">≡</span>
-        </button>
+        <button onclick="toggleSidebar()" class="w-14 h-14 glass-panel flex items-center justify-center text-2xl">≡</button>
         <div class="glass-panel px-5 py-3 flex items-center gap-3">
-            <span id="conn-dot" class="w-2.5 h-2.5 rounded-full animate-pulse status-online"></span>
-            <span id="conn-text" class="text-[11px] font-extrabold uppercase tracking-[0.2em]">Live Shift</span>
+            <span id="conn-dot" class="w-2.5 h-2.5 rounded-full status-online"></span>
+            <span id="conn-text" class="text-[10px] font-black uppercase tracking-widest">Live Shift</span>
         </div>
     </div>
 
     <div id="history-sidebar">
         <div class="flex justify-between items-center mb-12">
-            <h2 class="text-4xl font-black text-slate-900 italic tracking-tighter">KLEO<span class="text-blue-600">PRO</span></h2>
-            <button onclick="toggleSidebar()" class="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center text-xl">✕</button>
+            <h2 class="text-4xl font-black italic tracking-tighter text-blue-500">KLEO</h2>
+            <button onclick="toggleSidebar()" class="w-12 h-12 glass-panel flex items-center justify-center">✕</button>
         </div>
         <div class="space-y-4">
-            <button onclick="openStats()" class="w-full flex items-center gap-5 p-6 bg-slate-50 rounded-[28px] hover:bg-slate-100 transition-all">
-                <span class="text-2xl">📊</span><span class="text-xl font-bold text-slate-800">Your Stats</span>
+            <button onclick="openStats()" class="w-full flex items-center gap-5 p-6 glass-panel text-left">
+                <span class="text-2xl">📊</span><div><p class="font-bold text-lg">Your Stats</p><p class="text-[10px] text-slate-500 uppercase">Income & History</p></div>
             </button>
-            <button onclick="openChat()" class="w-full flex items-center gap-5 p-6 bg-slate-50 rounded-[28px] hover:bg-slate-100 transition-all">
-                <span class="text-2xl">🎧</span><span class="text-xl font-bold text-slate-800">Support Chat</span>
+            <button onclick="openChat()" class="w-full flex items-center gap-5 p-6 glass-panel text-left">
+                <span class="text-2xl">🎧</span><div><p class="font-bold text-lg">Support</p><p class="text-[10px] text-slate-500 uppercase">Live Chat with HQ</p></div>
             </button>
         </div>
-        <div class="mt-auto p-4 bg-blue-50 rounded-3xl">
-            <p class="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-1">Driver ID</p>
-            <p id="display-driver-id" class="text-blue-900 font-bold">---</p>
+        <div class="mt-auto p-6 border-t border-white/10">
+            <p class="text-[9px] font-black text-slate-500 uppercase tracking-widest">Active Device ID</p>
+            <p id="display-driver-id" class="text-sm font-mono text-blue-400">---</p>
         </div>
     </div>
 
     <div id="stats-overlay">
         <div class="flex items-center gap-6 mb-10">
-            <button onclick="closeStats()" class="w-12 h-12 flex items-center justify-center bg-slate-50 rounded-full text-2xl">←</button>
-            <h2 class="text-3xl font-black text-slate-900">Performance</h2>
+            <button onclick="closeStats()" class="text-2xl">←</button>
+            <h2 class="text-3xl font-black">Performance</h2>
         </div>
-        <div class="flex justify-between bg-slate-50 p-1.5 rounded-2xl mb-10">
+        <div class="flex justify-between glass-panel p-1 mb-10">
             <button onclick="filterStats('today')" id="tab-today" class="tab-btn active flex-1">Today</button>
             <button onclick="filterStats('week')" id="tab-week" class="tab-btn flex-1">Week</button>
             <button onclick="filterStats('month')" id="tab-month" class="tab-btn flex-1">Month</button>
             <button onclick="showCustomRange()" id="tab-custom" class="tab-btn flex-1">Custom</button>
         </div>
         <div id="custom-picker" class="hidden grid grid-cols-2 gap-4 mb-8">
-            <input type="date" id="date-from" onchange="runCustomFilter()" class="bg-slate-100 p-4 rounded-2xl font-bold text-sm">
-            <input type="date" id="date-to" onchange="runCustomFilter()" class="bg-slate-100 p-4 rounded-2xl font-bold text-sm">
+            <input type="date" id="date-from" onchange="runCustomFilter()" class="bg-white/5 p-4 rounded-2xl border border-white/10 font-bold text-sm text-white">
+            <input type="date" id="date-to" onchange="runCustomFilter()" class="bg-white/5 p-4 rounded-2xl border border-white/10 font-bold text-sm text-white">
         </div>
-        <h3 id="stat-date-label" class="text-xl font-extrabold text-blue-600 mb-6">---</h3>
+        <h3 id="stat-date-label" class="text-lg font-bold text-blue-500 mb-6 uppercase tracking-widest">---</h3>
         <div class="space-y-1">
-            <div class="stat-row"><span class="stat-label">Total Deliveries</span><span id="stat-count" class="stat-value text-slate-900">0</span></div>
-            <div class="stat-row"><span class="stat-label">Gross Earnings</span><span id="stat-total" class="stat-value text-green-600">€0.00</span></div>
-            <div class="stat-row"><span class="stat-label">Base Fee</span><span id="stat-base" class="stat-value">€0.00</span></div>
-            <div class="stat-row border-none"><span class="stat-label">Tips Received</span><span class="stat-value">€0.00</span></div>
+            <div class="stat-row"><span class="stat-label">Orders Completed</span><span id="stat-count" class="stat-value">0</span></div>
+            <div class="stat-row"><span class="stat-label">Gross Earnings</span><span id="stat-total" class="stat-value text-blue-400">€0.00</span></div>
+            <div class="stat-row"><span class="stat-label">Net Base Pay</span><span id="stat-base" class="stat-value">€0.00</span></div>
+            <div class="stat-row border-none"><span class="stat-label">Customer Tips</span><span class="stat-value text-green-400">€0.00</span></div>
         </div>
     </div>
 
     <div id="chat-overlay">
-        <div class="flex justify-between items-center mb-8">
-            <h2 class="text-2xl font-black text-slate-900 italic uppercase">Support HQ</h2>
-            <button onclick="closeChat()" class="text-slate-400 font-bold">Close</button>
-        </div>
+        <div class="flex justify-between items-center mb-8"><h2 class="text-2xl font-black uppercase italic text-blue-500">Messenger</h2><button onclick="closeChat()">Close</button></div>
         <div id="chat-messages" class="flex-1 space-y-4 mb-6"></div>
-        <div class="flex gap-3">
-            <input type="text" id="chat-input" placeholder="Message base..." class="flex-1 bg-slate-100 p-5 rounded-[25px] font-bold outline-none">
-            <button onclick="sendMessage()" class="w-16 h-16 bg-blue-600 text-white rounded-full flex items-center justify-center text-xl shadow-lg">➤</button>
-        </div>
+        <div class="flex gap-3"><input type="text" id="chat-input" placeholder="Type message..." class="flex-1 glass-panel p-5 outline-none font-bold"><button onclick="sendMessage()" class="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center">➤</button></div>
     </div>
 
     <div id="boot-screen" class="fixed inset-0 z-[3000] bg-black flex flex-col items-center justify-center p-12 text-center">
-        <div class="text-blue-500 font-black text-7xl tracking-tighter mb-4 italic">KLEO</div>
-        <p class="text-slate-500 font-bold uppercase tracking-[0.4em] text-[10px] mb-20">Logistics v2.0</p>
-        <button onclick="goOnline()" class="bg-blue-600 text-white w-full py-7 rounded-[35px] text-lg font-black uppercase tracking-widest shadow-[0_20px_50px_rgba(59,130,246,0.4)] active:scale-95 transition-all">Start Shift</button>
+        <div class="text-blue-500 font-black text-7xl tracking-tighter mb-20 italic">KLEO</div>
+        <button onclick="goOnline()" class="bg-blue-600 text-white w-full py-7 rounded-[35px] text-lg font-black uppercase tracking-widest shadow-2xl">Go Online</button>
     </div>
 
     <div id="order-sheet" class="bottom-sheet glass-panel sheet-minimized">
         <div id="order-content" class="p-8">
-            <div class="w-16 h-1.5 bg-white/20 rounded-full mx-auto mb-10"></div>
+            <div class="w-16 h-1 bg-white/10 rounded-full mx-auto mb-10"></div>
             
-            <div id="waiting-ui" class="text-center py-6">
-                <div class="w-20 h-20 bg-blue-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
-                    <div class="w-10 h-10 bg-blue-500 rounded-full animate-ping"></div>
-                </div>
-                <h3 class="text-2xl font-black italic mb-2 uppercase tracking-tighter">Scanning Maribor</h3>
-                <p class="text-slate-400 font-bold text-xs uppercase tracking-widest">Awaiting Kitchen Signal...</p>
+            <div id="waiting-ui" class="text-center py-10 relative flex flex-col items-center justify-center overflow-hidden">
+                <div class="radar-ring"></div>
+                <div class="radar-ring" style="animation-delay: 2s"></div>
+                <h3 class="text-xl font-black uppercase italic tracking-tighter mb-2 z-10">Ready for Orders</h3>
+                <p class="text-slate-500 font-bold text-[10px] uppercase tracking-[0.3em] z-10">Scanning Active Zone</p>
             </div>
 
             <div id="order-ui" class="hidden">
-                <div class="flex justify-between items-start mb-10">
-                    <div>
-                        <p class="text-blue-400 font-black text-xs uppercase tracking-widest mb-1">New Delivery</p>
-                        <div class="currency-lg">€4.00</div>
-                    </div>
-                    <button onclick="confirmDecline()" class="bg-red-500/10 text-red-500 px-5 py-3 rounded-2xl text-[11px] font-black uppercase">Decline</button>
+                <div class="flex justify-between items-start mb-8">
+                    <div><p class="text-blue-500 font-black text-[10px] uppercase tracking-widest mb-1">Incoming Mission</p><div class="text-6xl font-black tracking-tighter">€4.00</div></div>
+                    <button onclick="confirmDecline()" class="bg-red-500/10 text-red-500 px-4 py-2 rounded-xl text-[10px] font-black uppercase">Skip</button>
                 </div>
-
                 <div class="space-y-6 mb-10">
-                    <div class="flex gap-5 items-start">
-                        <div class="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center font-black">1</div>
-                        <div>
-                            <p class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Pickup Location</p>
-                            <h4 class="text-xl font-black">KLEO Kitchen HQ</h4>
-                            <p class="text-slate-400 text-sm italic">Slovenska ulica 15</p>
-                        </div>
+                    <div class="flex gap-4">
+                        <div class="w-10 h-10 glass-panel flex items-center justify-center font-black">P</div>
+                        <div><p class="text-[9px] text-slate-500 uppercase font-bold">Pickup</p><h4 class="text-lg font-bold">KLEO Kitchen HQ</h4></div>
                     </div>
-                    <div class="flex gap-5 items-start">
-                        <div class="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center font-black">2</div>
+                    <div class="flex gap-4">
+                        <div class="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center font-black">D</div>
                         <div class="flex-1">
-                            <p class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Destination</p>
-                            <h4 id="c-name" class="text-xl font-black truncate uppercase">---</h4>
-                            <p id="c-addr" class="text-blue-400 text-sm font-extrabold underline truncate">---</p>
+                            <p class="text-[9px] text-slate-500 uppercase font-bold">Dropoff</p>
+                            <h4 id="c-name" class="text-lg font-bold truncate">---</h4>
+                            <p id="c-addr" class="text-blue-400 text-sm font-bold underline truncate italic">---</p>
                         </div>
                     </div>
                 </div>
-
-                <div class="flex gap-4">
-                    <a id="c-phone" href="#" class="w-20 h-20 glass-panel flex items-center justify-center text-3xl">📞</a>
-                    <button id="action-btn" onclick="processOrder()" class="flex-1 btn-primary text-xl">Confirm Pickup</button>
-                </div>
+                <div class="flex gap-4"><a id="c-phone" href="#" class="w-20 h-20 glass-panel flex items-center justify-center text-2xl">📞</a><button id="action-btn" onclick="processOrder()" class="flex-1 btn-primary text-lg">Accept Task</button></div>
             </div>
         </div>
     </div>
@@ -177,9 +154,8 @@
 
         db.ref(".info/connected").on("value", (snap) => {
             const dot = document.getElementById('conn-dot');
-            const txt = document.getElementById('conn-text');
-            if (snap.val() === true) { dot.className = "w-2.5 h-2.5 rounded-full animate-pulse status-online"; txt.innerText = "Live Shift"; }
-            else { dot.className = "w-2.5 h-2.5 rounded-full status-offline"; txt.innerText = "Offline"; }
+            if (snap.val() === true) dot.className = "w-2.5 h-2.5 rounded-full status-online";
+            else dot.className = "w-2.5 h-2.5 rounded-full status-offline";
         });
 
         function toggleSidebar() { document.getElementById('history-sidebar').classList.toggle('sidebar-active'); }
@@ -188,7 +164,7 @@
         function openChat() { document.getElementById('chat-overlay').classList.add('chat-active'); toggleSidebar(); }
         function closeChat() { document.getElementById('chat-overlay').classList.remove('chat-active'); }
         function showCustomRange() { document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active')); document.getElementById('tab-custom').classList.add('active'); document.getElementById('custom-picker').classList.remove('hidden'); }
-        function confirmDecline() { if(confirm("Confirm: Skip this task?")) location.reload(); }
+        function confirmDecline() { if(confirm("Decline mission?")) location.reload(); }
 
         function updateStatDisplay(count, label) {
             document.getElementById('stat-count').innerText = count;
@@ -234,12 +210,11 @@
                 if (o.status === "Ready" && !o.claimedBy) availableOrder = o;
                 if (o.status === "Completed") allCompletedOrders.push(o);
             });
-
             if (activeTask) {
                 currentOrder = activeTask; renderUI(activeTask, "End Mission");
                 clearInterval(alertInterval); alertInterval = null;
             } else if (availableOrder) {
-                currentOrder = availableOrder; renderUI(availableOrder, "Confirm Pickup");
+                currentOrder = availableOrder; renderUI(availableOrder, "Accept Task");
                 if (!alertInterval) { playBeep(800, 0.5); alertInterval = setInterval(() => playBeep(800, 0.5), 1500); }
             } else {
                 currentOrder = null; clearInterval(alertInterval); alertInterval = null;
@@ -300,7 +275,7 @@
                 }
                 document.getElementById('chat-messages').innerHTML = html;
                 document.getElementById('chat-messages').scrollTop = document.getElementById('chat-messages').scrollHeight;
-            } else { activeTicketId = null; document.getElementById('chat-messages').innerHTML = "<p class='text-center text-slate-400 mt-10 text-xs'>No active chat</p>"; }
+            } else { activeTicketId = null; document.getElementById('chat-messages').innerHTML = "<p class='text-center text-slate-400 mt-10 text-xs uppercase'>No active chat</p>"; }
         });
 
         function playBeep(f, d) { if (!audioCtx) return; if (audioCtx.state === 'suspended') audioCtx.resume(); const o = audioCtx.createOscillator(); const g = audioCtx.createGain(); o.connect(g); g.connect(audioCtx.destination); o.frequency.setValueAtTime(f, audioCtx.currentTime); g.gain.setValueAtTime(0.1, audioCtx.currentTime); o.start(); o.stop(audioCtx.currentTime + d); }
