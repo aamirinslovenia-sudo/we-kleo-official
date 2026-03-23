@@ -9,128 +9,77 @@
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Outfit', sans-serif; background: #f1f5f9; }
-        .glass-card { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); border: 1px solid white; }
+        .ticket-card { background: white; border-radius: 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); border-left: 10px solid #3b82f6; }
         #login-overlay { position: fixed; inset: 0; background: #0f172a; z-index: 5000; display: flex; align-items: center; justify-content: center; }
     </style>
 </head>
-<body class="p-6 md:p-12">
+<body class="p-8">
 
     <div id="login-overlay">
         <div class="bg-white p-10 rounded-[40px] shadow-2xl w-full max-w-md text-center">
             <h2 class="text-3xl font-black mb-2 italic text-blue-600">WE KLEO</h2>
-            <p class="text-slate-400 text-sm mb-8 uppercase font-bold tracking-widest">Admin Access Only</p>
-            <input type="password" id="pass-input" placeholder="Enter Admin Password" class="w-full p-4 bg-slate-100 rounded-2xl mb-4 text-center font-bold outline-none border-2 border-transparent focus:border-blue-500 transition-all">
-            <button onclick="checkPass()" class="w-full bg-slate-900 text-white py-4 rounded-2xl font-black uppercase tracking-tight">Login to Dashboard</button>
+            <input type="password" id="pass-input" placeholder="Password" class="w-full p-4 bg-slate-100 rounded-2xl mb-4 text-center font-bold outline-none">
+            <button onclick="checkPass()" class="w-full bg-slate-900 text-white py-4 rounded-2xl font-black uppercase">Login</button>
         </div>
     </div>
 
     <div class="max-w-6xl mx-auto">
         <header class="flex justify-between items-end mb-12">
-            <div>
-                <h1 class="text-5xl font-black text-slate-900 tracking-tighter italic">SUPPORT<span class="text-blue-600">HQ</span></h1>
-                <div class="flex items-center gap-2 mt-2">
-                    <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-                    <p class="text-slate-500 font-bold text-xs uppercase tracking-widest">System Live & Connected</p>
-                </div>
-            </div>
-            <div class="bg-white px-8 py-4 rounded-[25px] shadow-sm border border-slate-200 text-center">
-                <p id="active-count" class="text-4xl font-black text-blue-600 leading-none">0</p>
-                <p class="text-[10px] font-bold text-slate-400 uppercase mt-1">Pending Alerts</p>
-            </div>
+            <div><h1 class="text-5xl font-black text-slate-900 italic">SUPPORT<span class="text-blue-600">HQ</span></h1></div>
+            <div class="bg-white px-8 py-4 rounded-[25px] text-center border"><p id="active-count" class="text-4xl font-black text-blue-600">0</p><p class="text-[10px] font-bold text-slate-400 uppercase">Alerts</p></div>
         </header>
 
-        <div id="ticket-container" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            </div>
-        
-        <div id="no-tickets" class="hidden text-center py-32">
-            <div class="text-6xl mb-4">✅</div>
-            <h3 class="text-2xl font-bold text-slate-800">No active issues</h3>
-            <p class="text-slate-400">All drivers are currently operating smoothly.</p>
-        </div>
+        <div id="ticket-container" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
     </div>
 
     <audio id="alert-sound" src="https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3"></audio>
 
     <script>
-        // CONFIG
-        const ADMIN_PASSWORD = "KLEO2026"; // <--- CHANGE YOUR PASSWORD HERE
-        
-        const firebaseConfig = {
-          apiKey: "AIzaSyBD_YmzFTA2OKn64h22Z9yM7pCAmmlTl68",
-          authDomain: "we-kleo.firebaseapp.com",
-          databaseURL: "https://we-kleo-default-rtdb.europe-west1.firebasedatabase.app",
-          projectId: "we-kleo",
-          storageBucket: "we-kleo.firebasestorage.app",
-          messagingSenderId: "87105321281",
-          appId: "1:87105321281:web:ec83e4472e5756182749c0"
-        };
+        const ADMIN_PASSWORD = "KLEO2026";
+        const firebaseConfig = { apiKey: "AIzaSyBD_YmzFTA2OKn64h22Z9yM7pCAmmlTl68", authDomain: "we-kleo.firebaseapp.com", databaseURL: "https://we-kleo-default-rtdb.europe-west1.firebasedatabase.app", projectId: "we-kleo", storageBucket: "we-kleo.firebasestorage.app", messagingSenderId: "87105321281", appId: "1:87105321281:web:ec83e4472e5756182749c0" };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        function checkPass() {
-            const input = document.getElementById('pass-input').value;
-            if(input === ADMIN_PASSWORD) {
-                document.getElementById('login-overlay').style.display = 'none';
-                // Audio needs interaction to play
-                document.getElementById('alert-sound').play().catch(() => {});
-            } else {
-                alert("Incorrect Password");
-            }
-        }
+        function checkPass() { if(document.getElementById('pass-input').value === ADMIN_PASSWORD) document.getElementById('login-overlay').style.display = 'none'; else alert("Wrong Pass"); }
 
         db.ref('support_tickets').on('value', (snap) => {
             const container = document.getElementById('ticket-container');
-            const noTickets = document.getElementById('no-tickets');
-            const activeCountElem = document.getElementById('active-count');
-            
-            let html = "";
-            let count = 0;
-
+            let html = ""; let count = 0;
             snap.forEach(child => {
-                const t = child.val();
-                const id = child.key;
+                const t = child.val(); const id = child.key;
                 if(t.status !== "Resolved") {
                     count++;
                     html += `
-                    <div class="glass-card p-8 rounded-[35px] shadow-lg border-l-[12px] border-red-500 relative overflow-hidden">
-                        <div class="flex justify-between items-start mb-6">
-                            <div>
-                                <p class="text-[10px] font-black text-red-500 uppercase tracking-widest mb-1">Critical Alert</p>
-                                <h3 class="text-2xl font-black text-slate-900 leading-tight">"${t.issue}"</h3>
-                            </div>
-                            <button onclick="resolveTicket('${id}')" class="text-slate-300 hover:text-green-500 text-xl font-bold">✕</button>
+                    <div class="ticket-card p-8">
+                        <div class="flex justify-between items-start mb-4">
+                            <h3 class="text-2xl font-black text-slate-800 leading-tight">"${t.issue}"</h3>
+                            <button onclick="resolveTicket('${id}')" class="text-slate-300">✕</button>
                         </div>
+                        <p class="text-xs font-bold text-blue-600 mb-6 uppercase">Order: ${t.customer}</p>
                         
-                        <div class="bg-slate-50 p-4 rounded-2xl mb-6">
-                            <p class="text-xs text-slate-400 font-bold uppercase mb-1">Order Details</p>
-                            <p class="text-sm font-bold text-slate-700">Client: ${t.customer}</p>
-                            <p class="text-[10px] font-medium text-slate-400">Order ID: ${t.orderId}</p>
+                        <div class="flex gap-2 mb-4">
+                            <input type="text" id="reply-${id}" placeholder="Reply to driver..." class="flex-1 p-3 rounded-xl border outline-none">
+                            <button onclick="sendReply('${id}')" class="bg-blue-600 text-white px-6 rounded-xl font-bold">Send</button>
                         </div>
-
-                        <div class="flex gap-3">
-                            <button onclick="resolveTicket('${id}')" class="flex-1 bg-green-600 text-white py-4 rounded-2xl font-black uppercase text-[10px] shadow-lg shadow-green-200">Solve Ticket</button>
-                            <a href="https://wa.me/?text=Hi Driver, regarding the order for ${t.customer}: " target="_blank" class="w-14 h-14 bg-slate-900 rounded-2xl flex items-center justify-center text-xl">💬</a>
-                        </div>
+                        <button onclick="resolveTicket('${id}')" class="w-full bg-slate-100 py-3 rounded-xl text-[10px] font-black uppercase text-slate-400">Close Case</button>
                     </div>`;
                 }
             });
-
-            if(count > 0) {
-                noTickets.classList.add('hidden');
-                container.innerHTML = html;
-                if(count > parseInt(activeCountElem.innerText)) {
-                    document.getElementById('alert-sound').play().catch(() => {});
-                }
-            } else {
-                noTickets.classList.remove('hidden');
-                container.innerHTML = "";
-            }
-            activeCountElem.innerText = count;
+            container.innerHTML = html;
+            document.getElementById('active-count').innerText = count;
+            if(count > 0) document.getElementById('alert-sound').play().catch(()=>{});
         });
 
-        function resolveTicket(id) {
-            db.ref('support_tickets/' + id).update({ status: "Resolved" });
+        function sendReply(id) {
+            const reply = document.getElementById(`reply-${id}`).value;
+            if(reply.trim() !== "") {
+                db.ref('support_tickets/' + id).update({ adminReply: reply, replyTime: Date.now() }).then(() => {
+                    alert("Sent!"); document.getElementById(`reply-${id}`).value = "";
+                });
+            }
         }
+
+        function resolveTicket(id) { db.ref('support_tickets/' + id).update({ status: "Resolved" }); }
     </script>
 </body>
 </html>
