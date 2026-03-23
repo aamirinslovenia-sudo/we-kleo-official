@@ -6,23 +6,43 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;900&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Inter', sans-serif; background-color: #060a11; color: white; }
-        @keyframes text-shimmer {
-            0%, 100% { color: #3b82f6; text-shadow: 0 0 10px rgba(59, 130, 246, 0.3); }
-            50% { color: #60a5fa; text-shadow: 0 0 25px rgba(96, 165, 250, 0.6); }
+        body { font-family: 'Outfit', sans-serif; background-color: #060a11; color: white; margin: 0; padding: 0; }
+        
+        .shimmer-text {
+            color: #3b82f6;
+            text-shadow: 0 0 20px rgba(59, 130, 246, 0.5);
+            letter-spacing: -0.05em;
         }
-        .we-kleo-title { animation: text-shimmer 3s infinite; }
-        .glass-card { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.08); border-radius: 40px; }
-        .timer-badge { background: rgba(59, 130, 246, 0.1); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.2); }
+
+        .order-card {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 40px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            height: 100%;
+        }
+
+        .timer-badge {
+            background: rgba(59, 130, 246, 0.1);
+            color: #60a5fa;
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 900;
+        }
     </style>
 </head>
 <body class="p-8" onclick="startAudio()">
 
-    <div class="flex flex-col items-center mb-12 border-b border-slate-900 pb-8">
-        <h1 class="text-6xl font-[900] italic tracking-tighter uppercase we-kleo-title">WE KLEO</h1>
-        <p class="text-[10px] font-bold text-slate-500 uppercase tracking-[0.4em] mt-2">Kitchen Production Line</p>
+    <div class="flex flex-col items-center justify-center mb-16 pt-8">
+        <h1 class="text-7xl font-black italic uppercase shimmer-text">WE KLEO</h1>
+        <p class="text-[10px] font-bold text-slate-500 uppercase tracking-[0.5em] mt-2">Kitchen Production Line</p>
     </div>
 
     <div id="order-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
@@ -47,22 +67,22 @@
             if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         }
 
-        function beep() {
+        function playBeep() {
             if (!audioCtx) return;
             const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
             osc.connect(gain);
             gain.connect(audioCtx.destination);
-            osc.frequency.value = 800;
-            gain.gain.value = 0.1;
+            osc.frequency.setValueAtTime(800, audioCtx.currentTime);
+            gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
             osc.start();
-            osc.stop(audioCtx.currentTime + 0.2);
+            osc.stop(audioCtx.currentTime + 0.3);
         }
 
-        // Timer Logic
+        // Timer Update Logic
         setInterval(() => {
             document.querySelectorAll('.live-timer').forEach(span => {
-                const start = parseInt(span.dataset.start) || Date.now();
+                const start = parseInt(span.dataset.start);
                 const diff = Math.floor((Date.now() - start) / 1000);
                 const mins = Math.floor(diff / 60);
                 const secs = diff % 60;
@@ -70,37 +90,40 @@
             });
         }, 1000);
 
-        let firstLoad = true;
-        let lastOrderCount = 0;
+        let lastCount = 0;
+        let isFirstLoad = true;
 
         db.ref('orders').on('value', (snap) => {
             const grid = document.getElementById('order-grid');
             grid.innerHTML = "";
-            let currentActiveCount = 0;
+            let currentCount = 0;
 
             snap.forEach(child => {
                 const o = child.val();
                 if(o.status === "Pending" || o.status === "New") {
-                    currentActiveCount++;
-                    const orderTime = o.timestamp || Date.now();
+                    currentCount++;
+                    const timestamp = o.timestamp || Date.now();
                     
                     grid.insertAdjacentHTML('beforeend', `
-                        <div class="glass-card p-8 flex flex-col justify-between shadow-2xl">
+                        <div class="order-card p-8 shadow-2xl">
                             <div>
-                                <div class="flex justify-between items-start mb-6">
-                                    <div class="timer-badge px-4 py-2 rounded-2xl text-[10px] font-black uppercase">
-                                        Waiting: <span class="live-timer" data-start="${orderTime}">0m 0s</span>
+                                <div class="flex justify-between items-center mb-6">
+                                    <div class="timer-badge uppercase">
+                                        Waiting: <span class="live-timer" data-start="${timestamp}">0m 0s</span>
                                     </div>
                                     <span class="text-blue-500 font-black text-xs uppercase tracking-widest">Active</span>
                                 </div>
-                                <h2 class="text-3xl font-black italic uppercase text-white mb-2 leading-tight">${o.customer}</h2>
-                                <p class="text-slate-500 font-bold uppercase text-[10px] tracking-widest mb-6">${o.address}</p>
-                                <div class="bg-white/5 p-5 rounded-3xl border border-white/5 mb-8">
-                                    <p class="text-blue-400 font-black text-xl mb-1">${o.item || "Order"}</p>
-                                    <p class="text-slate-400 text-sm italic">${o.toppings || ""}</p>
+                                
+                                <h2 class="text-4xl font-black italic uppercase text-white mb-2 leading-tight">${o.customer}</h2>
+                                <p class="text-slate-500 font-bold uppercase text-xs tracking-widest mb-6">${o.address}</p>
+                                
+                                <div class="bg-blue-500/5 p-6 rounded-[30px] border border-blue-500/10 mb-8">
+                                    <p class="text-blue-400 font-black text-2xl mb-1">${o.item || "Premium Order"}</p>
+                                    <p class="text-slate-400 text-sm font-medium italic">${o.toppings || "Standard"}</p>
                                 </div>
                             </div>
-                            <button onclick="readyOrder('${child.key}')" class="w-full bg-blue-600 hover:bg-blue-500 text-white py-5 rounded-[24px] font-black uppercase italic tracking-tighter text-lg transition-all active:scale-95 shadow-xl shadow-blue-900/20">
+
+                            <button onclick="readyOrder('${child.key}')" class="w-full bg-blue-600 hover:bg-blue-500 text-white py-6 rounded-[28px] font-black uppercase italic tracking-tighter text-xl transition-all active:scale-95 shadow-xl shadow-blue-900/40">
                                 Mark Ready
                             </button>
                         </div>
@@ -108,11 +131,11 @@
                 }
             });
 
-            if (!firstLoad && currentActiveCount > lastOrderCount) {
-                beep();
+            if (!isFirstLoad && currentCount > lastCount) {
+                playBeep();
             }
-            lastOrderCount = currentActiveCount;
-            firstLoad = false;
+            lastCount = currentCount;
+            isFirstLoad = false;
         });
 
         function readyOrder(id) {
