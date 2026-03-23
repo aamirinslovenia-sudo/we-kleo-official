@@ -10,7 +10,7 @@
     <style>
         body { font-family: 'Outfit', sans-serif; background: #060a11; color: white; }
         .stat-card { background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 30px; padding: 30px; }
-        .glow-blue { box-shadow: 0 0 20px rgba(59, 130, 246, 0.2); }
+        .report-gradient { background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border: 2px solid #3b82f6; }
     </style>
 </head>
 <body class="p-8">
@@ -21,115 +21,130 @@
                 <h1 class="text-4xl font-black italic tracking-tighter">HQ<span class="text-blue-500">CONTROL</span></h1>
                 <p class="text-[10px] font-bold text-slate-500 uppercase tracking-[0.3em]">Master Operations View</p>
             </div>
-            <div class="text-right">
-                <p id="live-time" class="text-xl font-bold">00:00:00</p>
-                <p class="text-[10px] text-blue-500 font-black uppercase">System Live</p>
-            </div>
+            <button onclick="generateReport()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-2xl font-black uppercase text-xs transition-all">Generate Shift Report</button>
         </header>
 
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
-            <div class="stat-card glow-blue">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+            <div class="stat-card border-green-500/30">
                 <p class="text-slate-500 text-[10px] font-black uppercase mb-2">Total Revenue</p>
-                <h2 id="total-rev" class="text-4xl font-black text-green-400">€0.00</h2>
+                <h2 id="total-rev" class="text-5xl font-black text-green-400">€0.00</h2>
             </div>
             <div class="stat-card">
-                <p class="text-slate-500 text-[10px] font-black uppercase mb-2">In Kitchen</p>
-                <h2 id="kitchen-count" class="text-4xl font-black text-blue-500">0</h2>
+                <p class="text-slate-500 text-[10px] font-black uppercase mb-2">Active Logistics</p>
+                <h2 id="active-total" class="text-5xl font-black text-blue-500">0</h2>
+                <p class="text-[9px] text-slate-500 mt-2 font-bold uppercase">Kitchen + Drivers Combined</p>
             </div>
-            <div class="stat-card border-amber-500/30">
-                <p class="text-slate-500 text-[10px] font-black uppercase mb-2">Out for Delivery</p>
-                <h2 id="delivery-count" class="text-4xl font-black text-amber-500">0</h2>
+            <div class="stat-card border-red-500/30">
+                <p class="text-slate-500 text-[10px] font-black uppercase mb-2">Support Threads</p>
+                <h2 id="support-count" class="text-5xl font-black text-red-500">0</h2>
             </div>
-            <div class="stat-card">
-                <p class="text-slate-500 text-[10px] font-black uppercase mb-2">Active Support</p>
-                <h2 id="support-count" class="text-4xl font-black text-red-500">0</h2>
+        </div>
+
+        <div id="report-section" class="hidden mb-12 animate-bounce-in">
+            <div class="report-gradient p-10 rounded-[40px] shadow-2xl relative overflow-hidden">
+                <div class="relative z-10">
+                    <h3 class="text-3xl font-black italic mb-8 uppercase tracking-tighter">Shift Summary Report</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                        <div>
+                            <p class="text-slate-400 text-xs font-bold uppercase">Customer Requests</p>
+                            <p id="rep-total" class="text-5xl font-black">0</p>
+                            <p class="text-[10px] text-slate-500 uppercase mt-1">Total orders received</p>
+                        </div>
+                        <div>
+                            <p class="text-slate-400 text-xs font-bold uppercase">Kitchen Processed</p>
+                            <p id="rep-kitchen" class="text-5xl font-black text-blue-400">0</p>
+                            <p class="text-[10px] text-slate-500 uppercase mt-1">Orders sent to cook</p>
+                        </div>
+                        <div>
+                            <p class="text-slate-400 text-xs font-bold uppercase">Driver Success</p>
+                            <p id="rep-delivered" class="text-5xl font-black text-green-400">0</p>
+                            <p class="text-[10px] text-slate-500 uppercase mt-1">Successfully delivered</p>
+                        </div>
+                    </div>
+                    <div class="mt-10 pt-8 border-t border-white/10 flex justify-between items-center">
+                        <p class="text-slate-500 text-[10px] font-bold">REPORT GENERATED: <span id="report-time">--</span></p>
+                        <button onclick="window.print()" class="text-white border border-white/20 px-4 py-2 rounded-xl text-[10px] font-black uppercase hover:bg-white/10">Download PDF</button>
+                    </div>
+                </div>
             </div>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-10">
             <div class="stat-card">
                 <h3 class="text-xl font-black uppercase mb-6 italic border-l-4 border-blue-500 pl-4">Live Logistics</h3>
-                <div id="logistics-list" class="space-y-4 max-h-[500px] overflow-y-auto pr-2">
-                    </div>
+                <div id="logistics-list" class="space-y-4 max-h-[500px] overflow-y-auto pr-2"></div>
             </div>
-
             <div class="stat-card bg-white/5">
-                <h3 class="text-xl font-black uppercase mb-6 italic border-l-4 border-green-500 pl-4">Completed Sales</h3>
-                <div id="completed-list" class="space-y-4 max-h-[500px] overflow-y-auto pr-2 text-slate-400">
-                    </div>
+                <h3 class="text-xl font-black uppercase mb-6 italic border-l-4 border-green-500 pl-4">Shift History</h3>
+                <div id="completed-list" class="space-y-2 max-h-[500px] overflow-y-auto pr-2 text-slate-500"></div>
             </div>
+        </div>
+        
+        <div class="mt-20 text-center pb-10">
+            <button onclick="archiveShift()" class="bg-red-900/20 text-red-500 border border-red-500/30 px-10 py-4 rounded-3xl font-black uppercase text-[10px] tracking-widest hover:bg-red-500 hover:text-white transition-all">Clear & Archive Today's Data</button>
         </div>
     </div>
 
     <script>
-        const firebaseConfig = { 
-            apiKey: "AIzaSyBD_YmzFTA2OKn64h22Z9yM7pCAmmlTl68", 
-            authDomain: "we-kleo.firebaseapp.com", 
-            databaseURL: "https://we-kleo-default-rtdb.europe-west1.firebasedatabase.app", 
-            projectId: "we-kleo", 
-            storageBucket: "we-kleo.firebasestorage.app", 
-            messagingSenderId: "87105321281", 
-            appId: "1:87105321281:web:ec83e4472e5756182749c0" 
-        };
+        const firebaseConfig = { apiKey: "AIzaSyBD_YmzFTA2OKn64h22Z9yM7pCAmmlTl68", authDomain: "we-kleo.firebaseapp.com", databaseURL: "https://we-kleo-default-rtdb.europe-west1.firebasedatabase.app", projectId: "we-kleo", storageBucket: "we-kleo.firebasestorage.app", messagingSenderId: "87105321281", appId: "1:87105321281:web:ec83e4472e5756182749c0" };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        // Clock
-        setInterval(() => { document.getElementById('live-time').innerText = new Date().toLocaleTimeString(); }, 1000);
+        let stats = { total: 0, kitchen: 0, delivered: 0 };
 
-        // Core Monitoring Logic
         db.ref('orders').on('value', (snap) => {
-            let kitchen = 0; let delivery = 0; let completed = 0;
-            const logisticsList = document.getElementById('logistics-list');
-            const completedList = document.getElementById('completed-list');
+            let active = 0; stats = { total: 0, kitchen: 0, delivered: 0 };
+            const logList = document.getElementById('logistics-list');
+            const compList = document.getElementById('completed-list');
             
-            logisticsList.innerHTML = "";
-            completedList.innerHTML = "";
+            logList.innerHTML = ""; compList.innerHTML = "";
 
             snap.forEach(child => {
                 const o = child.val();
+                stats.total++; // Every order in the DB
+                
                 if(o.status === "New") {
-                    kitchen++;
-                    addLogisticsItem(o, "KITCHEN", "text-blue-500");
+                    active++; stats.kitchen++;
+                    addLogItem(o, "KITCHEN", "text-blue-500");
                 } else if(o.status === "Ready" || o.status === "Delivering") {
-                    delivery++;
-                    addLogisticsItem(o, "ON ROAD", "text-amber-500");
+                    active++; stats.kitchen++; // It was in the kitchen once
+                    addLogItem(o, "ON ROAD", "text-amber-500");
                 } else if(o.status === "Completed") {
-                    completed++;
-                    completedList.insertAdjacentHTML('afterbegin', `
-                        <div class="flex justify-between items-center py-2 border-b border-white/5 text-xs">
-                            <span>${o.customer}</span>
-                            <span class="font-bold text-white">€4.00</span>
-                        </div>
-                    `);
+                    stats.kitchen++; stats.delivered++;
+                    compList.insertAdjacentHTML('afterbegin', `<div class="flex justify-between py-1 border-b border-white/5 text-[11px]"><span>${o.customer}</span><span class="text-white">€4.00</span></div>`);
                 }
             });
 
-            document.getElementById('kitchen-count').innerText = kitchen;
-            document.getElementById('delivery-count').innerText = delivery;
-            document.getElementById('total-rev').innerText = "€" + (completed * 4).toFixed(2);
+            document.getElementById('active-total').innerText = active;
+            document.getElementById('total-rev').innerText = "€" + (stats.delivered * 4).toFixed(2);
         });
 
         db.ref('support_tickets').on('value', snap => {
-            let active = 0;
-            snap.forEach(c => { if(c.val().status !== "Resolved") active++; });
-            document.getElementById('support-count').innerText = active;
+            let sCount = 0; snap.forEach(c => { if(c.val().status !== "Resolved") sCount++; });
+            document.getElementById('support-count').innerText = sCount;
         });
 
-        function addLogisticsItem(o, label, colorClass) {
-            const list = document.getElementById('logistics-list');
-            list.insertAdjacentHTML('beforeend', `
+        function addLogItem(o, label, color) {
+            document.getElementById('logistics-list').insertAdjacentHTML('beforeend', `
                 <div class="bg-white/5 p-4 rounded-2xl flex justify-between items-center border border-white/5">
-                    <div>
-                        <p class="text-white font-bold">${o.customer}</p>
-                        <p class="text-[10px] text-slate-500 uppercase">${o.address}</p>
-                    </div>
-                    <div class="text-right">
-                        <p class="${colorClass} font-black text-[10px] tracking-widest">${label}</p>
-                        <p class="text-[9px] text-slate-600">${o.item || 'Order'}</p>
-                    </div>
-                </div>
-            `);
+                    <div><p class="text-white font-bold">${o.customer}</p><p class="text-[10px] text-slate-500 uppercase">${o.address}</p></div>
+                    <div class="text-right"><p class="${color} font-black text-[10px] tracking-widest">${label}</p></div>
+                </div>`);
+        }
+
+        function generateReport() {
+            document.getElementById('rep-total').innerText = stats.total;
+            document.getElementById('rep-kitchen').innerText = stats.kitchen;
+            document.getElementById('rep-delivered').innerText = stats.delivered;
+            document.getElementById('report-time').innerText = new Date().toLocaleString();
+            document.getElementById('report-section').classList.toggle('hidden');
+        }
+
+        function archiveShift() {
+            if(confirm("DANGER: This will delete all order history and start a fresh shift. Proceed?")) {
+                db.ref('orders').remove();
+                alert("Shift Cleared. Systems Ready for tomorrow.");
+            }
         }
     </script>
 </body>
