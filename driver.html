@@ -8,98 +8,107 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;500;700&family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@700&family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet">
     
     <style>
         body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; background: #0a0c10; font-family: 'Inter', sans-serif; }
-        
-        /* Map Background with Dark Overlay */
-        #map-bg { 
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
-            background: #111827; z-index: 1; opacity: 0.4;
-        }
+        #map-bg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #111827; z-index: 1; opacity: 0.4; }
 
-        /* Premium Bottom Panel */
+        /* Panel Transitions */
         .premium-panel {
             position: fixed; bottom: 0; left: 0; width: 100%;
-            background: #ffffff; border-top-left-radius: 40px; border-top-right-radius: 40px;
+            background: white; border-top-left-radius: 40px; border-top-right-radius: 40px;
             z-index: 100; box-shadow: 0 -20px 50px rgba(0,0,0,0.4);
             transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
-            padding: 30px 30px 60px 30px; 
+            padding: 24px 24px 60px 24px; 
         }
+        .panel-minimized { transform: translateY(calc(100% - 130px)); background: #111827; border-top: 1px solid #1f2937; }
+        .panel-expanded { transform: translateY(0); background: white; }
 
-        .panel-minimized { transform: translateY(calc(100% - 140px)); background: #111827; border-top: 1px solid #1f2937; }
-        .panel-expanded { transform: translateY(0); background: #ffffff; }
+        /* Sidebar History */
+        #history-sidebar {
+            position: fixed; top: 0; right: 0; width: 85%; height: 100%;
+            background: rgba(10, 12, 16, 0.98); backdrop-filter: blur(20px);
+            z-index: 2000; transform: translateX(100%); transition: transform 0.4s ease;
+            border-left: 1px solid rgba(255,255,255,0.1); padding: 40px 30px;
+        }
+        .sidebar-active { transform: translateX(0) !important; }
 
-        .currency { font-family: 'Space Grotesk', sans-serif; font-size: 56px; font-weight: 700; color: #0f172a; letter-spacing: -3px; }
-        
-        .top-status { position: fixed; top: 60px; left: 0; width: 100%; z-index: 50; padding: 0 25px; display: flex; justify-content: space-between; align-items: center; }
-        .menu-btn { width: 45px; height: 45px; background: rgba(255,255,255,0.1); backdrop-filter: blur(10px); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white; border: 1px solid rgba(255,255,255,0.1); }
-        .payout-pill { background: #fbbf24; color: #000; padding: 6px 16px; border-radius: 100px; font-weight: 800; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; }
-        
-        /* Step Indicator */
-        .step-line { width: 2px; height: 100%; background: #e2e8f0; position: absolute; left: 7px; top: 20px; }
-        .step-dot { width: 16px; height: 16px; border-radius: 50%; border: 4px solid #fff; box-shadow: 0 0 10px rgba(0,0,0,0.1); position: relative; z-index: 2; }
+        .currency-big { font-family: 'Space Grotesk', sans-serif; font-size: 52px; font-weight: 700; color: #0f172a; letter-spacing: -2px; }
+        .step-line { width: 2px; height: 100%; background: #f1f5f9; position: absolute; left: 7px; top: 20px; }
+        .step-dot { width: 16px; height: 16px; border-radius: 50%; border: 4px solid #fff; position: relative; z-index: 2; }
     </style>
 </head>
 <body>
 
     <div id="map-bg"></div>
 
-    <div class="top-status">
-        <div class="menu-btn text-xl">≡</div>
-        <div id="active-payout" class="payout-pill hidden">Order Available</div>
+    <div class="fixed top-[50px] left-0 w-full z-[150] px-6 flex justify-between items-center">
+        <div class="w-12 h-12 bg-white/10 backdrop-blur-md rounded-2xl flex items-center justify-center text-white border border-white/10">≡</div>
+        <div onclick="toggleHistory()" class="px-5 py-3 bg-amber-500 rounded-2xl flex items-center gap-3 shadow-lg shadow-amber-500/20 active:scale-95 transition-all cursor-pointer">
+            <span class="text-[10px] font-black uppercase tracking-widest text-black">Shift Stats</span>
+            <span class="text-black font-bold" id="header-total">€0</span>
+        </div>
     </div>
 
-    <div id="boot-screen" class="fixed inset-0 z-[1000] bg-[#0a0c10] flex flex-col items-center justify-center p-12 text-center">
-        <div class="text-white font-light text-5xl tracking-tighter mb-2">WE <span class="font-black text-amber-400">KLEO</span></div>
-        <p class="text-gray-500 uppercase tracking-[0.5em] text-[10px] mb-16">Premium Logistics</p>
-        <button onclick="goOnline()" class="bg-white text-black w-full py-5 rounded-full text-sm font-bold uppercase tracking-widest shadow-2xl active:scale-95 transition-all">Go Online</button>
+    <div id="history-sidebar">
+        <div class="flex justify-between items-center mb-10">
+            <h2 class="text-white text-2xl font-black italic uppercase tracking-tighter">Shift Log</h2>
+            <button onclick="toggleHistory()" class="text-gray-500 text-2xl">✕</button>
+        </div>
+        
+        <div class="bg-white/5 border border-white/10 p-8 rounded-[32px] mb-10 text-center">
+            <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">Total Earnings</p>
+            <p id="history-total-large" class="text-5xl font-bold text-amber-400 font-['Space_Grotesk']">€0.00</p>
+        </div>
+
+        <div id="history-list" class="space-y-4 overflow-y-auto h-[60vh] pr-2">
+            </div>
+    </div>
+
+    <div id="boot-screen" class="fixed inset-0 z-[3000] bg-[#0a0c10] flex flex-col items-center justify-center p-12 text-center">
+        <div class="text-white font-black text-5xl tracking-tighter mb-16 italic uppercase">WE KLEO</div>
+        <button onclick="goOnline()" class="bg-white text-black w-full py-5 rounded-full text-sm font-bold uppercase tracking-widest shadow-2xl">Go Online</button>
     </div>
 
     <div id="order-sheet" class="premium-panel panel-minimized">
-        <div class="w-16 h-1 bg-gray-600/20 rounded-full mx-auto mb-10"></div>
+        <div class="w-16 h-1 bg-gray-600/20 rounded-full mx-auto mb-8"></div>
         
-        <div id="waiting-ui" class="flex flex-col items-center py-2">
+        <div id="waiting-ui" class="flex flex-col items-center py-4">
             <div class="flex items-center gap-4">
-                <div class="relative flex h-3 w-3">
-                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-                    <span class="relative inline-flex rounded-full h-3 w-3 bg-amber-500"></span>
-                </div>
-                <p class="text-white font-medium tracking-wide">Searching for Deliveries</p>
+                <div class="relative flex h-3 w-3"><span class="animate-ping absolute h-full w-full rounded-full bg-amber-400 opacity-75"></span><span class="relative rounded-full h-3 w-3 bg-amber-500"></span></div>
+                <p class="text-white font-bold uppercase tracking-widest text-xs">Awaiting Missions</p>
             </div>
-            <p id="clock" class="text-gray-500 text-xs mt-2 font-mono uppercase tracking-widest"></p>
         </div>
 
         <div id="order-ui" class="hidden">
-            <div class="flex justify-between items-end mb-10">
+            <div class="flex justify-between items-end mb-8">
                 <div>
-                    <p class="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-1">Commission</p>
-                    <div class="currency">€4,00</div>
+                    <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Commission</p>
+                    <div class="currency-big">€4,00</div>
                 </div>
-                <div onclick="location.reload()" class="text-red-500 text-xs font-bold uppercase tracking-widest mb-4">Decline</div>
+                <div onclick="location.reload()" class="text-red-500 text-[10px] font-black uppercase tracking-widest mb-4">Decline</div>
             </div>
 
-            <div class="relative pl-10 space-y-10 mb-12">
+            <div class="relative pl-10 space-y-10 mb-10">
                 <div class="step-line"></div>
                 <div class="relative">
                     <div class="step-dot bg-amber-500 absolute -left-[33px]"></div>
-                    <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Store Pickup</p>
-                    <h2 class="text-xl font-bold text-gray-900">WE KLEO Kitchen</h2>
-                    <p class="text-gray-400 text-sm">Slovenska ulica 15, Maribor</p>
+                    <p class="text-[9px] font-black text-gray-400 uppercase tracking-widest">Pickup</p>
+                    <h2 class="text-lg font-bold text-gray-900">WE KLEO KITCHEN</h2>
                 </div>
                 <div class="relative">
                     <div class="step-dot bg-black absolute -left-[33px]"></div>
-                    <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Client Destination</p>
-                    <h2 id="c-name" class="text-xl font-bold text-gray-900 truncate">---</h2>
-                    <p id="c-addr" class="text-gray-500 text-sm leading-tight">---</p>
+                    <p class="text-[9px] font-black text-gray-400 uppercase tracking-widest">Destination</p>
+                    <h2 id="c-name" class="text-lg font-bold text-gray-900 truncate">---</h2>
+                    <p id="c-addr" class="text-gray-500 text-sm">---</p>
                 </div>
             </div>
 
             <div class="flex gap-4">
-                <a id="c-phone" href="#" class="w-20 h-20 bg-gray-50 border border-gray-100 rounded-3xl flex items-center justify-center text-2xl shadow-sm">📞</a>
-                <button id="action-btn" onclick="processOrder()" class="flex-1 bg-black text-white rounded-3xl text-lg font-bold uppercase tracking-tighter shadow-xl">
-                    Accept Order
+                <a id="c-phone" href="#" class="w-16 h-16 bg-gray-50 rounded-2xl flex items-center justify-center text-xl">📞</a>
+                <button id="action-btn" onclick="processOrder()" class="flex-1 bg-black text-white rounded-2xl text-sm font-black uppercase tracking-widest shadow-xl">
+                    Accept Task
                 </button>
             </div>
         </div>
@@ -120,47 +129,48 @@
         let currentOrder = null;
         let audioCtx = null;
 
-        // Simple Clock
-        setInterval(() => {
-            const now = new Date();
-            document.getElementById('clock').innerText = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'});
-        }, 1000);
-
+        function toggleHistory() { document.getElementById('history-sidebar').classList.toggle('sidebar-active'); }
         function goOnline() {
             audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            document.getElementById('boot-screen').style.opacity = '0';
-            setTimeout(() => document.getElementById('boot-screen').style.display = 'none', 500);
+            document.getElementById('boot-screen').style.display = 'none';
         }
 
         db.ref('orders').on('value', (snap) => {
             let active = null;
+            let completedCount = 0;
+            const historyList = document.getElementById('history-list');
+            historyList.innerHTML = "";
+
             snap.forEach(c => {
                 const o = c.val();
-                if (o.status === "Ready" || o.status === "Delivering") active = {id: c.key, ...o};
+                if (o.status === "Ready" || o.status === "Delivering") {
+                    active = {id: c.key, ...o};
+                } else if (o.status === "Completed") {
+                    completedCount++;
+                    const item = `<div class="bg-white/5 p-5 rounded-3xl border border-white/5 flex justify-between items-center"><div class="truncate"><p class="text-white font-bold text-sm truncate">${o.customer}</p><p class="text-gray-500 text-[10px] uppercase">${o.address}</p></div><div class="text-amber-400 font-bold">€4.00</div></div>`;
+                    historyList.insertAdjacentHTML('afterbegin', item);
+                }
             });
 
-            const sheet = document.getElementById('order-sheet');
-            const waiting = document.getElementById('waiting-ui');
-            const orderUi = document.getElementById('order-ui');
-            const pill = document.getElementById('active-payout');
+            const earnings = (completedCount * 4).toFixed(2);
+            document.getElementById('header-total').innerText = "€" + Math.floor(earnings);
+            document.getElementById('history-total-large').innerText = "€" + earnings;
 
+            const sheet = document.getElementById('order-sheet');
             if (active) {
                 currentOrder = active;
                 document.getElementById('c-name').innerText = active.customer;
                 document.getElementById('c-addr').innerText = active.address;
                 document.getElementById('c-phone').href = "tel:" + active.phone;
-                document.getElementById('action-btn').innerText = active.status === "Ready" ? "Accept Pickup" : "Complete Task";
-                
-                waiting.classList.add('hidden');
-                orderUi.classList.remove('hidden');
-                pill.classList.remove('hidden');
+                document.getElementById('action-btn').innerText = active.status === "Ready" ? "Accept Task" : "Finish Task";
+                document.getElementById('waiting-ui').classList.add('hidden');
+                document.getElementById('order-ui').classList.remove('hidden');
                 sheet.classList.replace('panel-minimized', 'panel-expanded');
-                playHaptic();
+                playBeep();
             } else {
                 currentOrder = null;
-                waiting.classList.remove('hidden');
-                orderUi.classList.add('hidden');
-                pill.classList.add('hidden');
+                document.getElementById('waiting-ui').classList.remove('hidden');
+                document.getElementById('order-ui').classList.add('hidden');
                 sheet.classList.replace('panel-expanded', 'panel-minimized');
             }
         });
@@ -169,15 +179,15 @@
             if (!currentOrder) return;
             const next = currentOrder.status === "Ready" ? "Delivering" : "Completed";
             db.ref('orders/' + currentOrder.id).update({status: next});
-            if(next === "Delivering") window.open(`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(currentOrder.address)}`);
+            if(next === "Delivering") window.open(`https://www.google.com/maps/dir/?api=1&origin=Slovenska+ulica+15+Maribor&destination=${encodeURIComponent(currentOrder.address)}`);
         }
 
-        function playHaptic() {
+        function playBeep() {
             if (!audioCtx) return;
             const o = audioCtx.createOscillator();
             const g = audioCtx.createGain();
             o.connect(g); g.connect(audioCtx.destination);
-            o.type = 'sine'; o.frequency.setValueAtTime(440, audioCtx.currentTime);
+            o.type = 'sine'; o.frequency.setValueAtTime(660, audioCtx.currentTime);
             g.gain.setValueAtTime(0.05, audioCtx.currentTime);
             o.start(); o.stop(audioCtx.currentTime + 0.1);
         }
