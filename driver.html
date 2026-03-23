@@ -96,7 +96,7 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
         
-        // Generate a unique ID for this phone session to handle claiming
+        // SESSION ID for claiming logic
         const driverId = "D-" + Math.floor(Math.random() * 10000);
         
         let currentOrder = null; let audioCtx = null; let activeTicketId = null; 
@@ -133,9 +133,7 @@
         db.ref('support_tickets').on('value', (snap) => {
             const tickets = snap.val(); 
             if (!tickets) { activeTicketId = null; return; }
-            
             const activeKey = Object.keys(tickets).find(k => tickets[k].status === "Open" || (k === activeTicketId && tickets[k].status !== "Resolved"));
-            
             if (activeKey) {
                 activeTicketId = activeKey; const t = tickets[activeKey];
                 let html = ""; if (t.chat) {
@@ -155,20 +153,32 @@
         });
 
         db.ref('orders').on('value', (snap) => {
-            let active = null; let count = 0; const list = document.getElementById('history-list'); list.innerHTML = "";
+            let active = null; let totalCompletedCount = 0; const list = document.getElementById('history-list'); list.innerHTML = "";
+            
             snap.forEach(c => {
                 const o = c.val(); 
                 
-                // Only show if Ready (unclaimed) OR if ALREADY claimed by THIS driver
+                // 1. ACTIVE ORDER LOGIC (Claiming)
                 if ((o.status === "Ready" && !o.claimedBy) || (o.status === "Delivering" && o.claimedBy === driverId)) {
                     active = {id: c.key, ...o};
                 }
-                else if (o.status === "Completed" && o.claimedBy === driverId) { 
-                    count++; 
-                    list.insertAdjacentHTML('afterbegin', `<div class="bg-slate-50 p-4 rounded-2xl flex justify-between items-center"><div class="truncate"><p class="text-slate-900 font-bold text-sm">${o.customer}</p><p class="text-slate-400 text-[10px] uppercase">${o.address}</p></div><div class="text-blue-600 font-black">€4.00</div></div>`); 
+                
+                // 2. GLOBAL HISTORY LOGIC (Shows all money earned today)
+                if (o.status === "Completed") { 
+                    totalCompletedCount++; 
+                    list.insertAdjacentHTML('afterbegin', `
+                        <div class="bg-slate-50 p-4 rounded-2xl flex justify-between items-center mb-2">
+                            <div class="truncate">
+                                <p class="text-slate-900 font-bold text-sm">${o.customer}</p>
+                                <p class="text-slate-400 text-[10px] uppercase">${o.address}</p>
+                            </div>
+                            <div class="text-blue-600 font-black">€4.00</div>
+                        </div>`); 
                 }
             });
-            document.getElementById('history-total-large').innerText = "€" + (count * 4).toFixed(2);
+
+            // Update today's total based on ALL completed orders
+            document.getElementById('history-total-large').innerText = "€" + (totalCompletedCount * 4).toFixed(2);
             
             if (active) {
                 currentOrder = active; document.getElementById('c-name').innerText = active.customer; document.getElementById('c-addr').innerText = active.address; document.getElementById('c-phone').href = "tel:" + active.phone;
@@ -179,9 +189,7 @@
                 if (active.status === "Ready") {
                     if (!alertInterval) {
                         playBeep(800, 0.5); 
-                        alertInterval = setInterval(() => {
-                            playBeep(800, 0.5);
-                        }, 1500); 
+                        alertInterval = setInterval(() => { playBeep(800, 0.5); }, 1500); 
                     }
                 } else {
                     clearInterval(alertInterval);
@@ -197,16 +205,10 @@
 
         function processOrder() { 
             if (!currentOrder) return; 
-            
             if (currentOrder.status === "Ready") {
-                // Claim the order and move to Delivering
-                db.ref('orders/' + currentOrder.id).update({
-                    status: "Delivering",
-                    claimedBy: driverId
-                });
+                db.ref('orders/' + currentOrder.id).update({ status: "Delivering", claimedBy: driverId });
                 window.open(`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(currentOrder.address)}`);
             } else {
-                // End the mission
                 db.ref('orders/' + currentOrder.id).update({status: "Completed"});
             }
         }
