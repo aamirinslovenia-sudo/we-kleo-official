@@ -64,9 +64,12 @@
             <button onclick="closeChat()" class="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center font-bold">✕</button>
         </div>
         <div id="chat-messages"></div>
-        <div class="pt-4 flex gap-2">
-            <input type="text" id="chat-input" placeholder="Type message..." class="flex-1 bg-slate-100 p-4 rounded-2xl font-bold outline-none">
-            <button onclick="sendMessage()" class="bg-blue-600 text-white px-6 rounded-2xl font-black uppercase text-xs">Send</button>
+        <div id="chat-controls" class="pt-4 space-y-3">
+            <div class="flex gap-2">
+                <input type="text" id="chat-input" placeholder="Type message..." class="flex-1 bg-slate-100 p-4 rounded-2xl font-bold outline-none">
+                <button onclick="sendMessage()" class="bg-blue-600 text-white px-6 rounded-2xl font-black uppercase text-xs">Send</button>
+            </div>
+            <button onclick="endChatSession()" class="w-full py-3 text-[10px] font-black uppercase text-slate-400 hover:text-red-500 tracking-widest transition-colors">End Chat Session</button>
         </div>
     </div>
 
@@ -99,6 +102,8 @@
         function closeChat() { document.getElementById('chat-overlay').classList.remove('chat-active'); }
         function goOnline() { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); document.getElementById('boot-screen').style.display = 'none'; }
 
+        function endChatSession() { if(confirm("End this support session?")) { if(activeTicketId) db.ref('support_tickets/' + activeTicketId).update({ status: "Resolved" }); closeChat(); } }
+
         function sendMessage() {
             const input = document.getElementById('chat-input');
             if (!input.value.trim()) return;
@@ -116,8 +121,11 @@
         }
 
         db.ref('support_tickets').on('value', (snap) => {
-            const tickets = snap.val(); if (!tickets) return;
+            const tickets = snap.val(); 
+            if (!tickets) { activeTicketId = null; return; }
+            
             const activeKey = Object.keys(tickets).find(k => tickets[k].status === "Open" || (k === activeTicketId && tickets[k].status !== "Resolved"));
+            
             if (activeKey) {
                 activeTicketId = activeKey; const t = tickets[activeKey];
                 let html = ""; if (t.chat) {
@@ -130,7 +138,10 @@
                 }
                 document.getElementById('chat-messages').innerHTML = html;
                 document.getElementById('chat-messages').scrollTop = document.getElementById('chat-messages').scrollHeight;
-            } else { activeTicketId = null; document.getElementById('chat-messages').innerHTML = "<p class='text-center text-slate-400 mt-10 text-xs font-bold uppercase'>No active support thread</p>"; }
+            } else { 
+                activeTicketId = null; 
+                document.getElementById('chat-messages').innerHTML = "<p class='text-center text-slate-400 mt-10 text-xs font-bold uppercase'>No active support thread</p>"; 
+            }
         });
 
         db.ref('orders').on('value', (snap) => {
