@@ -7,7 +7,6 @@
     
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="mobile-web-app-capable" content="yes">
     <link rel="apple-touch-icon" href="WeKleo.png">
 
     <script src="https://cdn.tailwindcss.com"></script>
@@ -27,14 +26,13 @@
         .driver-card { animation: pulse-blue 2s infinite; border-width: 2px; }
         #history-sidebar { transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1); z-index: 2000; }
         .sidebar-open { transform: translateX(0) !important; }
-        .earning-badge { background: linear-gradient(90deg, #1e3a8a 0%, #3b82f6 100%); }
     </style>
 </head>
 <body class="pb-20">
 
     <div id="driver-overlay" class="fixed inset-0 z-[3000] bg-[#060a11] flex flex-col items-center justify-center">
         <h1 class="text-5xl font-[900] italic uppercase mb-12 we-kleo-title text-center px-6">WE KLEO<br>DRIVER</h1>
-        <button onclick="startDriverMode()" class="px-12 py-6 bg-blue-600 rounded-[32px] text-white font-black text-2xl shadow-2xl shadow-blue-500/20 active:scale-95 transition-all uppercase italic">Start Shift</button>
+        <button onclick="startDriverMode()" class="px-12 py-6 bg-blue-600 rounded-[32px] text-white font-black text-2xl shadow-2xl active:scale-95 transition-all uppercase italic">Start Shift</button>
     </div>
 
     <div id="history-sidebar" class="fixed top-0 right-0 h-full w-80 bg-[#0a101a] z-[2000] p-6 transform translate-x-full shadow-2xl border-l border-white/10">
@@ -46,11 +44,11 @@
             <p class="text-[10px] uppercase font-bold text-slate-500 tracking-widest mb-2">Shift Earnings</p>
             <p id="totalEarnings" class="text-5xl font-[900] text-white italic tracking-tighter">€0.00</p>
         </div>
-        <div id="historyList" class="space-y-4 overflow-y-auto h-[60vh] pr-2"></div>
+        <div id="historyList" class="space-y-4 overflow-y-auto h-[60vh]"></div>
     </div>
 
     <div class="flex flex-col items-center pt-10 pb-6 border-b border-slate-900 mb-8 relative">
-        <button onclick="toggleHistory()" class="absolute right-6 top-10 bg-blue-600 p-3 rounded-full shadow-lg border border-blue-400/20">📜</button>
+        <button onclick="toggleHistory()" class="absolute right-6 top-10 bg-blue-600 p-3 rounded-full shadow-lg border border-blue-400/20 text-xl">📜</button>
         <h1 class="text-4xl font-[900] italic uppercase we-kleo-title">WE KLEO</h1>
         <p class="text-[10px] font-bold text-slate-500 uppercase tracking-[0.4em] mt-2">Delivery Fleet</p>
     </div>
@@ -72,7 +70,9 @@
         
         let audioCtx = null, alarmInterval = null, isFirstLoad = true;
         const FEE_PER_DELIVERY = 4.00;
-        const RESTAURANT_ADDRESS = "Slovenska ulica 15, 2000 Maribor"; // Your Store Address
+        
+        // --- YOUR RESTAURANT ADDRESS ---
+        const SHOP_ADDRESS = "Slovenska ulica 15, Maribor"; 
 
         function startDriverMode() {
             audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -114,36 +114,51 @@
             isFirstLoad = false;
         });
 
-        async function renderDriverCard(id, order) {
+        function renderDriverCard(id, order) {
             const isDelivering = order.status === "Delivering";
-            const mapsUrl = `https://www.google.com/maps/dir/${encodeURIComponent(RESTAURANT_ADDRESS)}/${encodeURIComponent(order.address)}`;
+            const mapsUrl = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(SHOP_ADDRESS)}&destination=${encodeURIComponent(order.address)}&travelmode=driving`;
             
             const html = `
                 <div class="glass p-8 rounded-[40px] border border-slate-800 ${!isDelivering ? 'driver-card' : ''}">
                     <div class="flex justify-between items-center mb-6">
-                        <div class="earning-badge px-5 py-2 rounded-full shadow-lg">
-                            <span class="text-white text-sm font-[900] italic uppercase">EARN €4.00</span>
+                        <div class="bg-blue-600 px-4 py-1 rounded-full shadow-lg">
+                            <span class="text-white text-[11px] font-[900] italic uppercase">PAYOUT €4.00</span>
                         </div>
                         <span class="text-[10px] text-slate-500 font-bold font-mono">${order.time.split(',')[1]}</span>
                     </div>
 
-                    <h2 class="text-4xl font-[900] italic tracking-tighter uppercase mb-1 text-white">${order.customer}</h2>
-                    <p class="text-blue-400 font-bold text-lg mb-4 leading-tight">${order.address}</p>
-                    
-                    <div class="flex items-center gap-2 mb-6 text-slate-500 font-bold text-xs uppercase tracking-widest bg-white/5 p-3 rounded-xl border border-white/5">
-                        <span>📍 Shop</span>
-                        <span class="text-blue-600">→</span>
-                        <span>🏠 Drop-off</span>
+                    <div class="mb-6 flex gap-4">
+                        <div class="flex flex-col items-center">
+                            <div class="w-3 h-3 bg-blue-500 rounded-full shadow-[0_0_10px_#3b82f6]"></div>
+                            <div class="w-0.5 h-12 border-l border-dashed border-slate-700 my-1"></div>
+                            <div class="w-3 h-3 bg-green-500 rounded-full shadow-[0_0_10px_#22c55e]"></div>
+                        </div>
+                        <div class="flex flex-col justify-between h-20">
+                            <div>
+                                <p class="text-[9px] font-black text-slate-500 uppercase tracking-widest">Pickup From</p>
+                                <p class="text-sm font-bold text-white uppercase italic">${SHOP_ADDRESS}</p>
+                            </div>
+                            <div>
+                                <p class="text-[9px] font-black text-slate-500 uppercase tracking-widest">Drop-off To</p>
+                                <p class="text-sm font-bold text-blue-400 uppercase italic">${order.address}</p>
+                            </div>
+                        </div>
                     </div>
+
+                    <h2 class="text-3xl font-[900] italic tracking-tighter uppercase mb-4 text-white">Client: ${order.customer}</h2>
                     
                     <div class="grid grid-cols-2 gap-3 mb-6">
-                        <a href="${mapsUrl}" target="_blank" class="flex items-center justify-center bg-slate-800 text-white py-5 rounded-2xl font-black text-xs border border-white/5 active:scale-95 transition-all italic">NAVIGATE</a>
-                        <a href="tel:${order.phone}" class="flex items-center justify-center bg-white/5 text-blue-400 py-5 rounded-2xl font-black text-xs border border-blue-400/20 active:scale-95 transition-all">📞 CALL</a>
+                        <a href="${mapsUrl}" target="_blank" class="flex items-center justify-center bg-slate-800 text-white py-5 rounded-2xl font-black text-xs border border-white/5 active:scale-95 transition-all italic">📍 GO TO MAPS</a>
+                        <a href="tel:${order.phone}" class="flex items-center justify-center bg-white/5 text-blue-400 py-5 rounded-2xl font-black text-xs border border-blue-400/20 active:scale-95 transition-all">📞 CALL CLIENT</a>
                     </div>
 
                     <button onclick="updateStatus('${id}', '${isDelivering ? 'Completed' : 'Delivering'}')" class="w-full ${isDelivering ? 'bg-green-600' : 'bg-blue-600'} text-white py-6 rounded-[28px] font-[900] italic uppercase text-lg active:scale-95 transition-all shadow-2xl">
-                        ${isDelivering ? 'Complete Delivery' : 'Accept Pickup'}
+                        ${isDelivering ? 'Finish Delivery' : 'I am at Kitchen (Pick Up)'}
                     </button>
+                    
+                    <div class="mt-6 pt-5 border-t border-white/5 text-center">
+                        <p class="text-[10px] font-bold text-slate-500 uppercase italic">Items: ${order.item} (${order.toppings})</p>
+                    </div>
                 </div>`;
             document.getElementById('driverList').insertAdjacentHTML('beforeend', html);
         }
