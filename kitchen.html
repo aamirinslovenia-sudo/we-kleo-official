@@ -16,13 +16,13 @@
         .we-kleo-title { animation: text-shimmer 3s infinite; }
         .glass-card { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.08); border-radius: 40px; }
         .timer-badge { background: rgba(59, 130, 246, 0.1); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.2); }
+        .timer-urgent { background: rgba(239, 68, 68, 0.1); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); }
     </style>
 </head>
-<body class="p-8">
-
-    <div class="flex flex-col items-center mb-12 border-b border-slate-900 pb-8">
+<body class="p-8" onclick="initAudio()"> <div class="flex flex-col items-center mb-12 border-b border-slate-900 pb-8">
         <h1 class="text-6xl font-[900] italic tracking-tighter uppercase we-kleo-title">WE KLEO</h1>
         <p class="text-[10px] font-bold text-slate-500 uppercase tracking-[0.4em] mt-2">Kitchen Production Line</p>
+        <p class="text-[8px] text-slate-700 mt-2 uppercase tracking-widest">Tap anywhere to enable sound</p>
     </div>
 
     <div id="order-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
@@ -41,8 +41,26 @@
         
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
+        let audioCtx = null;
+        let lastOrderCount = 0;
 
-        // Update timers every second
+        // Initialize Audio context (Browsers require a user click first)
+        function initAudio() { if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+
+        function playNewOrderSound() {
+            if (!audioCtx) return;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(880, audioCtx.currentTime); // A5 note
+            gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.5);
+        }
+
+        // Live Timer Logic
         setInterval(() => {
             document.querySelectorAll('.live-timer').forEach(span => {
                 const start = parseInt(span.dataset.start);
@@ -50,17 +68,24 @@
                 const mins = Math.floor(diff / 60);
                 const secs = diff % 60;
                 span.innerText = `${mins}m ${secs}s`;
+                
+                // If waiting more than 10 mins, turn badge red
+                if (mins >= 10) {
+                    span.parentElement.classList.add('timer-urgent');
+                }
             });
         }, 1000);
 
         db.ref('orders').on('value', (snap) => {
             const grid = document.getElementById('order-grid');
             grid.innerHTML = "";
+            let currentActiveCount = 0;
 
             snap.forEach(child => {
                 const o = child.val();
-                // Filter for New or Pending orders
                 if(o.status === "Pending" || o.status === "New") {
+                    currentActiveCount++;
+                    // Fallback to current time if no timestamp exists in database
                     const orderTime = o.timestamp || Date.now();
                     
                     grid.insertAdjacentHTML('beforeend', `
@@ -89,6 +114,12 @@
                     `);
                 }
             });
+
+            // Trigger beep if a new order is added
+            if (currentActiveCount > lastOrderCount) {
+                playNewOrderSound();
+            }
+            lastOrderCount = currentActiveCount;
         });
 
         function readyOrder(id) {
