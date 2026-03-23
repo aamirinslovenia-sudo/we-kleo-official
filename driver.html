@@ -96,7 +96,7 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
         let currentOrder = null; let audioCtx = null; let activeTicketId = null; 
-        let alertInterval = null; // Track repeating alert
+        let alertInterval = null; 
 
         function toggleHistory() { document.getElementById('history-sidebar').classList.toggle('sidebar-active'); }
         function openChat() { document.getElementById('chat-overlay').classList.add('chat-active'); document.getElementById('unread-dot').classList.add('hidden'); }
@@ -164,16 +164,15 @@
                 document.getElementById('waiting-ui').classList.add('hidden'); document.getElementById('order-ui').classList.remove('hidden');
                 document.getElementById('order-sheet').classList.replace('sheet-minimized', 'sheet-expanded'); 
                 
-                // REPEATING ALERT LOGIC:
+                // CONTINUOUS ALERT LOGIC:
                 if (active.status === "Ready") {
                     if (!alertInterval) {
-                        playBeep(800, 0.5); // Immediate first beep
+                        playBeep(800, 0.5); 
                         alertInterval = setInterval(() => {
                             playBeep(800, 0.5);
-                        }, 10000); // Repeats every 10 seconds
+                        }, 1500); // Beeps every 1.5 seconds for continuous effect
                     }
                 } else {
-                    // Stop alert if status changes from Ready to Delivering
                     clearInterval(alertInterval);
                     alertInterval = null;
                 }
