@@ -52,12 +52,10 @@
             <h2 class="text-white text-2xl font-black italic uppercase tracking-tighter">Shift Log</h2>
             <button onclick="toggleHistory()" class="text-white bg-white/10 w-10 h-10 rounded-full flex items-center justify-center">✕</button>
         </div>
-        
         <div class="bg-white/5 border border-white/10 p-8 rounded-[32px] mb-10 text-center">
             <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">Total Earnings</p>
             <p id="history-total-large" class="text-5xl font-bold text-amber-400 font-['Space_Grotesk']">€0.00</p>
         </div>
-
         <div id="history-list" class="space-y-4 overflow-y-auto h-[55vh] pr-2"></div>
     </div>
 
@@ -69,7 +67,6 @@
 
     <div id="order-sheet" class="premium-panel panel-minimized">
         <div class="w-16 h-1 bg-gray-600/20 rounded-full mx-auto mb-8"></div>
-        
         <div id="waiting-ui" class="flex flex-col items-center py-4">
             <div class="flex items-center gap-4">
                 <div class="relative flex h-3 w-3"><span class="animate-ping absolute h-full w-full rounded-full bg-amber-400 opacity-75"></span><span class="relative rounded-full h-3 w-3 bg-amber-500"></span></div>
@@ -88,14 +85,12 @@
 
             <div class="relative pl-10 space-y-10 mb-10">
                 <div class="step-line"></div>
-                
                 <div class="relative">
                     <div class="step-dot bg-amber-500 absolute -left-[33px]"></div>
                     <p class="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-0.5">Pickup Point</p>
                     <h2 class="text-lg font-bold text-gray-900 leading-tight">WE KLEO Kitchen</h2>
                     <p class="text-gray-500 text-sm italic font-medium">Slovenska ulica 15, Maribor</p>
                 </div>
-
                 <div class="relative">
                     <div class="step-dot bg-black absolute -left-[33px]"></div>
                     <p class="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-0.5">Destination</p>
@@ -127,11 +122,18 @@
         const db = firebase.database();
         let currentOrder = null;
         let audioCtx = null;
+        let lastPlayedId = null; // Prevent repeated beeps for the same order
 
         function toggleHistory() { document.getElementById('history-sidebar').classList.toggle('sidebar-active'); }
         
         function goOnline() {
+            // CRITICAL: Initialize audio on user click to bypass browser restrictions
             audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+            // Test beep so driver knows it's working
+            playAlert(440, 0.1); 
             document.getElementById('boot-screen').style.display = 'none';
         }
 
@@ -164,9 +166,15 @@
                 document.getElementById('waiting-ui').classList.add('hidden');
                 document.getElementById('order-ui').classList.remove('hidden');
                 sheet.classList.replace('panel-minimized', 'panel-expanded');
-                playAlert();
+                
+                // Play sound ONLY if it's a new "Ready" order
+                if (active.status === "Ready" && lastPlayedId !== active.id) {
+                    playAlert(880, 0.4); 
+                    lastPlayedId = active.id;
+                }
             } else {
                 currentOrder = null;
+                lastPlayedId = null;
                 document.getElementById('waiting-ui').classList.remove('hidden');
                 document.getElementById('order-ui').classList.add('hidden');
                 sheet.classList.replace('panel-expanded', 'panel-minimized');
@@ -180,14 +188,20 @@
             if(next === "Delivering") window.open(`https://www.google.com/maps/dir/?api=1&origin=Slovenska+ulica+15+Maribor&destination=${encodeURIComponent(currentOrder.address)}`);
         }
 
-        function playAlert() {
+        function playAlert(freq, duration) {
             if (!audioCtx) return;
+            // Resume context if browser paused it
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            
             const o = audioCtx.createOscillator();
             const g = audioCtx.createGain();
-            o.connect(g); g.connect(audioCtx.destination);
-            o.type = 'sine'; o.frequency.setValueAtTime(600, audioCtx.currentTime);
-            g.gain.setValueAtTime(0.05, audioCtx.currentTime);
-            o.start(); o.stop(audioCtx.currentTime + 0.15);
+            o.connect(g); 
+            g.connect(audioCtx.destination);
+            o.type = 'sine'; 
+            o.frequency.setValueAtTime(freq, audioCtx.currentTime);
+            g.gain.setValueAtTime(0.15, audioCtx.currentTime); // Volume increased to 15%
+            o.start(); 
+            o.stop(audioCtx.currentTime + duration);
         }
     </script>
 </body>
