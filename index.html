@@ -13,7 +13,6 @@
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
     <script type="text/javascript">
        (function(){
-          // YOUR PUBLIC KEY
           emailjs.init("_yocJ8G-tQoBn2S80"); 
        })();
     </script>
@@ -102,10 +101,14 @@
         <p id="tracking-id" class="text-[10px] font-mono text-slate-500 uppercase mb-12">REF: ---</p>
         <div class="space-y-12 relative">
             <div class="absolute left-[6px] top-2 bottom-2 w-[2px] bg-white/5"></div>
+            
             <div class="flex gap-6 items-center"><div id="step-new" class="tracking-dot active"></div><div><p class="text-[10px] font-black text-blue-500 uppercase tracking-widest">Stage 1</p><h4 class="font-bold uppercase">Transmitted</h4></div></div>
+            
             <div class="flex gap-6 items-center"><div id="step-kitchen" class="tracking-dot"></div><div><p id="text-kitchen" class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Stage 2</p><h4 class="font-bold uppercase">Preparing</h4></div></div>
+            
             <div class="flex gap-6 items-center"><div id="step-delivery" class="tracking-dot"></div><div><p id="text-delivery" class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Stage 3</p><h4 class="font-bold uppercase">On the road</h4></div></div>
         </div>
+        
         <div class="mt-auto glass p-8 text-center rounded-[35px]"><p class="text-[10px] text-slate-500 uppercase font-black mb-2 tracking-widest">KLEO Arrival</p><h3 class="text-4xl font-black">~20 MIN</h3></div>
         <button onclick="location.reload()" class="w-full mt-6 bg-white/5 py-5 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-400">Back to Store</button>
     </div>
@@ -174,39 +177,66 @@
             }).then(() => { startTracking(orderId); });
         }
 
+        // ==========================================
+        // 🔥 UPDATED, STAGE-BY-STAGE TRACKING LOGIC 🔥
+        // ==========================================
         function startTracking(orderId) {
             document.getElementById('order-tracking-overlay').style.display = 'flex';
             document.getElementById('tracking-id').innerText = "ID: " + orderId;
+            
             db.ref('orders/' + orderId).on('value', (snap) => {
                 const o = snap.val(); if(!o) return;
                 
+                // RESET ALL VISUALS FIRST (ensures clean updates)
+                document.querySelectorAll('.tracking-dot').forEach(dot => dot.classList.remove('active'));
+                document.getElementById('text-kitchen').classList.replace('text-blue-500', 'text-slate-500');
+                document.getElementById('text-delivery').classList.replace('text-blue-500', 'text-slate-500');
+
+                // Stage 1: Always active for an open order
+                document.getElementById('step-new').classList.add('active');
+
+                // Stage 2 logic (Kitchen sets to 'Preparing')
                 if(o.status === "Preparing") {
                     document.getElementById('step-kitchen').classList.add('active');
                     document.getElementById('text-kitchen').classList.replace('text-slate-500', 'text-blue-500');
                 }
+                
+                // Stage 3 logic (Kitchen marks 'Ready' OR Driver marks 'Delivering')
                 if(o.status === "Ready" || o.status === "Delivering") {
+                    // Turn on Stage 2 visual too (ensures line is unbroken)
                     document.getElementById('step-kitchen').classList.add('active');
-                    document.getElementById('step-delivery').classList.add('active');
                     document.getElementById('text-kitchen').classList.replace('text-slate-500', 'text-blue-500');
+                    
+                    // Activate Stage 3
+                    document.getElementById('step-delivery').classList.add('active');
                     document.getElementById('text-delivery').classList.replace('text-slate-500', 'text-blue-500');
                 }
 
-                if(o.status === "Completed" && !emailSent) {
-                    emailSent = true;
-                    // UPDATED SERVICE ID: service_i0905hd
-                    emailjs.send("service_i0905hd", "template_5gwvu9l", {
-                        to_name: o.customer,
-                        to_email: o.email,
-                        item_name: o.item,
-                        total_price: o.totalPrice,
-                        delivery_address: o.address
-                    }).then((response) => {
-                        alert("Mission Success! Your receipt has been sent to " + o.email);
-                        location.reload();
-                    }, (error) => {
-                        console.error("FAILED...", error);
-                        alert("Mission Success, but email failed. Check Dashboard.");
-                    });
+                // Completion & Email Trigger (Driver/Manager sets to 'Completed')
+                if(o.status === "Completed") {
+                    // Light up everything
+                    document.getElementById('step-kitchen').classList.add('active');
+                    document.getElementById('text-kitchen').classList.replace('text-slate-500', 'text-blue-500');
+                    document.getElementById('step-delivery').classList.add('active');
+                    document.getElementById('text-delivery').classList.replace('text-slate-500', 'text-blue-500');
+
+                    if(!emailSent) {
+                        emailSent = true;
+                        // YOUR VERIFIED EMAILJS SERVICE ID (service_i0905hd)
+                        emailjs.send("service_i0905hd", "template_5gwvu9l", {
+                            to_name: o.customer,
+                            to_email: o.email,
+                            item_name: o.item,
+                            total_price: o.totalPrice,
+                            delivery_address: o.address
+                        }).then((response) => {
+                            alert("Mission Success! Your receipt has been sent to " + o.email);
+                            location.reload();
+                        }, (error) => {
+                            console.error("FAILED...", error);
+                            alert("Order complete, but email failed. Check Dashboard.");
+                        });
+                    }
                 }
             });
         }
