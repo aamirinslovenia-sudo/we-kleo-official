@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KLEO | COMMAND CENTER v1.1</title>
+    <title>KLEO | COMMAND CENTER v1.2</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
@@ -15,7 +15,7 @@
         .scroll-hide::-webkit-scrollbar { display: none; }
         .btn-danger { background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.2); }
         .btn-danger:hover { background: #ef4444; color: white; }
-        .msg-bubble { max-width: 85%; padding: 12px; border-radius: 18px; font-size: 13px; line-height: 1.4; }
+        .msg-bubble { max-width: 85%; padding: 12px; border-radius: 18px; font-size: 13px; line-height: 1.4; margin-bottom: 8px; }
     </style>
 </head>
 <body class="p-8 flex gap-8">
@@ -24,15 +24,15 @@
         <h1 class="text-4xl font-black italic tracking-tighter uppercase">KLEO <span class="text-blue-500">HQ</span></h1>
         
         <div class="glass stat-card">
-            <p class="text-[10px] font-black uppercase text-slate-500 tracking-widest">Today's Revenue</p>
+            <p class="text-[10px] font-black uppercase text-slate-500 tracking-widest">Revenue Today</p>
             <h2 id="total-revenue" class="text-5xl font-black mt-2 text-blue-400">€0.00</h2>
-            <p id="order-count" class="text-xs font-bold text-slate-400 mt-2">0 Orders</p>
+            <p id="order-count" class="text-xs font-bold text-slate-400 mt-2">0 Missions Completed</p>
         </div>
 
         <div class="glass rounded-[32px] p-6 flex-1 flex flex-col">
-            <h3 class="text-xs font-black uppercase text-blue-500 mb-6 tracking-widest">Active Fleet</h3>
+            <h3 class="text-xs font-black uppercase text-blue-500 mb-6 tracking-widest">Active Couriers</h3>
             <div id="driver-list" class="space-y-4 overflow-y-auto scroll-hide"></div>
-            <button onclick="resetDay()" class="mt-auto w-full py-4 btn-danger rounded-2xl font-black uppercase text-[10px] tracking-widest">Reset Database</button>
+            <button onclick="resetDay()" class="mt-auto w-full py-4 btn-danger rounded-2xl font-black uppercase text-[10px] tracking-widest">Reset System</button>
         </div>
     </div>
 
@@ -44,10 +44,10 @@
                     <tr class="text-[10px] font-black uppercase text-slate-600 border-b border-white/5">
                         <th class="pb-4">Status</th>
                         <th class="pb-4">Item</th>
-                        <th class="pb-4">Customer</th>
+                        <th class="pb-4">Client</th>
                         <th class="pb-4">Courier</th>
-                        <th class="pb-4">Price</th>
-                        <th class="pb-4">Delete</th>
+                        <th class="pb-4">Total</th>
+                        <th class="pb-4">Action</th>
                     </tr>
                 </thead>
                 <tbody id="master-order-list"></tbody>
@@ -57,16 +57,16 @@
 
     <div class="w-1/4 glass rounded-[32px] p-6 flex flex-col">
         <div class="flex justify-between items-center mb-6">
-            <h3 class="text-xs font-black uppercase text-blue-500 tracking-widest">Courier Support</h3>
-            <span id="chat-status" class="text-[9px] font-bold text-slate-500 uppercase">Offline</span>
+            <h3 class="text-xs font-black uppercase text-blue-500 tracking-widest">Dispatch Chat</h3>
+            <span id="chat-status" class="text-[9px] font-bold text-slate-600 uppercase">Standby</span>
         </div>
         
-        <div id="chat-box" class="flex-1 overflow-y-auto scroll-hide mb-4 space-y-4">
-            <div class="text-center text-[10px] text-slate-600 uppercase mt-20">Waiting for driver messages...</div>
+        <div id="chat-box" class="flex-1 overflow-y-auto scroll-hide mb-4 space-y-2">
+            <div class="text-center text-[10px] text-slate-600 uppercase mt-40">No messages yet...</div>
         </div>
 
         <div class="flex gap-2 bg-white/5 p-2 rounded-2xl border border-white/10">
-            <input type="text" id="chat-input" class="flex-1 bg-transparent p-2 text-sm outline-none" placeholder="Type message...">
+            <input type="text" id="chat-input" onkeypress="handleKey(event)" class="flex-1 bg-transparent p-2 text-sm outline-none" placeholder="Reply...">
             <button onclick="sendAdminMsg()" class="bg-blue-600 w-10 h-10 rounded-xl flex items-center justify-center font-bold">➤</button>
         </div>
     </div>
@@ -77,7 +77,7 @@
         const db = firebase.database();
         let lastTicketId = null;
 
-        // SYNC ORDERS & DRIVERS
+        // 1. SYNC ORDERS & DRIVER STATS
         db.ref('orders').on('value', (snap) => {
             const list = document.getElementById('master-order-list');
             const driverDiv = document.getElementById('driver-list');
@@ -86,12 +86,13 @@
 
             snap.forEach(child => {
                 const o = child.val();
+                if(o.status === "Completed") revenue += parseFloat(o.totalPrice.replace('€','')) || 0;
                 orders++;
-                revenue += parseFloat(o.totalPrice.replace('€','')) || 0;
+
                 if(o.claimedBy) {
                     drivers[o.claimedBy] = (drivers[o.claimedBy] || 0) + (o.status === "Completed" ? 1 : 0);
                 }
-                const sColor = o.status === "Completed" ? "text-green-500" : "text-blue-500";
+                const sColor = o.status === "Completed" ? "text-green-500" : (o.status === "New" ? "text-blue-500" : "text-yellow-500");
                 list.innerHTML += `
                     <tr class="border-b border-white/5">
                         <td class="py-4 font-black uppercase text-[9px] ${sColor}">${o.status}</td>
@@ -99,7 +100,7 @@
                         <td class="py-4 text-xs text-slate-400">${o.customer}</td>
                         <td class="py-4 text-xs font-mono text-blue-400">${o.claimedBy || 'NONE'}</td>
                         <td class="py-4 font-black">${o.totalPrice}</td>
-                        <td class="py-4"><button onclick="deleteOrder('${child.key}')" class="opacity-30 hover:opacity-100">✕</button></td>
+                        <td class="py-4"><button onclick="deleteOrder('${child.key}')" class="opacity-20 hover:opacity-100 transition">✕</button></td>
                     </tr>`;
             });
 
@@ -114,25 +115,28 @@
             `).join('');
         });
 
-        // FIXED CHAT LOGIC
+        // 2. FIXED CHAT ENGINE
         db.ref('support_tickets').on('value', (snap) => {
             const chatBox = document.getElementById('chat-box');
-            chatBox.innerHTML = "";
             let tickets = snap.val();
-            if(!tickets) return;
+            if(!tickets) {
+                chatBox.innerHTML = "<div class='text-center text-[10px] text-slate-600 uppercase mt-40'>No tickets open</div>";
+                return;
+            }
 
-            // Get the most recent active ticket
-            const sortedKeys = Object.keys(tickets).sort((a,b) => tickets[b].lastUpdate - tickets[a].lastUpdate);
+            // Get the newest open ticket
+            const sortedKeys = Object.keys(tickets).sort((a,b) => (tickets[b].lastUpdate || 0) - (tickets[a].lastUpdate || 0));
             lastTicketId = sortedKeys[0];
             
-            document.getElementById('chat-status').innerText = "Active Support";
+            document.getElementById('chat-status').innerText = "LIVE SUPPORT";
             document.getElementById('chat-status').className = "text-[9px] font-bold text-green-500 uppercase";
 
             const ticket = tickets[lastTicketId];
-            if(ticket.chat) {
+            let chatHtml = "";
+            if(ticket && ticket.chat) {
                 Object.values(ticket.chat).forEach(m => {
                     const isAdmin = m.sender === "Admin";
-                    chatBox.innerHTML += `
+                    chatHtml += `
                         <div class="flex ${isAdmin ? 'justify-end' : 'justify-start'}">
                             <div class="msg-bubble ${isAdmin ? 'bg-blue-600 text-white' : 'bg-white/10 text-slate-200'}">
                                 <p class="text-[8px] font-black uppercase opacity-50 mb-1">${m.sender}</p>
@@ -140,23 +144,34 @@
                             </div>
                         </div>`;
                 });
+                chatBox.innerHTML = chatHtml;
+                chatBox.scrollTop = chatBox.scrollHeight;
             }
-            chatBox.scrollTop = chatBox.scrollHeight;
         });
 
+        // 3. SEND FUNCTION (With Null Check)
         function sendAdminMsg() {
             const input = document.getElementById('chat-input');
-            if(!input.value.trim() || !lastTicketId) return;
+            const text = input.value.trim();
+            if(!text) return;
+            
+            // If no driver has started a ticket yet, we can't reply
+            if(!lastTicketId) {
+                alert("No active driver ticket found. The driver must send a message first.");
+                return;
+            }
             
             db.ref('support_tickets/' + lastTicketId + '/chat').push({
                 sender: "Admin",
-                text: input.value,
+                text: text,
                 timestamp: Date.now()
             });
+            
             db.ref('support_tickets/' + lastTicketId).update({ lastUpdate: Date.now() });
             input.value = "";
         }
 
+        function handleKey(e) { if(e.key === "Enter") sendAdminMsg(); }
         function deleteOrder(id) { if(confirm("Delete record?")) db.ref('orders/' + id).remove(); }
         function resetDay() { if(confirm("Wipe all data for tomorrow?")) { db.ref('orders').remove(); db.ref('support_tickets').remove(); } }
     </script>
