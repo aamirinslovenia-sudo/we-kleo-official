@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>KLEO | KITCHEN COMMAND v4.2</title>
+    <title>KLEO | KITCHEN COMMAND v4.3</title>
 
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
@@ -27,6 +27,12 @@
         .btn-dispatch { background: #fff; color: #000; font-weight: 900; text-transform: uppercase; border-radius: 16px; padding: 18px; font-size: 13px; margin-top: auto; transition: all 0.2s; }
         .btn-transit { background: rgba(16,185,129,0.1); color: #10b981; border: 1px solid rgba(16,185,129,0.3); }
 
+        /* FIXED DRIVER DOTS */
+        .driver-status-pill { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); padding: 4px 10px; border-radius: 12px; display: flex; align-items: center; gap: 8px; font-size: 10px; font-weight: 800; text-transform: uppercase; }
+        .dot { width: 8px; height: 8px; border-radius: 50%; }
+        .dot-green { background: #10b981; box-shadow: 0 0 10px rgba(16, 185, 129, 0.5); }
+        .dot-red { background: #ef4444; box-shadow: 0 0 10px rgba(239, 68, 68, 0.5); }
+
         #history-sidebar { position: fixed; top: 0; right: 0; height: 100%; width: 420px; background: #080808; z-index: 2000; transform: translateX(100%); transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1); border-left: 1px solid rgba(255,255,255,0.1); display: flex; flex-direction: column; }
         .sidebar-open { transform: translateX(0) !important; }
         #historyList { flex: 1; overflow-y: auto; padding: 0 30px 100px 30px; }
@@ -43,7 +49,8 @@
     <nav class="top-nav">
         <div class="flex items-center gap-10">
             <h1 class="text-3xl font-black italic tracking-tighter text-white">KLEO <span class="text-blue-500">KITCHEN</span></h1>
-            <div id="driver-summary" class="flex gap-4 border-l border-white/10 pl-10"></div>
+            <div id="driver-summary" class="flex gap-3 border-l border-white/10 pl-10">
+                </div>
         </div>
         
         <div class="flex items-center gap-6">
@@ -108,9 +115,12 @@
 
             snap.forEach((child) => {
                 const o = child.val();
-                if(o.claimedBy) drivers[o.claimedBy] = (o.status === "Delivering") ? "Busy" : "Waiting";
                 
-                // SMARTER FILTER: If status is Completed, it MUST go to history ONLY.
+                // DRIVER TRACKING
+                if(o.claimedBy) {
+                    drivers[o.claimedBy] = (o.status === "Delivering" || o.status === "Ready") ? "Busy" : "Waiting";
+                }
+                
                 if (o.status === "Completed") { 
                     renderHistory(child.key, o); 
                     if(o.completedAt && o.timestamp) prepTimes.push((o.completedAt - o.timestamp) / 60000);
@@ -125,11 +135,16 @@
                 document.getElementById('avg-prep').innerText = avg.toFixed(1) + "m";
             }
 
-            driverBox.innerHTML = Object.keys(drivers).map(dId => `
-                <div class="flex items-center text-[10px] font-bold uppercase tracking-tighter">
-                    <span class="driver-dot ${drivers[dId] === 'Busy' ? 'dot-busy' : 'dot-waiting'}"></span>${dId}
-                </div>
-            `).join('') || '<span class="text-[10px] text-slate-600 font-bold uppercase">No Drivers Active</span>';
+            // FIXED DRIVER SUMMARY LOGIC
+            driverBox.innerHTML = Object.keys(drivers).map(dId => {
+                const colorClass = (drivers[dId] === "Busy") ? "dot-red" : "dot-green";
+                return `
+                    <div class="driver-status-pill">
+                        <span class="dot ${colorClass}"></span>
+                        ${dId}
+                    </div>
+                `;
+            }).join('') || '<span class="text-[9px] text-slate-600 font-black uppercase tracking-widest">No Active Couriers</span>';
 
             if (activeCount > 0 && !alarmInterval) alarmInterval = setInterval(playBell, 5000);
             if (activeCount === 0) { clearInterval(alarmInterval); alarmInterval = null; }
@@ -143,12 +158,10 @@
             let cardClass = "order-card";
             let courierMsg = "";
 
-            // If Driver claimed it but Kitchen hasn't clicked Ready
             if (o.status === "New") {
                 actionBtn = `<button onclick="setStatus('${id}', 'Ready')" class="btn-dispatch">Ready for Courier</button>`;
                 courierMsg = o.claimedBy ? `<div class="bg-blue-500/10 text-blue-400 p-2 rounded-lg text-[9px] font-black uppercase mt-2 italic">Driver ${o.claimedBy} Is Coming</div>` : `<div class="bg-white/5 text-slate-500 p-2 rounded-lg text-[9px] font-black uppercase mt-2 italic">Searching for Driver...</div>`;
             } else {
-                // This covers "Delivering" or "Ready" status
                 cardClass += " status-delivering";
                 actionBtn = `<button onclick="setStatus('${id}', 'Completed')" class="btn-dispatch btn-transit font-black italic uppercase">In Transit (Click to Archive)</button>`;
                 courierMsg = `<div class="bg-green-500/10 text-green-400 p-2 rounded-lg text-[9px] font-black uppercase mt-2">Courier: ${o.claimedBy}</div>`;
@@ -206,7 +219,7 @@
         function setStatus(id, s) { 
             const updates = { status: s };
             if (s === 'Ready') updates.completedAt = Date.now();
-            if (s === 'Completed') updates.completedAt = Date.now(); // Safety backup
+            if (s === 'Completed') updates.completedAt = Date.now();
             db.ref('orders/' + id).update(updates); 
         }
     </script>
