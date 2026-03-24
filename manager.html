@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KLEO | COMMAND CENTER v1.9</title>
+    <title>KLEO | COMMAND CENTER v2.0</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
@@ -23,13 +23,13 @@
             font-size: 11px; 
             font-weight: 900; 
             white-space: nowrap; 
-            transition: all 0.3s ease; 
+            transition: 0.3s; 
             cursor: pointer;
             border: 1px solid rgba(255,255,255,0.1);
+            background: rgba(255,255,255,0.05);
+            color: #64748b;
         }
-        .tab-active { background: #3b82f6 !important; color: white !important; box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4); border-color: #3b82f6; }
-        .tab-inactive { background: rgba(255,255,255,0.05); color: #64748b; }
-        .tab-inactive:hover { background: rgba(255,255,255,0.1); color: white; }
+        .tab-active { background: #3b82f6 !important; color: white !important; border-color: #3b82f6; }
     </style>
 </head>
 <body class="p-8 flex gap-8">
@@ -70,7 +70,8 @@
     <div class="w-1/4 glass rounded-[32px] p-6 flex flex-col">
         <h3 class="text-xs font-black uppercase text-blue-500 mb-4 tracking-widest">Courier Support</h3>
         
-        <div id="driver-selector" class="flex gap-2 overflow-x-auto pb-4 mb-4 border-b border-white/10 scroll-hide"></div>
+        <div id="driver-selector" class="flex gap-2 overflow-x-auto pb-4 mb-4 border-b border-white/10 scroll-hide">
+            </div>
 
         <div id="chat-box" class="flex-1 overflow-y-auto scroll-hide mb-4 space-y-2 flex flex-col">
             <div class="text-center text-[10px] text-slate-600 uppercase mt-40">Select a driver tab</div>
@@ -78,7 +79,7 @@
 
         <div class="flex gap-2 bg-white/5 p-2 rounded-2xl border border-white/10">
             <input type="text" id="chat-input" onkeypress="if(event.key==='Enter') sendAdminMsg()" class="flex-1 bg-transparent p-2 text-sm outline-none" placeholder="Reply...">
-            <button onclick="sendAdminMsg()" class="bg-blue-600 w-10 h-10 rounded-xl flex items-center justify-center font-bold transition active:scale-90">➤</button>
+            <button onclick="sendAdminMsg()" class="bg-blue-600 w-10 h-10 rounded-xl flex items-center justify-center font-bold">➤</button>
         </div>
         <button onclick="endSelectedChat()" class="mt-2 text-[8px] text-red-500/50 uppercase font-bold tracking-widest hover:text-red-500 transition">Close Ticket</button>
     </div>
@@ -88,9 +89,9 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
         
-        let selectedTicketId = localStorage.getItem('kleo_active_chat') || null;
+        let selectedDriverId = null;
 
-        // --- ORDER & REVENUE LOGIC ---
+        // SYNC ORDERS
         db.ref('orders').on('value', (snap) => {
             const list = document.getElementById('master-order-list');
             const driverDiv = document.getElementById('driver-list');
@@ -109,84 +110,75 @@
             driverDiv.innerHTML = Object.keys(drivers).map(dId => `<div class="flex justify-between items-center p-3 glass rounded-xl border-l-2 border-blue-500"><div><p class="text-[9px] font-black text-blue-400 font-mono">${dId}</p><p class="text-[10px] font-bold">Courier Active</p></div><div class="text-right"><p class="text-lg font-black">${drivers[dId]}</p></div></div>`).join('');
         });
 
-        // --- ISOLATED CHAT LOGIC ---
+        // REWRITTEN CHAT LOGIC
         db.ref('support_tickets').on('value', (snap) => {
             const selector = document.getElementById('driver-selector');
             const chatBox = document.getElementById('chat-box');
             const tickets = snap.val();
             
-            if(!tickets) { 
-                selector.innerHTML = ""; 
-                chatBox.innerHTML = "<div class='text-center text-[10px] text-slate-600 uppercase mt-40'>No tickets open</div>";
-                return; 
+            if(!tickets) {
+                selector.innerHTML = "";
+                chatBox.innerHTML = "<div class='text-center text-[10px] text-slate-600 uppercase mt-40'>No messages yet</div>";
+                return;
             }
 
-            // 1. Render Unique Tabs for each Driver ID
+            // Generate Tabs - ONLY for valid Driver IDs
             let tabsHtml = "";
-            Object.keys(tickets).forEach(ticketKey => {
-                if(tickets[ticketKey].status === "Open") {
-                    const isSelected = (selectedTicketId === ticketKey);
-                    tabsHtml += `<button onclick="setChatTarget('${ticketKey}')" class="driver-tab ${isSelected ? 'tab-active' : 'tab-inactive'}">${ticketKey}</button>`;
+            Object.keys(tickets).forEach(id => {
+                if(tickets[id].status === "Open") {
+                    // STRIKE: We only want real Driver IDs (e.g. D-1234), not Firebase keys
+                    if(id.startsWith('D-')) {
+                        const active = (selectedDriverId === id) ? 'tab-active' : '';
+                        tabsHtml += `<button onclick="selectChat('${id}')" class="driver-tab ${active}">${id}</button>`;
+                    }
                 }
             });
             selector.innerHTML = tabsHtml;
 
-            // 2. Render Chat ONLY for the selected Driver ID
-            if(selectedTicketId && tickets[selectedTicketId]) {
-                const currentTicket = tickets[selectedTicketId];
-                if(currentTicket.chat) {
-                    let chatHtml = "";
-                    Object.values(currentTicket.chat).forEach(m => {
-                        const isAdmin = m.sender === "Admin";
-                        chatHtml += `
-                            <div class="flex ${isAdmin ? 'justify-end' : 'justify-start'}">
-                                <div class="msg-bubble ${isAdmin ? 'bg-blue-600 text-white' : 'bg-white/10 text-slate-200'}">
-                                    <p class="text-[8px] font-black uppercase opacity-50 mb-1">${m.sender}</p>
-                                    ${m.text}
-                                </div>
-                            </div>`;
+            // Render Messages
+            if(selectedDriverId && tickets[selectedDriverId]) {
+                const t = tickets[selectedDriverId];
+                if(t.chat) {
+                    let html = "";
+                    Object.values(t.chat).forEach(m => {
+                        const admin = m.sender === "Admin";
+                        html += `<div class="flex ${admin ? 'justify-end' : 'justify-start'}"><div class="msg-bubble ${admin ? 'bg-blue-600 text-white' : 'bg-white/10 text-slate-200'}"><p class="text-[8px] font-black uppercase opacity-50 mb-1">${m.sender}</p>${m.text}</div></div>`;
                     });
-                    chatBox.innerHTML = chatHtml;
+                    chatBox.innerHTML = html;
                     chatBox.scrollTop = chatBox.scrollHeight;
-                } else {
-                    chatBox.innerHTML = "<div class='text-center text-[10px] text-slate-700 uppercase mt-40'>Waiting for first message...</div>";
                 }
-            } else {
-                chatBox.innerHTML = "<div class='text-center text-[10px] text-slate-600 uppercase mt-40'>Select a driver to chat</div>";
             }
         });
 
-        function setChatTarget(key) {
-            selectedTicketId = key;
-            localStorage.setItem('kleo_active_chat', key);
-            // Force re-render of chat
-            db.ref('support_tickets').once('value', () => {}); 
+        function selectChat(id) {
+            selectedDriverId = id;
+            // Force re-draw
+            db.ref('support_tickets').once('value', () => {});
         }
-        
+
         function sendAdminMsg() {
             const input = document.getElementById('chat-input');
             const text = input.value.trim();
-            if(!text || !selectedTicketId) return;
+            if(!text || !selectedDriverId) return;
             
-            db.ref('support_tickets/' + selectedTicketId + '/chat').push({
+            db.ref('support_tickets/' + selectedDriverId + '/chat').push({
                 sender: "Admin",
                 text: text,
                 timestamp: Date.now()
             });
-            db.ref('support_tickets/' + selectedTicketId).update({ lastUpdate: Date.now() });
+            db.ref('support_tickets/' + selectedDriverId).update({ lastUpdate: Date.now() });
             input.value = "";
         }
 
         function endSelectedChat() {
-            if(selectedTicketId && confirm("End this session?")) {
-                db.ref('support_tickets/' + selectedTicketId).update({ status: "Resolved" });
-                selectedTicketId = null;
-                localStorage.removeItem('kleo_active_chat');
+            if(selectedDriverId && confirm("End this chat?")) {
+                db.ref('support_tickets/' + selectedDriverId).update({ status: "Resolved" });
+                selectedDriverId = null;
             }
         }
 
-        function deleteOrder(id) { if(confirm("Delete record?")) db.ref('orders/' + id).remove(); }
-        function resetDay() { if(confirm("Wipe all data?")) { db.ref('orders').remove(); db.ref('support_tickets').remove(); localStorage.removeItem('kleo_active_chat'); } }
+        function deleteOrder(id) { if(confirm("Delete?")) db.ref('orders/' + id).remove(); }
+        function resetDay() { if(confirm("Wipe all data?")) { db.ref('orders').remove(); db.ref('support_tickets').remove(); } }
     </script>
 </body>
 </html>
