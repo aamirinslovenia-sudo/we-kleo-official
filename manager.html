@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KLEO | COMMAND CENTER</title>
+    <title>KLEO | COMMAND CENTER v1.1</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
@@ -15,37 +15,29 @@
         .scroll-hide::-webkit-scrollbar { display: none; }
         .btn-danger { background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.2); }
         .btn-danger:hover { background: #ef4444; color: white; }
+        .msg-bubble { max-width: 85%; padding: 12px; border-radius: 18px; font-size: 13px; line-height: 1.4; }
     </style>
 </head>
 <body class="p-8 flex gap-8">
 
     <div class="w-1/4 flex flex-col gap-6">
-        <h1 class="text-4xl font-black italic italic tracking-tighter uppercase">KLEO <span class="text-blue-500">HQ</span></h1>
+        <h1 class="text-4xl font-black italic tracking-tighter uppercase">KLEO <span class="text-blue-500">HQ</span></h1>
         
         <div class="glass stat-card">
             <p class="text-[10px] font-black uppercase text-slate-500 tracking-widest">Today's Revenue</p>
             <h2 id="total-revenue" class="text-5xl font-black mt-2 text-blue-400">€0.00</h2>
-            <p id="order-count" class="text-xs font-bold text-slate-400 mt-2">0 Orders Processed</p>
+            <p id="order-count" class="text-xs font-bold text-slate-400 mt-2">0 Orders</p>
         </div>
 
         <div class="glass rounded-[32px] p-6 flex-1 flex flex-col">
             <h3 class="text-xs font-black uppercase text-blue-500 mb-6 tracking-widest">Active Fleet</h3>
             <div id="driver-list" class="space-y-4 overflow-y-auto scroll-hide"></div>
-            
-            <button onclick="resetDay()" class="mt-auto w-full py-4 btn-danger rounded-2xl font-black uppercase text-[10px] tracking-widest">
-                End Day & Clear Data
-            </button>
+            <button onclick="resetDay()" class="mt-auto w-full py-4 btn-danger rounded-2xl font-black uppercase text-[10px] tracking-widest">Reset Database</button>
         </div>
     </div>
 
     <div class="flex-1 glass rounded-[32px] p-8 flex flex-col">
-        <div class="flex justify-between items-center mb-8">
-            <h3 class="text-xl font-black italic uppercase">Live Mission Log</h3>
-            <div class="flex gap-2">
-                <span class="px-3 py-1 bg-green-500/10 text-green-500 rounded-full text-[10px] font-bold uppercase">System Live</span>
-            </div>
-        </div>
-        
+        <h3 class="text-xl font-black italic uppercase mb-8">Mission Control</h3>
         <div class="overflow-y-auto scroll-hide flex-1">
             <table class="w-full text-left">
                 <thead>
@@ -53,22 +45,29 @@
                         <th class="pb-4">Status</th>
                         <th class="pb-4">Item</th>
                         <th class="pb-4">Customer</th>
-                        <th class="pb-4">Driver</th>
+                        <th class="pb-4">Courier</th>
                         <th class="pb-4">Price</th>
-                        <th class="pb-4">Action</th>
+                        <th class="pb-4">Delete</th>
                     </tr>
                 </thead>
-                <tbody id="master-order-list" class="text-sm"></tbody>
+                <tbody id="master-order-list"></tbody>
             </table>
         </div>
     </div>
 
     <div class="w-1/4 glass rounded-[32px] p-6 flex flex-col">
-        <h3 class="text-xs font-black uppercase text-blue-500 mb-6 tracking-widest">Courier Support</h3>
-        <div id="chat-box" class="flex-1 overflow-y-auto scroll-hide mb-4 space-y-4 pr-2"></div>
-        <div class="flex gap-2">
-            <input type="text" id="chat-input" class="flex-1 bg-white/5 border border-white/10 rounded-xl p-3 text-sm outline-none focus:border-blue-500" placeholder="Reply to driver...">
-            <button onclick="sendAdminMsg()" class="bg-blue-600 px-4 rounded-xl font-bold">➤</button>
+        <div class="flex justify-between items-center mb-6">
+            <h3 class="text-xs font-black uppercase text-blue-500 tracking-widest">Courier Support</h3>
+            <span id="chat-status" class="text-[9px] font-bold text-slate-500 uppercase">Offline</span>
+        </div>
+        
+        <div id="chat-box" class="flex-1 overflow-y-auto scroll-hide mb-4 space-y-4">
+            <div class="text-center text-[10px] text-slate-600 uppercase mt-20">Waiting for driver messages...</div>
+        </div>
+
+        <div class="flex gap-2 bg-white/5 p-2 rounded-2xl border border-white/10">
+            <input type="text" id="chat-input" class="flex-1 bg-transparent p-2 text-sm outline-none" placeholder="Type message...">
+            <button onclick="sendAdminMsg()" class="bg-blue-600 w-10 h-10 rounded-xl flex items-center justify-center font-bold">➤</button>
         </div>
     </div>
 
@@ -76,9 +75,9 @@
         const firebaseConfig = { apiKey: "AIzaSyBD_YmzFTA2OKn64h22Z9yM7pCAmmlTl68", authDomain: "we-kleo.firebaseapp.com", databaseURL: "https://we-kleo-default-rtdb.europe-west1.firebasedatabase.app", projectId: "we-kleo", storageBucket: "we-kleo.firebasestorage.app", messagingSenderId: "87105321281", appId: "1:87105321281:web:ec83e4472e5756182749c0" };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
-        let activeTicketId = null;
+        let lastTicketId = null;
 
-        // DATA SYNC
+        // SYNC ORDERS & DRIVERS
         db.ref('orders').on('value', (snap) => {
             const list = document.getElementById('master-order-list');
             const driverDiv = document.getElementById('driver-list');
@@ -87,86 +86,79 @@
 
             snap.forEach(child => {
                 const o = child.val();
-                const id = child.key;
                 orders++;
                 revenue += parseFloat(o.totalPrice.replace('€','')) || 0;
-
-                // Track Driver Stats
                 if(o.claimedBy) {
-                    if(!drivers[o.claimedBy]) drivers[o.claimedBy] = 0;
-                    if(o.status === "Completed") drivers[o.claimedBy]++;
+                    drivers[o.claimedBy] = (drivers[o.claimedBy] || 0) + (o.status === "Completed" ? 1 : 0);
                 }
-
-                // Render Table Row
-                const statusColor = o.status === "Completed" ? "text-green-500" : (o.status === "New" ? "text-blue-500" : "text-yellow-500");
+                const sColor = o.status === "Completed" ? "text-green-500" : "text-blue-500";
                 list.innerHTML += `
-                    <tr class="border-b border-white/5 hover:bg-white/[0.02] transition-all">
-                        <td class="py-4 font-black uppercase text-[10px] ${statusColor}">${o.status}</td>
-                        <td class="py-4 font-bold text-white">${o.item}</td>
-                        <td class="py-4 text-slate-400 text-xs">${o.customer}</td>
-                        <td class="py-4 text-xs font-mono text-blue-400">${o.claimedBy || '---'}</td>
+                    <tr class="border-b border-white/5">
+                        <td class="py-4 font-black uppercase text-[9px] ${sColor}">${o.status}</td>
+                        <td class="py-4 font-bold">${o.item}</td>
+                        <td class="py-4 text-xs text-slate-400">${o.customer}</td>
+                        <td class="py-4 text-xs font-mono text-blue-400">${o.claimedBy || 'NONE'}</td>
                         <td class="py-4 font-black">${o.totalPrice}</td>
-                        <td class="py-4"><button onclick="deleteOrder('${id}')" class="text-red-500/50 hover:text-red-500">✕</button></td>
-                    </tr>
-                `;
+                        <td class="py-4"><button onclick="deleteOrder('${child.key}')" class="opacity-30 hover:opacity-100">✕</button></td>
+                    </tr>`;
             });
 
             document.getElementById('total-revenue').innerText = "€" + revenue.toFixed(2);
             document.getElementById('order-count').innerText = orders + " Total Orders Today";
 
-            // Render Driver List
             driverDiv.innerHTML = Object.keys(drivers).map(dId => `
-                <div class="flex justify-between items-center p-3 glass rounded-xl border-l-2 border-green-500">
-                    <div><p class="text-[10px] font-black text-blue-400 font-mono">${dId}</p><p class="text-xs font-bold">Active Shift</p></div>
-                    <div class="text-right"><p class="text-lg font-black">${drivers[dId]}</p><p class="text-[8px] uppercase text-slate-500">Jobs</p></div>
+                <div class="flex justify-between items-center p-3 glass rounded-xl border-l-2 border-blue-500">
+                    <div><p class="text-[9px] font-black text-blue-400 font-mono">${dId}</p><p class="text-[10px] font-bold">Courier Active</p></div>
+                    <div class="text-right"><p class="text-lg font-black">${drivers[dId]}</p></div>
                 </div>
             `).join('');
         });
 
-        // CHAT LOGIC
+        // FIXED CHAT LOGIC
         db.ref('support_tickets').on('value', (snap) => {
             const chatBox = document.getElementById('chat-box');
             chatBox.innerHTML = "";
-            snap.forEach(child => {
-                const t = child.val();
-                activeTicketId = child.key;
-                if(t.chat) {
-                    Object.values(t.chat).forEach(m => {
-                        const isMsgAdmin = m.sender === "Admin";
-                        chatBox.innerHTML += `
-                            <div class="flex ${isMsgAdmin ? 'justify-end' : 'justify-start'}">
-                                <div class="${isMsgAdmin ? 'bg-blue-600' : 'bg-white/10'} p-3 rounded-2xl max-w-[80%] text-xs">
-                                    <p class="font-black text-[8px] uppercase mb-1 opacity-50">${m.sender}</p>
-                                    ${m.text}
-                                </div>
+            let tickets = snap.val();
+            if(!tickets) return;
+
+            // Get the most recent active ticket
+            const sortedKeys = Object.keys(tickets).sort((a,b) => tickets[b].lastUpdate - tickets[a].lastUpdate);
+            lastTicketId = sortedKeys[0];
+            
+            document.getElementById('chat-status').innerText = "Active Support";
+            document.getElementById('chat-status').className = "text-[9px] font-bold text-green-500 uppercase";
+
+            const ticket = tickets[lastTicketId];
+            if(ticket.chat) {
+                Object.values(ticket.chat).forEach(m => {
+                    const isAdmin = m.sender === "Admin";
+                    chatBox.innerHTML += `
+                        <div class="flex ${isAdmin ? 'justify-end' : 'justify-start'}">
+                            <div class="msg-bubble ${isAdmin ? 'bg-blue-600 text-white' : 'bg-white/10 text-slate-200'}">
+                                <p class="text-[8px] font-black uppercase opacity-50 mb-1">${m.sender}</p>
+                                ${m.text}
                             </div>
-                        `;
-                    });
-                }
-            });
+                        </div>`;
+                });
+            }
             chatBox.scrollTop = chatBox.scrollHeight;
         });
 
         function sendAdminMsg() {
             const input = document.getElementById('chat-input');
-            if(!input.value || !activeTicketId) return;
-            db.ref('support_tickets/' + activeTicketId + '/chat').push({
+            if(!input.value.trim() || !lastTicketId) return;
+            
+            db.ref('support_tickets/' + lastTicketId + '/chat').push({
                 sender: "Admin",
                 text: input.value,
                 timestamp: Date.now()
             });
+            db.ref('support_tickets/' + lastTicketId).update({ lastUpdate: Date.now() });
             input.value = "";
         }
 
-        function deleteOrder(id) { if(confirm("Permanently delete this order record?")) db.ref('orders/' + id).remove(); }
-        
-        function resetDay() {
-            if(confirm("DANGER: This will delete ALL orders and clear the dashboard for a new day. Proceed?")) {
-                db.ref('orders').remove();
-                db.ref('support_tickets').remove();
-                alert("Database Cleared.");
-            }
-        }
+        function deleteOrder(id) { if(confirm("Delete record?")) db.ref('orders/' + id).remove(); }
+        function resetDay() { if(confirm("Wipe all data for tomorrow?")) { db.ref('orders').remove(); db.ref('support_tickets').remove(); } }
     </script>
 </body>
 </html>
