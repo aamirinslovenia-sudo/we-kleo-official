@@ -218,7 +218,7 @@
                 clearInterval(alertInterval); alertInterval = null;
             } else if (availableOrder) {
                 currentOrder = availableOrder; renderUI(availableOrder, "Accept");
-                if (!alertInterval) { playBeep(800, 0.5); alertInterval = setInterval(() => playBeep(800, 0.5), 1500); }
+                if (!alertInterval) { playBeep(); alertInterval = setInterval(() => playBeep(), 2000); }
             } else {
                 currentOrder = null; clearInterval(alertInterval); alertInterval = null;
                 document.getElementById('order-ui').classList.add('hidden');
@@ -248,6 +248,7 @@
         }
 
         function goOnline() { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); if(audioCtx.state === 'suspended') audioCtx.resume(); document.getElementById('boot-screen').style.display = 'none'; }
+        
         function sendMessage() {
             const input = document.getElementById('chat-input');
             if (!input.value.trim()) return;
@@ -273,7 +274,7 @@
                     messages.forEach(m => { html += `<div class="${m.sender === 'Driver' ? 'msg-driver' : 'msg-admin'}">${m.text}</div>`; });
                     const last = messages[messages.length-1];
                     if (last.sender === "Admin" && last.timestamp > (Date.now() - 3000)) {
-                        playBeep(1000, 0.4); if(!document.getElementById('chat-overlay').classList.contains('chat-active')) document.getElementById('unread-dot').classList.remove('hidden');
+                        playBeep(); if(!document.getElementById('chat-overlay').classList.contains('chat-active')) document.getElementById('unread-dot').classList.remove('hidden');
                     }
                 }
                 document.getElementById('chat-messages').innerHTML = html;
@@ -281,7 +282,22 @@
             } else { activeTicketId = null; document.getElementById('chat-messages').innerHTML = "<p class='text-center text-slate-400 mt-10 text-xs'>No active chat</p>"; }
         });
 
-        function playBeep(f, d) { if (!audioCtx) return; if (audioCtx.state === 'suspended') audioCtx.resume(); const o = audioCtx.createOscillator(); const g = audioCtx.createGain(); o.connect(g); g.connect(audioCtx.destination); o.frequency.setValueAtTime(f, audioCtx.currentTime); g.gain.setValueAtTime(0.1, audioCtx.currentTime); o.start(); o.stop(audioCtx.currentTime + d); }
+        function playBeep() {
+            if (!audioCtx) return;
+            const t = audioCtx.currentTime;
+            [0, 0.15].forEach(delay => {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(1200, t + delay);
+                gain.gain.setValueAtTime(0.1, t + delay);
+                gain.gain.exponentialRampToValueAtTime(0.001, t + delay + 0.1);
+                osc.start(t + delay);
+                osc.stop(t + delay + 0.1);
+            });
+        }
     </script>
 </body>
 </html>
