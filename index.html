@@ -25,7 +25,7 @@
         }
         #onboarding-screen { position: fixed; inset: 0; background: #060a11; z-index: 5000; display: flex; flex-direction: column; justify-content: center; padding: 40px; transition: 0.6s; }
         .input-box { width: 100%; background: rgba(255,255,255,0.05); border-radius: 20px; padding: 20px 24px; border: 1px solid rgba(255,255,255,0.1); outline: none; color: white; font-weight: 600; }
-        .active-item { border-color: #3b82f6 !important; background: rgba(59, 130, 246, 0.2) !important; transform: scale(1.05); box-shadow: 0 0 20px rgba(59, 130, 246, 0.2); }
+        .active-item { border-color: #3b82f6 !important; background: rgba(59, 130, 246, 0.2) !important; transform: scale(1.05); box-shadow: 0 0 20px rgba(59, 130, 246, 0.3); }
         
         #order-tracking-overlay { position: fixed; inset: 0; background: #060a11; z-index: 2000; display: none; padding: 60px 24px; flex-direction: column; }
         .tracking-dot { width: 14px; height: 14px; border-radius: 50%; background: #1e293b; transition: 0.5s; z-index: 10; }
@@ -60,44 +60,48 @@
     </header>
 
     <div class="max-w-md mx-auto px-6 space-y-12">
+        
         <section>
-            <h2 class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-6 ml-1">Signature Selection</h2>
+            <div class="flex items-center justify-between mb-6 ml-1">
+                <h2 class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Luft Exclusive</h2>
+                <span class="text-[8px] bg-blue-500/20 text-blue-400 px-2 py-1 rounded-md font-black uppercase">New Partner</span>
+            </div>
             <div class="grid grid-cols-2 gap-4">
-                <div id="item-Pizza" onclick="selectItem('Kleo Pizza', 9.50, 'item-Pizza')" class="glass p-6 rounded-[30px] text-center transition-all cursor-pointer border border-white/5">
-                    <span class="text-3xl block mb-2">🍕</span><p class="font-bold text-xs uppercase">Kleo Pizza</p><p class="text-blue-400 font-black text-xs">€9.50</p>
+                <div id="item-LuftBento" onclick="selectItem('Luft Bento Box', 19.90, 'item-LuftBento')" class="glass p-6 rounded-[30px] text-center transition-all cursor-pointer border border-white/5">
+                    <span class="text-3xl block mb-2">🍱</span><p class="font-bold text-xs uppercase">Bento Box</p><p class="text-blue-400 font-black text-xs">€19.90</p>
                 </div>
-                <div id="item-Burger" onclick="selectItem('Kleo Burger', 8.90, 'item-Burger')" class="glass p-6 rounded-[30px] text-center transition-all cursor-pointer border border-white/5">
-                    <span class="text-3xl block mb-2">🍔</span><p class="font-bold text-xs uppercase">Kleo Burger</p><p class="text-blue-400 font-black text-xs">€8.90</p>
+                <div id="item-LuftSteak" onclick="selectItem('Luft NY Strip Steak', 34.00, 'item-LuftSteak')" class="glass p-6 rounded-[30px] text-center transition-all cursor-pointer border border-white/5">
+                    <span class="text-3xl block mb-2">🥩</span><p class="font-bold text-xs uppercase">Strip Steak</p><p class="text-blue-400 font-black text-xs">€34.00</p>
                 </div>
-                <div id="item-Pasta" onclick="selectItem('Truffle Pasta', 11.20, 'item-Pasta')" class="glass p-6 rounded-[30px] text-center transition-all cursor-pointer border border-white/5">
-                    <span class="text-3xl block mb-2">🍝</span><p class="font-bold text-xs uppercase">Truffle Pasta</p><p class="text-blue-400 font-black text-xs">€11.20</p>
+                <div id="item-LuftTacos" onclick="selectItem('Baja Fish Tacos', 15.90, 'item-LuftTacos')" class="glass p-6 rounded-[30px] text-center transition-all cursor-pointer border border-white/5">
+                    <span class="text-3xl block mb-2">🌮</span><p class="font-bold text-xs uppercase">Fish Tacos</p><p class="text-blue-400 font-black text-xs">€15.90</p>
                 </div>
-                <div id="item-Steak" onclick="selectItem('Premium Steak', 18.50, 'item-Steak')" class="glass p-6 rounded-[30px] text-center transition-all cursor-pointer border border-white/5">
-                    <span class="text-3xl block mb-2">🥩</span><p class="font-bold text-xs uppercase">Kleo Steak</p><p class="text-blue-400 font-black text-xs">€18.50</p>
+                <div id="item-LuftBasque" onclick="selectItem('Burnt Basque Cake', 6.90, 'item-LuftBasque')" class="glass p-6 rounded-[30px] text-center transition-all cursor-pointer border border-white/5">
+                    <span class="text-3xl block mb-2">🍰</span><p class="font-bold text-xs uppercase">Basque Cake</p><p class="text-blue-400 font-black text-xs">€6.90</p>
                 </div>
             </div>
         </section>
 
         <section>
-            <h2 class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-6 ml-1">Cold Beverages</h2>
+            <h2 class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-6 ml-1">Luft Mixology & Drinks</h2>
             <div class="grid grid-cols-3 gap-3">
-                <div id="item-Cola" onclick="selectItem('Coca Cola', 2.50, 'item-Cola')" class="glass py-5 rounded-[24px] text-center transition-all cursor-pointer border border-white/5">
-                    <span class="text-2xl block mb-1">🥤</span><p class="font-bold text-[10px] uppercase">Cola</p><p class="text-blue-400 font-black text-[10px]">€2.50</p>
+                <div id="item-PurpleRain" onclick="selectItem('Purple Rain Cocktail', 9.90, 'item-PurpleRain')" class="glass py-5 rounded-[24px] text-center transition-all cursor-pointer border border-white/5">
+                    <span class="text-2xl block mb-1">🍹</span><p class="font-bold text-[9px] uppercase">Purple Rain</p><p class="text-blue-400 font-black text-[10px]">€9.90</p>
                 </div>
-                <div id="item-Water" onclick="selectItem('Mineral Water', 1.80, 'item-Water')" class="glass py-5 rounded-[24px] text-center transition-all cursor-pointer border border-white/5">
-                    <span class="text-2xl block mb-1">💧</span><p class="font-bold text-[10px] uppercase">Water</p><p class="text-blue-400 font-black text-[10px]">€1.80</p>
+                <div id="item-WhiskeySour" onclick="selectItem('Whiskey Sour', 9.90, 'item-WhiskeySour')" class="glass py-5 rounded-[24px] text-center transition-all cursor-pointer border border-white/5">
+                    <span class="text-2xl block mb-1">🥃</span><p class="font-bold text-[9px] uppercase">Whiskey Sour</p><p class="text-blue-400 font-black text-[10px]">€9.90</p>
                 </div>
-                <div id="item-Beer" onclick="selectItem('Union Beer', 3.20, 'item-Beer')" class="glass py-5 rounded-[24px] text-center transition-all cursor-pointer border border-white/5">
-                    <span class="text-2xl block mb-1">🍺</span><p class="font-bold text-[10px] uppercase">Beer</p><p class="text-blue-400 font-black text-[10px]">€3.20</p>
+                <div id="item-Union" onclick="selectItem('Union Beer', 3.20, 'item-Union')" class="glass py-5 rounded-[24px] text-center transition-all cursor-pointer border border-white/5">
+                    <span class="text-2xl block mb-1">🍺</span><p class="font-bold text-[9px] uppercase">Union Beer</p><p class="text-blue-400 font-black text-[10px]">€3.20</p>
                 </div>
             </div>
         </section>
 
         <section>
-            <h2 class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-5 ml-1">Extra Flavor (+€1.00)</h2>
+            <h2 class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-5 ml-1">Customizations (+€1.00)</h2>
             <div class="space-y-3">
-                <label class="glass flex items-center justify-between p-6 rounded-[28px] cursor-pointer"><span class="font-bold text-sm">🧀 Extra Cheese</span><input type="checkbox" class="w-6 h-6 accent-blue-500" onchange="updateTotal()" value="Extra Cheese"></label>
-                <label class="glass flex items-center justify-between p-6 rounded-[28px] cursor-pointer"><span class="font-bold text-sm">🌶️ Hot Peppers</span><input type="checkbox" class="w-6 h-6 accent-blue-500" onchange="updateTotal()" value="Jalapeños"></label>
+                <label class="glass flex items-center justify-between p-6 rounded-[28px] cursor-pointer"><span class="font-bold text-sm">🍱 Extra Wasabi</span><input type="checkbox" class="w-6 h-6 accent-blue-500" onchange="updateTotal()" value="Extra Wasabi"></label>
+                <label class="glass flex items-center justify-between p-6 rounded-[28px] cursor-pointer"><span class="font-bold text-sm">🍋 Extra Lime</span><input type="checkbox" class="w-6 h-6 accent-blue-500" onchange="updateTotal()" value="Extra Lime"></label>
             </div>
         </section>
 
@@ -106,7 +110,7 @@
                 <div><p class="text-[10px] font-black uppercase text-slate-500 mb-1">Total Mission Cost</p><h3 id="priceDisplay" class="text-5xl font-[900] italic tracking-tighter text-white">€0.00</h3></div>
                 <button onclick="resetUser()" class="text-[9px] font-bold text-slate-600 uppercase underline tracking-widest">Logout</button>
             </div>
-            <button onclick="sendOrder()" class="w-full bg-blue-600 text-white font-[900] py-7 rounded-[32px] text-xl shadow-2xl shadow-blue-900/40 active:scale-95 transition-all uppercase italic tracking-tighter">Confirm & Pay</button>
+            <button onclick="sendOrder()" class="w-full bg-blue-600 text-white font-[900] py-7 rounded-[32px] text-xl shadow-2xl shadow-blue-900/40 active:scale-95 transition-all uppercase italic tracking-tighter">Initiate Mission</button>
         </div>
     </div>
 
@@ -131,7 +135,7 @@
         <div class="flex-grow flex flex-col justify-center">
             <div class="glass p-10 text-center rounded-[40px] border border-white/10">
                 <p class="text-[10px] text-slate-400 uppercase font-black mb-3 tracking-[0.2em]">KLEO Arrival</p>
-                <h3 class="text-5xl font-[900] italic tracking-tighter text-white">~20 MIN</h3>
+                <h3 class="text-5xl font-[900] italic tracking-tighter text-white">~25 MIN</h3>
             </div>
         </div>
 
@@ -144,7 +148,7 @@
         </div>
         <h2 class="text-4xl font-black italic tracking-tighter mb-2">MISSION SUCCESS</h2>
         <p id="success-email-text" class="text-slate-400 font-bold mb-10 px-6">Receipt sent to your email.</p>
-        <button onclick="location.reload()" class="bg-white text-black font-black px-12 py-5 rounded-full uppercase tracking-widest">Done</button>
+        <button onclick="location.reload()" class="bg-white text-black font-black px-12 py-5 rounded-full uppercase tracking-widest">Continue Shopping</button>
     </div>
 
     <script>
@@ -182,9 +186,7 @@
 
         function selectItem(name, price, id) {
             selectedItemName = name; basePrice = price;
-            // Remove active style from ALL items (food and drinks)
             document.querySelectorAll('[id^="item-"]').forEach(el => el.classList.remove('active-item'));
-            // Add to selected
             document.getElementById(id).classList.add('active-item');
             updateTotal();
         }
@@ -197,7 +199,7 @@
         }
 
         function sendOrder() {
-            if (!selectedItemName) { alert("Select something first!"); return; }
+            if (!selectedItemName) { alert("Select a masterpiece first!"); return; }
             const extras = Array.from(document.querySelectorAll('input[type="checkbox"]:checked')).map(el => el.value);
             const orderId = db.ref('orders').push().key;
             db.ref('orders/' + orderId).set({
