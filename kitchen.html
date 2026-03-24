@@ -12,41 +12,64 @@
     
     <style>
         :root { --bg: #030303; --panel: #0a0a0a; --accent: #3b82f6; --text: #ffffff; }
-        body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; font-family: 'Outfit', sans-serif; background-color: var(--bg); color: var(--text); -webkit-font-smoothing: antialiased; }
+        body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; font-family: 'Outfit', sans-serif; background-color: var(--bg); color: var(--text); }
         
         /* Command Center Layout */
         .app-shell { display: flex; height: 100vh; width: 100vw; }
-        .sidebar { width: 320px; background: var(--panel); border-right: 1px solid rgba(255,255,255,0.05); display: flex; flex-direction: column; padding: 40px; }
+        
+        /* Fixed Sidebar with better bottom spacing */
+        .sidebar { 
+            width: 320px; 
+            background: var(--panel); 
+            border-right: 1px solid rgba(255,255,255,0.05); 
+            display: flex; 
+            flex-direction: column; 
+            padding: 40px 30px; 
+        }
+
         .main-production { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
         
         /* Production Line (Horizontal Scroll) */
-        .production-line { flex: 1; display: flex; overflow-x: auto; gap: 20px; padding: 40px; scroll-behavior: smooth; -webkit-overflow-scrolling: touch; }
-        .production-line::-webkit-scrollbar { height: 8px; }
-        .production-line::-webkit-scrollbar-track { background: var(--panel); }
+        .production-line { 
+            flex: 1; 
+            display: flex; 
+            overflow-x: auto; 
+            gap: 25px; 
+            padding: 40px; 
+            scroll-behavior: smooth; 
+            -webkit-overflow-scrolling: touch; 
+        }
+        .production-line::-webkit-scrollbar { height: 6px; }
         .production-line::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
 
-        /* The Order Tile (Hardware Interface Look) */
-        .order-tile { flex: 0 0 380px; height: 100%; background: #111111; border-radius: 24px; border: 1px solid rgba(255,255,255,0.08); display: flex; flex-direction: column; transition: all 0.3s ease; position: relative; overflow: hidden; }
+        /* The Order Tile - Optimized for multiple orders */
+        .order-tile { 
+            flex: 0 0 360px; 
+            height: 100%; 
+            background: #111111; 
+            border-radius: 30px; 
+            border: 1px solid rgba(255,255,255,0.08); 
+            display: flex; 
+            flex-direction: column; 
+            transition: all 0.3s ease; 
+            overflow: hidden;
+            padding: 30px;
+        }
         
-        /* State Backgrounds (No Borders) */
         .tile-new { background: linear-gradient(135deg, #111 0%, #030a1a 100%); border-color: rgba(59,130,246,0.3); }
         .tile-warning { background: linear-gradient(135deg, #111 0%, #1a1103 100%); border-color: rgba(245,158,11,0.3); }
         .tile-urgent { background: linear-gradient(135deg, #111 0%, #1a0303 100%); border-color: rgba(239,68,68,0.3); animation: urgent-bg 1.5s infinite; }
         
-        @keyframes urgent-bg { 0%, 100% { border-color: rgba(239,68,68,0.3); } 50% { border-color: rgba(239,68,68,0.8); box-shadow: 0 0 40px rgba(239,68,68,0.15); } }
+        @keyframes urgent-bg { 0%, 100% { border-color: rgba(239,68,68,0.3); } 50% { border-color: rgba(239,68,68,0.8); } }
 
-        .btn-ready { background: #ffffff; color: #000; transition: all 0.2s; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; border-radius: 16px; width: 100%; padding: 20px; font-size: 14px; }
-        .btn-ready:hover { background: var(--accent); color: white; }
+        .btn-ready { background: #ffffff; color: #000; font-weight: 900; text-transform: uppercase; border-radius: 20px; width: 100%; padding: 22px; font-size: 14px; margin-top: auto; }
+        .btn-ready:active { transform: scale(0.95); background: #3b82f6; color: #fff; }
 
-        .shimmer { animation: shimmer-text 3s infinite; }
-        @keyframes shimmer-text { 0%, 100% { opacity: 0.5; color: #64748b; } 50% { opacity: 1; color: #fff; text-shadow: 0 0 10px #fff; } }
+        .driver-status { font-size: 10px; font-weight: 800; padding: 6px 12px; border-radius: 10px; text-transform: uppercase; margin-bottom: 8px; border: 1px solid rgba(255,255,255,0.05); }
+        .d-busy { color: #f87171; background: rgba(239, 68, 68, 0.1); }
+        .d-waiting { color: #34d399; background: rgba(16, 185, 129, 0.1); }
 
-        .driver-status { font-size: 10px; font-weight: 800; padding: 5px 12px; border-radius: 8px; text-transform: uppercase; border: 1px solid transparent; }
-        .d-busy { background: rgba(239, 68, 68, 0.1); color: #ef4444; border-color: rgba(239, 68, 68, 0.2); }
-        .d-waiting { background: rgba(16, 185, 129, 0.1); color: #10b981; border-color: rgba(16, 185, 129, 0.2); }
-
-        /* History Sidebar */
-        #history-sidebar { position: fixed; top: 0; right: 0; h-full; w-[400px]; bg-[#080808]; z-[2000]; transform: translateX(100%); transition: transform 0.4s ease; border-l border-white/5; padding: 40px; display: flex; flex-direction: column; }
+        #history-sidebar { position: fixed; top: 0; right: 0; height: 100%; width: 400px; background: #080808; z-index: 2000; transform: translateX(100%); transition: transform 0.4s ease; border-left: 1px solid rgba(255,255,255,0.1); padding: 40px; }
         .sidebar-open { transform: translateX(0) !important; }
     </style>
 </head>
@@ -54,7 +77,6 @@
 
     <div id="sync-overlay" class="fixed inset-0 z-[3000] bg-black flex flex-col items-center justify-center text-center">
         <h1 class="text-7xl font-black italic tracking-tighter uppercase mb-2 text-white">WE KLEO</h1>
-        <p class="text-slate-600 font-bold uppercase tracking-[0.5em] text-[10px] mb-16">Maribor Production Unit v3.0</p>
         <button onclick="startKitchen()" class="px-12 py-6 bg-blue-600 rounded-[24px] text-white font-black text-xl shadow-2xl hover:bg-blue-500 transition-all uppercase italic">
             Enter Command Center
         </button>
@@ -63,37 +85,32 @@
     <div class="app-shell">
         
         <div class="sidebar">
-            <div class="mb-12">
-                <h1 class="text-4xl font-black italic tracking-tighter text-white leading-none">KLEO</h1>
-                <p class="text-slate-600 font-bold text-[9px] uppercase tracking-[0.3em] mt-1.5">Command Center</p>
+            <div class="mb-10">
+                <h1 class="text-4xl font-black italic tracking-tighter text-white">KLEO</h1>
+                <p class="text-slate-600 font-bold text-[9px] uppercase tracking-[0.3em]">Command Center</p>
             </div>
 
-            <div class="space-y-6 mb-12">
+            <div class="space-y-4 flex-1 overflow-y-auto no-scrollbar">
                 <div class="bg-blue-600/5 border border-blue-500/10 p-6 rounded-2xl">
-                    <p class="text-[9px] font-black text-blue-400 uppercase tracking-widest mb-1">In Production</p>
+                    <p class="text-[9px] font-black text-blue-400 uppercase tracking-widest mb-1">Active Tickets</p>
                     <p id="active-count" class="text-6xl font-black text-white leading-none">0</p>
-                    <p class="text-sm font-bold text-slate-500 mt-1">Active Tickets</p>
                 </div>
-                <div class="bg-white/3 border border-white/5 p-6 rounded-2xl">
-                    <p class="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-2">Logistics Hub</p>
-                    <div id="driver-status-container" class="space-y-2">
-                        </div>
-                </div>
+                <div id="driver-status-container"></div>
             </div>
 
-            <button onclick="toggleHistory()" class="w-full bg-white/5 py-4 rounded-xl border border-white/5 text-[10px] font-black uppercase tracking-widest hover:bg-white/10 transition-all text-slate-300">
-                📜 View History
-            </button>
-
-            <div class="mt-auto pt-6 border-t border-white/5 text-right">
-                <p id="clock" class="text-4xl font-black tabular-nums text-white leading-none">00:00:00</p>
-                <p class="text-slate-600 font-bold text-[9px] uppercase tracking-[0.3em] mt-1.5">Maribor local time</p>
+            <div class="mt-6 space-y-4">
+                <button onclick="toggleHistory()" class="w-full bg-white/5 py-4 rounded-2xl border border-white/10 text-[10px] font-black uppercase tracking-widest hover:bg-white/10 text-slate-300">
+                    📜 View History
+                </button>
+                <div class="pt-4 border-t border-white/5">
+                    <p id="clock" class="text-4xl font-black tabular-nums text-white leading-none">00:00:00</p>
+                    <p class="text-slate-600 font-bold text-[9px] uppercase mt-2 tracking-widest">MARIBOR LOCAL TIME</p>
+                </div>
             </div>
         </div>
 
         <div class="main-production">
-            <div id="orderList" class="production-line">
-                </div>
+            <div id="orderList" class="production-line"></div>
         </div>
 
     </div>
@@ -101,9 +118,9 @@
     <div id="history-sidebar">
         <div class="flex justify-between items-center mb-10">
             <h2 class="text-2xl font-black italic uppercase text-blue-500">History</h2>
-            <button onclick="toggleHistory()" class="text-slate-500 text-3xl">✕</button>
+            <button onclick="toggleHistory()" class="text-white text-3xl">✕</button>
         </div>
-        <div id="historyList" class="flex-1 overflow-y-auto space-y-4 pr-2"></div>
+        <div id="historyList" class="flex-1 overflow-y-auto space-y-4"></div>
     </div>
 
     <script>
@@ -142,7 +159,6 @@
 
         function startAlarm() { if (!alarmInterval) alarmInterval = setInterval(playKitchenBell, 5000); }
         function stopAlarm() { clearInterval(alarmInterval); alarmInterval = null; }
-
         function toggleHistory() { document.getElementById('history-sidebar').classList.toggle('sidebar-open'); }
 
         db.ref('orders').on('value', (snapshot) => {
@@ -163,52 +179,39 @@
             });
 
             document.getElementById('active-count').innerText = activeCount;
-
             driverContainer.innerHTML = Object.keys(drivers).map(dId => `
-                <div class="driver-status ${drivers[dId] === 'Busy' ? 'd-busy' : 'd-waiting'} flex justify-between items-center">
+                <div class="driver-status ${drivers[dId] === 'Busy' ? 'd-busy' : 'd-waiting'} flex justify-between">
                     <span>${dId}</span><span>${drivers[dId]}</span>
                 </div>
-            `).join('') || '<p class="text-[10px] text-slate-700 font-bold uppercase">No Drivers</p>';
+            `).join('') || '<p class="text-[9px] text-slate-700 font-bold uppercase tracking-widest">No Drivers Active</p>';
 
             if (activeCount > 0 && !alarmInterval) startAlarm();
             if (activeCount === 0) stopAlarm();
         });
 
-        // Compact Horizontal Tile (v3.0)
         function renderOrder(id, order) {
             const timestamp = order.timestamp || Date.now();
             const html = `
-                <div id="tile-${id}" data-time="${timestamp}" class="order-tile p-8 tile-new flex flex-col justify-between">
-                    <div>
-                        <div class="flex justify-between items-center mb-1">
-                            <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Active Ticket</span>
-                            <span class="text-sm font-black text-white tabular-nums tracking-tight">${order.totalPrice}</span>
-                        </div>
-                        <h2 class="text-5xl font-black uppercase italic tracking-tighter text-white leading-none mb-6">${order.item}</h2>
-                        
-                        <div class="bg-black/20 p-5 rounded-xl border border-white/5 mb-6 min-h-[100px]">
-                            <p class="text-[8px] font-black text-slate-600 uppercase mb-1.5 tracking-widest">Instructions</p>
-                            <p class="text-base italic font-medium text-slate-200 leading-snug">"${order.toppings}"</p>
-                        </div>
+                <div id="tile-${id}" data-time="${timestamp}" class="order-tile tile-new">
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="text-[9px] font-black text-slate-500 uppercase tracking-widest">Active Ticket</span>
+                        <span class="text-base font-black text-white italic">${order.totalPrice}</span>
+                    </div>
+                    <h2 class="text-5xl font-black uppercase italic tracking-tighter mb-6 leading-none text-white">${order.item}</h2>
+                    
+                    <div class="bg-black/30 p-5 rounded-2xl border border-white/5 mb-6 flex-1">
+                        <p class="text-[8px] font-black text-slate-600 uppercase mb-2 tracking-widest">Modifications</p>
+                        <p class="text-base italic font-medium text-slate-200 leading-snug">"${order.toppings}"</p>
                     </div>
 
-                    <div>
-                        <div class="grid grid-cols-2 gap-4 mb-6">
-                            <div>
-                                <p class="text-[8px] font-black text-slate-600 uppercase mb-1">Elasped Time</p>
-                                <p id="timer-${id}" class="text-4xl font-black tabular-nums text-white leading-none">00:00</p>
-                            </div>
-                            <div>
-                                <p class="text-[8px] font-black text-slate-600 uppercase mb-1">Customer</p>
-                                <p class="text-sm font-bold text-slate-100 truncate uppercase leading-tight">${order.customer}</p>
-                                <p class="text-xs text-slate-500 font-mono">${order.phone}</p>
-                            </div>
-                        </div>
-                        <button onclick="setStatus('${id}', 'Ready')" class="btn-ready">Mark Complete</button>
+                    <div class="grid grid-cols-2 gap-4 mb-6">
+                        <div><p class="text-[8px] font-black text-slate-600 uppercase mb-1">Timer</p><p id="timer-${id}" class="text-3xl font-black tabular-nums">00:00</p></div>
+                        <div><p class="text-[8px] font-black text-slate-600 uppercase mb-1">Client</p><p class="text-sm font-bold truncate uppercase text-blue-400">${order.customer}</p></div>
                     </div>
+                    <button onclick="setStatus('${id}', 'Ready')" class="btn-ready">Mark Complete</button>
                 </div>
             `;
-            document.getElementById('orderList').insertAdjacentHTML('beforeend', html); // New orders go to the end (left to right flow)
+            document.getElementById('orderList').insertAdjacentHTML('beforeend', html);
         }
 
         function updateTimers() {
@@ -218,28 +221,18 @@
                 const elapsedSec = Math.floor((Date.now() - startTime) / 1000);
                 const mins = Math.floor(elapsedSec / 60);
                 const secs = elapsedSec % 60;
-                
                 document.getElementById(`timer-${id}`).innerText = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-
-                if (mins >= 20) {
-                    tile.className = "order-tile p-8 flex flex-col justify-between tile-urgent";
-                    document.getElementById(`timer-${id}`).className = "text-4xl font-black tabular-nums text-red-500 leading-none animate-pulse";
-                } else if (mins >= 10) {
-                    tile.className = "order-tile p-8 flex flex-col justify-between tile-warning";
-                    document.getElementById(`timer-${id}`).className = "text-4xl font-black tabular-nums text-orange-400 leading-none";
-                }
+                if (mins >= 20) { tile.className = "order-tile tile-urgent"; } 
+                else if (mins >= 10) { tile.className = "order-tile tile-warning"; }
             });
         }
 
         function renderHistory(id, order) {
             const html = `
-                <div class="bg-white/3 p-5 rounded-xl border border-white/5 text-sm">
-                    <div class="flex justify-between items-center mb-1">
-                        <p class="font-black italic uppercase truncate text-white">${order.item}</p>
-                        <span class="text-[8px] text-blue-500 font-bold uppercase tracking-widest">${order.status}</span>
-                    </div>
-                    <p class="text-[10px] text-slate-500 mb-4 font-bold uppercase truncate">${order.customer}</p>
-                    <button onclick="setStatus('${id}', 'New')" class="w-full py-2 bg-white/5 rounded-lg text-[8px] font-black uppercase text-slate-400 hover:text-white transition-all">↩ Re-Dispatch</button>
+                <div class="bg-white/5 p-5 rounded-2xl border border-white/5 text-sm">
+                    <div class="flex justify-between items-center mb-1"><p class="font-black italic uppercase text-white">${order.item}</p></div>
+                    <p class="text-[10px] text-slate-500 font-bold uppercase truncate mb-4">${order.customer}</p>
+                    <button onclick="setStatus('${id}', 'New')" class="w-full py-2 bg-white/5 rounded-xl text-[8px] font-black uppercase text-slate-400">↩ Undo</button>
                 </div>
             `;
             document.getElementById('historyList').insertAdjacentHTML('afterbegin', html);
