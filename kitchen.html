@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>KLEO | KITCHEN COMMAND v4.1</title>
+    <title>KLEO | KITCHEN COMMAND v4.2</title>
 
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
@@ -18,7 +18,6 @@
         
         .order-card { background: #111; border-radius: 24px; border: 1px solid rgba(255,255,255,0.08); display: flex; flex-direction: column; padding: 25px; transition: all 0.3s ease; border-left: 8px solid var(--accent); }
         
-        /* Status Colors */
         .status-delivering { border-left-color: #10b981; background: linear-gradient(to right, rgba(16,185,129,0.05), transparent); }
         .card-warning { border-left-color: #f59e0b; }
         .card-urgent { border-left-color: #ef4444; animation: urgent-pulse 1.5s infinite; }
@@ -26,11 +25,8 @@
         @keyframes urgent-pulse { 0%, 100% { background: rgba(239, 68, 68, 0.05); } 50% { background: rgba(239, 68, 68, 0.15); } }
         
         .btn-dispatch { background: #fff; color: #000; font-weight: 900; text-transform: uppercase; border-radius: 16px; padding: 18px; font-size: 13px; margin-top: auto; transition: all 0.2s; }
-        .btn-transit { background: rgba(16,185,129,0.2); color: #10b981; border: 1px solid #10b981; pointer-events: none; }
+        .btn-transit { background: rgba(16,185,129,0.1); color: #10b981; border: 1px solid rgba(16,185,129,0.3); }
 
-        .driver-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; }
-        .dot-waiting { background: #10b981; } .dot-busy { background: #ef4444; }
-        
         #history-sidebar { position: fixed; top: 0; right: 0; height: 100%; width: 420px; background: #080808; z-index: 2000; transform: translateX(100%); transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1); border-left: 1px solid rgba(255,255,255,0.1); display: flex; flex-direction: column; }
         .sidebar-open { transform: translateX(0) !important; }
         #historyList { flex: 1; overflow-y: auto; padding: 0 30px 100px 30px; }
@@ -114,13 +110,13 @@
                 const o = child.val();
                 if(o.claimedBy) drivers[o.claimedBy] = (o.status === "Delivering") ? "Busy" : "Waiting";
                 
-                // NEW LOGIC: Show if "New" OR "Delivering" (Ready for driver)
-                if (o.status === "New" || o.status === "Delivering" || o.status === "Ready") { 
-                    activeCount++; 
-                    renderOrder(child.key, o); 
-                } else if (o.status === "Completed") { 
+                // SMARTER FILTER: If status is Completed, it MUST go to history ONLY.
+                if (o.status === "Completed") { 
                     renderHistory(child.key, o); 
                     if(o.completedAt && o.timestamp) prepTimes.push((o.completedAt - o.timestamp) / 60000);
+                } else {
+                    activeCount++; 
+                    renderOrder(child.key, o); 
                 }
             });
 
@@ -143,18 +139,18 @@
             const time = o.timestamp || Date.now();
             const qtyStr = o.quantity && o.quantity > 1 ? `<span class="qty-badge">${o.quantity}×</span>` : "";
             
-            // Dynamic Button based on status
             let actionBtn = "";
             let cardClass = "order-card";
             let courierMsg = "";
 
+            // If Driver claimed it but Kitchen hasn't clicked Ready
             if (o.status === "New") {
                 actionBtn = `<button onclick="setStatus('${id}', 'Ready')" class="btn-dispatch">Ready for Courier</button>`;
                 courierMsg = o.claimedBy ? `<div class="bg-blue-500/10 text-blue-400 p-2 rounded-lg text-[9px] font-black uppercase mt-2 italic">Driver ${o.claimedBy} Is Coming</div>` : `<div class="bg-white/5 text-slate-500 p-2 rounded-lg text-[9px] font-black uppercase mt-2 italic">Searching for Driver...</div>`;
             } else {
-                // If it's ready or delivering, change look
+                // This covers "Delivering" or "Ready" status
                 cardClass += " status-delivering";
-                actionBtn = `<button class="btn-dispatch btn-transit font-black italic uppercase">In Transit to Client</button>`;
+                actionBtn = `<button onclick="setStatus('${id}', 'Completed')" class="btn-dispatch btn-transit font-black italic uppercase">In Transit (Click to Archive)</button>`;
                 courierMsg = `<div class="bg-green-500/10 text-green-400 p-2 rounded-lg text-[9px] font-black uppercase mt-2">Courier: ${o.claimedBy}</div>`;
             }
 
@@ -210,6 +206,7 @@
         function setStatus(id, s) { 
             const updates = { status: s };
             if (s === 'Ready') updates.completedAt = Date.now();
+            if (s === 'Completed') updates.completedAt = Date.now(); // Safety backup
             db.ref('orders/' + id).update(updates); 
         }
     </script>
