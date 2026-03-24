@@ -103,7 +103,7 @@
         <h2 class="text-4xl font-black italic tracking-tighter mb-2">MISSION <span class="text-blue-500">TRACKER</span></h2>
         <p id="tracking-id" class="text-[10px] font-mono text-slate-500 uppercase mb-16">REF: ---</p>
         
-        <div class="space-y-12 relative">
+        <div class="space-y-12 relative pb-10">
             <div class="connector-line"></div>
             
             <div class="flex gap-6 items-center z-10">
@@ -122,7 +122,7 @@
             </div>
         </div>
         
-        <div class="mt-20 glass p-10 text-center rounded-[40px] border border-white/10">
+        <div class="mt-8 glass p-8 py-10 text-center rounded-[40px] border border-white/10">
             <p class="text-[10px] text-slate-400 uppercase font-black mb-3 tracking-[0.2em]">KLEO Arrival</p>
             <h3 class="text-5xl font-[900] italic tracking-tighter text-white">~20 MIN</h3>
         </div>
@@ -207,24 +207,19 @@
                 const text2 = document.getElementById('text-kitchen');
                 const text3 = document.getElementById('text-delivery');
 
-                // 1. Reset Everything to Grey
                 dot1.classList.remove('active');
                 dot2.classList.remove('active');
                 dot3.classList.remove('active');
                 text2.classList.replace('text-blue-500', 'text-slate-500');
                 text3.classList.replace('text-blue-500', 'text-slate-500');
 
-                // 2. STAGE 1: Always on
                 dot1.classList.add('active');
 
-                // 3. STAGE 2 (Kitchen): ONLY if Preparing or Ready or Delivering or Completed
                 if (o.status === "Preparing" || o.status === "Ready" || o.status === "Delivering" || o.status === "Completed") {
                     dot2.classList.add('active');
                     text2.classList.replace('text-slate-500', 'text-blue-500');
                 }
                 
-                // 4. STAGE 3 (Road): ONLY if status is specifically 'Delivering' or 'Completed'
-                // This IGNORES 'Ready', keeping dot3 grey when kitchen finishes but courier hasn't picked up.
                 if (o.status === "Delivering" || o.status === "Completed") {
                     dot3.classList.add('active');
                     text3.classList.replace('text-slate-500', 'text-blue-500');
