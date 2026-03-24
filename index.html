@@ -186,28 +186,28 @@
                 const text2 = document.getElementById('text-kitchen');
                 const text3 = document.getElementById('text-delivery');
 
-                // RESET VISUALS FOR CLEAN TRANSITIONS
+                // Reset visuals
                 dot2.classList.remove('active');
                 dot3.classList.remove('active');
                 text2.classList.replace('text-blue-500', 'text-slate-500');
                 text3.classList.replace('text-blue-500', 'text-slate-500');
 
-                // STAGE 1: ALWAYS ON
+                // Stage 1: Always Active
                 dot1.classList.add('active');
 
-                // STAGE 2: ONLY IF "Preparing" OR HIGHER
+                // Stage 2: Kitchen (Preparing OR Ready)
                 if (o.status === "Preparing" || o.status === "Ready" || o.status === "Delivering" || o.status === "Completed") {
                     dot2.classList.add('active');
                     text2.classList.replace('text-slate-500', 'text-blue-500');
                 }
                 
-                // STAGE 3: ONLY IF "Ready", "Delivering", OR "Completed"
-                if (o.status === "Ready" || o.status === "Delivering" || o.status === "Completed") {
+                // Stage 3: On the Road (ONLY when status is Delivering or Completed)
+                // This will keep Stage 3 GREY even if the kitchen says "Ready"
+                if (o.status === "Delivering" || o.status === "Completed") {
                     dot3.classList.add('active');
                     text3.classList.replace('text-slate-500', 'text-blue-500');
                 }
 
-                // EMAIL & COMPLETION
                 if(o.status === "Completed" && !emailSent) {
                     emailSent = true;
                     emailjs.send("service_i0905hd", "template_5gwvu9l", {
