@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KLEO | COMMAND CENTER v1.2</title>
+    <title>KLEO | COMMAND CENTER v1.3</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
@@ -58,15 +58,15 @@
     <div class="w-1/4 glass rounded-[32px] p-6 flex flex-col">
         <div class="flex justify-between items-center mb-6">
             <h3 class="text-xs font-black uppercase text-blue-500 tracking-widest">Dispatch Chat</h3>
-            <span id="chat-status" class="text-[9px] font-bold text-slate-600 uppercase">Standby</span>
+            <span id="chat-status" class="text-[9px] font-bold text-red-500 uppercase tracking-widest">Offline</span>
         </div>
         
-        <div id="chat-box" class="flex-1 overflow-y-auto scroll-hide mb-4 space-y-2">
-            <div class="text-center text-[10px] text-slate-600 uppercase mt-40">No messages yet...</div>
+        <div id="chat-box" class="flex-1 overflow-y-auto scroll-hide mb-4 space-y-2 flex flex-col">
+            <div id="chat-placeholder" class="text-center text-[10px] text-slate-600 uppercase mt-40">No tickets found</div>
         </div>
 
         <div class="flex gap-2 bg-white/5 p-2 rounded-2xl border border-white/10">
-            <input type="text" id="chat-input" onkeypress="handleKey(event)" class="flex-1 bg-transparent p-2 text-sm outline-none" placeholder="Reply...">
+            <input type="text" id="chat-input" onkeypress="if(event.key==='Enter') sendAdminMsg()" class="flex-1 bg-transparent p-2 text-sm outline-none" placeholder="Reply...">
             <button onclick="sendAdminMsg()" class="bg-blue-600 w-10 h-10 rounded-xl flex items-center justify-center font-bold">➤</button>
         </div>
     </div>
@@ -76,6 +76,18 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
         let lastTicketId = null;
+
+        // CONNECTION MONITOR
+        db.ref(".info/connected").on("value", (snap) => {
+            const status = document.getElementById('chat-status');
+            if (snap.val() === true) {
+                status.innerText = "Receiving Live";
+                status.className = "text-[9px] font-bold text-green-500 uppercase tracking-widest";
+            } else {
+                status.innerText = "Offline";
+                status.className = "text-[9px] font-bold text-red-500 uppercase tracking-widest";
+            }
+        });
 
         // 1. SYNC ORDERS & DRIVER STATS
         db.ref('orders').on('value', (snap) => {
@@ -115,28 +127,27 @@
             `).join('');
         });
 
-        // 2. FIXED CHAT ENGINE
+        // 2. SUPPORT CHAT LOGIC (IMPROVED)
         db.ref('support_tickets').on('value', (snap) => {
             const chatBox = document.getElementById('chat-box');
             let tickets = snap.val();
+            
             if(!tickets) {
-                chatBox.innerHTML = "<div class='text-center text-[10px] text-slate-600 uppercase mt-40'>No tickets open</div>";
+                lastTicketId = null;
                 return;
             }
 
-            // Get the newest open ticket
-            const sortedKeys = Object.keys(tickets).sort((a,b) => (tickets[b].lastUpdate || 0) - (tickets[a].lastUpdate || 0));
-            lastTicketId = sortedKeys[0];
+            // Find the most recently updated ticket
+            const keys = Object.keys(tickets);
+            lastTicketId = keys.reduce((a, b) => (tickets[a].lastUpdate || 0) > (tickets[b].lastUpdate || 0) ? a : b);
             
-            document.getElementById('chat-status').innerText = "LIVE SUPPORT";
-            document.getElementById('chat-status').className = "text-[9px] font-bold text-green-500 uppercase";
-
-            const ticket = tickets[lastTicketId];
-            let chatHtml = "";
-            if(ticket && ticket.chat) {
-                Object.values(ticket.chat).forEach(m => {
+            const currentTicket = tickets[lastTicketId];
+            if (currentTicket && currentTicket.chat) {
+                document.getElementById('chat-placeholder')?.remove();
+                let html = "";
+                Object.values(currentTicket.chat).forEach(m => {
                     const isAdmin = m.sender === "Admin";
-                    chatHtml += `
+                    html += `
                         <div class="flex ${isAdmin ? 'justify-end' : 'justify-start'}">
                             <div class="msg-bubble ${isAdmin ? 'bg-blue-600 text-white' : 'bg-white/10 text-slate-200'}">
                                 <p class="text-[8px] font-black uppercase opacity-50 mb-1">${m.sender}</p>
@@ -144,34 +155,37 @@
                             </div>
                         </div>`;
                 });
-                chatBox.innerHTML = chatHtml;
+                chatBox.innerHTML = html;
                 chatBox.scrollTop = chatBox.scrollHeight;
             }
         });
 
-        // 3. SEND FUNCTION (With Null Check)
+        // 3. SEND FUNCTION (FORCE SYNC)
         function sendAdminMsg() {
             const input = document.getElementById('chat-input');
             const text = input.value.trim();
             if(!text) return;
             
-            // If no driver has started a ticket yet, we can't reply
             if(!lastTicketId) {
-                alert("No active driver ticket found. The driver must send a message first.");
+                alert("Driver must send a message first to establish a channel.");
                 return;
             }
             
-            db.ref('support_tickets/' + lastTicketId + '/chat').push({
+            const msgRef = db.ref('support_tickets/' + lastTicketId + '/chat').push();
+            msgRef.set({
                 sender: "Admin",
                 text: text,
                 timestamp: Date.now()
+            }).then(() => {
+                db.ref('support_tickets/' + lastTicketId).update({ 
+                    lastUpdate: Date.now(),
+                    status: "Open" 
+                });
             });
             
-            db.ref('support_tickets/' + lastTicketId).update({ lastUpdate: Date.now() });
             input.value = "";
         }
 
-        function handleKey(e) { if(e.key === "Enter") sendAdminMsg(); }
         function deleteOrder(id) { if(confirm("Delete record?")) db.ref('orders/' + id).remove(); }
         function resetDay() { if(confirm("Wipe all data for tomorrow?")) { db.ref('orders').remove(); db.ref('support_tickets').remove(); } }
     </script>
