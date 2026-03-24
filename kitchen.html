@@ -19,14 +19,14 @@
         }
 
         /* Top Navigation */
-        .top-nav { height: 80px; border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; items-center; justify-content: space-between; padding: 0 40px; background: var(--card); }
+        .top-nav { height: 80px; border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; align-items: center; justify-content: space-between; padding: 0 40px; background: var(--card); }
 
         /* Full Screen Matrix Grid */
         .matrix-container { 
             height: calc(100vh - 80px); 
             display: grid; 
             grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); 
-            grid-auto-rows: 1fr; /* This forces cards to fill vertical space */
+            grid-auto-rows: 1fr; 
             gap: 20px; 
             padding: 20px; 
         }
@@ -41,12 +41,11 @@
             transition: all 0.3s ease;
         }
 
-        /* Rush Colors */
         .card-new { border-left: 8px solid var(--accent); }
         .card-warning { border-left: 8px solid #f59e0b; background: linear-gradient(to right, rgba(245,158,11,0.05), transparent); }
         .card-urgent { border-left: 8px solid #ef4444; animation: urgent-pulse 1.5s infinite; }
         
-        @keyframes urgent-pulse { 0%, 100% { background: rgba(239,68,68,0.05); } 50% { background: rgba(239,68,68,0.15); } }
+        @keyframes urgent-pulse { 0%, 100% { background: rgba(239, 68, 68, 0.05); } 50% { background: rgba(239, 68, 68, 0.15); } }
 
         .btn-dispatch { 
             background: #fff; color: #000; font-weight: 900; 
@@ -54,15 +53,32 @@
             padding: 18px; font-size: 13px; margin-top: auto;
             transition: all 0.2s;
         }
-        .btn-dispatch:active { background: var(--accent); color: #fff; transform: scale(0.98); }
 
         .driver-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; }
         .dot-waiting { background: #10b981; box-shadow: 0 0 10px #10b981; }
         .dot-busy { background: #ef4444; }
 
-        #history-sidebar { position: fixed; top: 0; right: 0; height: 100%; width: 400px; background: #080808; z-index: 2000; transform: translateX(100%); transition: transform 0.4s ease; border-left: 1px solid rgba(255,255,255,0.1); padding: 40px; }
+        /* FIXED HISTORY SIDEBAR */
+        #history-sidebar { 
+            position: fixed; top: 0; right: 0; height: 100%; width: 420px; 
+            background: #080808; z-index: 2000; transform: translateX(100%); 
+            transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1); 
+            border-left: 1px solid rgba(255,255,255,0.1); 
+            display: flex; flex-direction: column;
+        }
         .sidebar-open { transform: translateX(0) !important; }
         
+        #historyList { 
+            flex: 1; 
+            overflow-y: auto; 
+            padding: 0 30px 100px 30px; /* Big padding at bottom for scroll safety */
+        }
+        
+        /* Modern Scrollbar for History */
+        #historyList::-webkit-scrollbar { width: 4px; }
+        #historyList::-webkit-scrollbar-track { background: transparent; }
+        #historyList::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
+
         .shimmer { animation: text-shimmer 3s infinite; }
         @keyframes text-shimmer { 0%, 100% { opacity: 0.6; } 50% { opacity: 1; } }
     </style>
@@ -81,8 +97,7 @@
             <div>
                 <h1 class="text-3xl font-black italic tracking-tighter text-white leading-none">KLEO <span class="text-blue-500">KITCHEN</span></h1>
             </div>
-            <div id="driver-summary" class="flex gap-4 border-l border-white/10 pl-10">
-                </div>
+            <div id="driver-summary" class="flex gap-4 border-l border-white/10 pl-10"></div>
         </div>
         
         <div class="flex items-center gap-8">
@@ -94,15 +109,19 @@
         </div>
     </nav>
 
-    <div id="orderList" class="matrix-container">
-        </div>
+    <div id="orderList" class="matrix-container"></div>
 
     <div id="history-sidebar">
-        <div class="flex justify-between items-center mb-10">
-            <h2 class="text-2xl font-black italic uppercase text-blue-500">Log</h2>
+        <div class="p-10 flex justify-between items-center">
+            <div>
+                <h2 class="text-2xl font-black italic uppercase text-blue-500">Production Log</h2>
+                <p class="text-[9px] font-black text-slate-500 uppercase tracking-widest mt-1">Completed Tasks</p>
+            </div>
             <button onclick="toggleHistory()" class="text-white text-3xl">✕</button>
         </div>
-        <div id="historyList" class="flex-1 overflow-y-auto space-y-3"></div>
+        
+        <div id="historyList">
+            </div>
     </div>
 
     <script>
@@ -169,23 +188,19 @@
             const html = `
                 <div id="card-${id}" data-time="${time}" class="order-card card-new">
                     <div class="flex justify-between items-start mb-4">
-                        <span class="text-[10px] font-black text-blue-500 uppercase tracking-widest shimmer">Production</span>
+                        <span class="text-[10px] font-black text-blue-500 uppercase tracking-widest shimmer">Active Order</span>
                         <span class="text-lg font-black text-white italic">${o.totalPrice}</span>
                     </div>
-                    
                     <h2 class="text-4xl font-black uppercase italic tracking-tighter mb-4 leading-none">${o.item}</h2>
-                    
                     <div class="bg-black/40 p-4 rounded-xl border border-white/5 mb-4 flex-1 overflow-hidden">
-                        <p class="text-[8px] font-black text-slate-600 uppercase mb-1">Details</p>
+                        <p class="text-[8px] font-black text-slate-600 uppercase mb-1">Kitchen Note</p>
                         <p class="text-sm italic text-slate-300 leading-tight">${o.toppings}</p>
                     </div>
-
                     <div class="flex justify-between items-end mb-6">
-                        <div><p class="text-[8px] font-black text-slate-600 uppercase mb-1">Elapsed</p><p id="timer-${id}" class="text-3xl font-black tabular-nums leading-none">00:00</p></div>
-                        <div class="text-right"><p class="text-[8px] font-black text-slate-600 uppercase mb-1">Client</p><p class="text-xs font-bold truncate uppercase text-blue-400">${o.customer}</p></div>
+                        <div><p class="text-[8px] font-black text-slate-600 uppercase mb-1">Production Time</p><p id="timer-${id}" class="text-3xl font-black tabular-nums leading-none">00:00</p></div>
+                        <div class="text-right"><p class="text-[8px] font-black text-slate-600 uppercase mb-1">Customer</p><p class="text-xs font-bold truncate uppercase text-blue-400">${o.customer}</p></div>
                     </div>
-
-                    <button onclick="setStatus('${id}', 'Ready')" class="btn-dispatch">Mark as Ready</button>
+                    <button onclick="setStatus('${id}', 'Ready')" class="btn-dispatch">Send to Driver</button>
                 </div>
             `;
             document.getElementById('orderList').insertAdjacentHTML('beforeend', html);
@@ -206,9 +221,18 @@
 
         function renderHistory(id, o) {
             const html = `
-                <div class="bg-white/5 p-4 rounded-xl border border-white/5">
-                    <div class="flex justify-between items-center"><p class="font-black italic uppercase text-white text-sm">${o.item}</p><button onclick="setStatus('${id}', 'New')" class="text-blue-500 text-[9px] font-bold uppercase">Undo</button></div>
-                    <p class="text-[10px] text-slate-500 font-bold uppercase mt-1">${o.customer}</p>
+                <div class="bg-white/5 p-6 rounded-2xl border border-white/5 mb-4 group transition-all hover:bg-white/10">
+                    <div class="flex justify-between items-center mb-2">
+                        <p class="font-black italic uppercase text-white text-lg">${o.item}</p>
+                        <span class="text-blue-500 text-[9px] font-black uppercase px-2 py-1 bg-blue-500/10 rounded-md">${o.status}</span>
+                    </div>
+                    <div class="flex justify-between items-end">
+                        <div class="space-y-1">
+                            <p class="text-[10px] text-slate-400 font-bold uppercase">${o.customer}</p>
+                            <p class="text-[9px] text-slate-600 font-mono italic">${o.address || 'Takeaway'}</p>
+                        </div>
+                        <button onclick="setStatus('${id}', 'New')" class="text-white/20 hover:text-white text-[9px] font-black uppercase tracking-widest transition-all">↩ Undo</button>
+                    </div>
                 </div>
             `;
             document.getElementById('historyList').insertAdjacentHTML('afterbegin', html);
