@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KLEO | COMMAND CENTER v2.0</title>
+    <title>KLEO | COMMAND CENTER v2.1</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
@@ -29,7 +29,7 @@
             background: rgba(255,255,255,0.05);
             color: #64748b;
         }
-        .tab-active { background: #3b82f6 !important; color: white !important; border-color: #3b82f6; }
+        .tab-active { background: #3b82f6 !important; color: white !important; border-color: #3b82f6; box-shadow: 0 0 15px rgba(59,130,246,0.3); }
     </style>
 </head>
 <body class="p-8 flex gap-8">
@@ -69,12 +69,10 @@
 
     <div class="w-1/4 glass rounded-[32px] p-6 flex flex-col">
         <h3 class="text-xs font-black uppercase text-blue-500 mb-4 tracking-widest">Courier Support</h3>
-        
-        <div id="driver-selector" class="flex gap-2 overflow-x-auto pb-4 mb-4 border-b border-white/10 scroll-hide">
-            </div>
+        <div id="driver-selector" class="flex gap-2 overflow-x-auto pb-4 mb-4 border-b border-white/10 scroll-hide"></div>
 
         <div id="chat-box" class="flex-1 overflow-y-auto scroll-hide mb-4 space-y-2 flex flex-col">
-            <div class="text-center text-[10px] text-slate-600 uppercase mt-40">Select a driver tab</div>
+            <div id="chat-empty-msg" class="text-center text-[10px] text-slate-600 uppercase mt-40">Waiting for message...</div>
         </div>
 
         <div class="flex gap-2 bg-white/5 p-2 rounded-2xl border border-white/10">
@@ -91,7 +89,7 @@
         
         let selectedDriverId = null;
 
-        // SYNC ORDERS
+        // ORDERS SYNC
         db.ref('orders').on('value', (snap) => {
             const list = document.getElementById('master-order-list');
             const driverDiv = document.getElementById('driver-list');
@@ -107,10 +105,10 @@
             });
             document.getElementById('total-revenue').innerText = "€" + revenue.toFixed(2);
             document.getElementById('order-count').innerText = orders + " Total Orders Today";
-            driverDiv.innerHTML = Object.keys(drivers).map(dId => `<div class="flex justify-between items-center p-3 glass rounded-xl border-l-2 border-blue-500"><div><p class="text-[9px] font-black text-blue-400 font-mono">${dId}</p><p class="text-[10px] font-bold">Courier Active</p></div><div class="text-right"><p class="text-lg font-black">${drivers[dId]}</p></div></div>`).join('');
+            driverDiv.innerHTML = Object.keys(drivers).map(dId => `<div class="flex justify-between items-center p-3 glass rounded-xl border-l-2 border-blue-500"><div><p class="text-[9px] font-black text-blue-400 font-mono">${dId}</p><p class="text-[10px] font-bold">Active</p></div><div class="text-right"><p class="text-lg font-black">${drivers[dId]}</p></div></div>`).join('');
         });
 
-        // REWRITTEN CHAT LOGIC
+        // AUTO-SELECTING CHAT LOGIC
         db.ref('support_tickets').on('value', (snap) => {
             const selector = document.getElementById('driver-selector');
             const chatBox = document.getElementById('chat-box');
@@ -122,20 +120,20 @@
                 return;
             }
 
-            // Generate Tabs - ONLY for valid Driver IDs
+            const openTickets = Object.keys(tickets).filter(id => tickets[id].status === "Open" && id.startsWith('D-'));
+
+            // AUTO-SELECT: If no one is selected, pick the first person who messaged
+            if(!selectedDriverId && openTickets.length > 0) {
+                selectedDriverId = openTickets[0];
+            }
+
             let tabsHtml = "";
-            Object.keys(tickets).forEach(id => {
-                if(tickets[id].status === "Open") {
-                    // STRIKE: We only want real Driver IDs (e.g. D-1234), not Firebase keys
-                    if(id.startsWith('D-')) {
-                        const active = (selectedDriverId === id) ? 'tab-active' : '';
-                        tabsHtml += `<button onclick="selectChat('${id}')" class="driver-tab ${active}">${id}</button>`;
-                    }
-                }
+            openTickets.forEach(id => {
+                const active = (selectedDriverId === id) ? 'tab-active' : '';
+                tabsHtml += `<button onclick="selectChat('${id}')" class="driver-tab ${active}">${id}</button>`;
             });
             selector.innerHTML = tabsHtml;
 
-            // Render Messages
             if(selectedDriverId && tickets[selectedDriverId]) {
                 const t = tickets[selectedDriverId];
                 if(t.chat) {
@@ -147,12 +145,13 @@
                     chatBox.innerHTML = html;
                     chatBox.scrollTop = chatBox.scrollHeight;
                 }
+            } else {
+                chatBox.innerHTML = "<div class='text-center text-[10px] text-slate-600 uppercase mt-40'>Select a driver tab</div>";
             }
         });
 
         function selectChat(id) {
             selectedDriverId = id;
-            // Force re-draw
             db.ref('support_tickets').once('value', () => {});
         }
 
@@ -162,9 +161,7 @@
             if(!text || !selectedDriverId) return;
             
             db.ref('support_tickets/' + selectedDriverId + '/chat').push({
-                sender: "Admin",
-                text: text,
-                timestamp: Date.now()
+                sender: "Admin", text: text, timestamp: Date.now()
             });
             db.ref('support_tickets/' + selectedDriverId).update({ lastUpdate: Date.now() });
             input.value = "";
@@ -178,7 +175,7 @@
         }
 
         function deleteOrder(id) { if(confirm("Delete?")) db.ref('orders/' + id).remove(); }
-        function resetDay() { if(confirm("Wipe all data?")) { db.ref('orders').remove(); db.ref('support_tickets').remove(); } }
+        function resetDay() { if(confirm("Wipe all data?")) { db.ref('orders').remove(); db.ref('support_tickets').remove(); selectedDriverId = null; } }
     </script>
 </body>
 </html>
