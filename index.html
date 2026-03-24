@@ -13,6 +13,7 @@
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
     <script type="text/javascript">
        (function(){
+          // YOUR PUBLIC KEY
           emailjs.init("_yocJ8G-tQoBn2S80"); 
        })();
     </script>
@@ -178,26 +179,33 @@
             document.getElementById('tracking-id').innerText = "ID: " + orderId;
             db.ref('orders/' + orderId).on('value', (snap) => {
                 const o = snap.val(); if(!o) return;
+                
                 if(o.status === "Preparing") {
                     document.getElementById('step-kitchen').classList.add('active');
                     document.getElementById('text-kitchen').classList.replace('text-slate-500', 'text-blue-500');
                 }
                 if(o.status === "Ready" || o.status === "Delivering") {
+                    document.getElementById('step-kitchen').classList.add('active');
                     document.getElementById('step-delivery').classList.add('active');
+                    document.getElementById('text-kitchen').classList.replace('text-slate-500', 'text-blue-500');
                     document.getElementById('text-delivery').classList.replace('text-slate-500', 'text-blue-500');
                 }
+
                 if(o.status === "Completed" && !emailSent) {
                     emailSent = true;
-                    // --- AUTOMATED EMAIL TRIGGER ---
-                    emailjs.send("service_1t110gm", "template_5gwvu9l", {
+                    // UPDATED SERVICE ID: service_i0905hd
+                    emailjs.send("service_i0905hd", "template_5gwvu9l", {
                         to_name: o.customer,
                         to_email: o.email,
                         item_name: o.item,
                         total_price: o.totalPrice,
                         delivery_address: o.address
-                    }).then(() => {
+                    }).then((response) => {
                         alert("Mission Success! Your receipt has been sent to " + o.email);
                         location.reload();
+                    }, (error) => {
+                        console.error("FAILED...", error);
+                        alert("Mission Success, but email failed. Check Dashboard.");
                     });
                 }
             });
