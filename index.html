@@ -25,7 +25,7 @@
         }
         #onboarding-screen { position: fixed; inset: 0; background: #060a11; z-index: 5000; display: flex; flex-direction: column; justify-content: center; padding: 40px; transition: 0.6s; }
         .input-box { width: 100%; background: rgba(255,255,255,0.05); border-radius: 20px; padding: 20px 24px; border: 1px solid rgba(255,255,255,0.1); outline: none; color: white; font-weight: 600; }
-        .active-item { border-color: #3b82f6 !important; background: rgba(59, 130, 246, 0.2) !important; transform: scale(1.05); box-shadow: 0 0 20px rgba(59, 130, 246, 0.3); }
+        .active-item { border-color: #3b82f6 !important; background: rgba(59, 130, 246, 0.2) !important; transform: scale(1.02); box-shadow: 0 0 20px rgba(59, 130, 246, 0.3); }
         
         #order-tracking-overlay { position: fixed; inset: 0; background: #060a11; z-index: 2000; display: none; padding: 60px 24px; flex-direction: column; }
         .tracking-dot { width: 14px; height: 14px; border-radius: 50%; background: #1e293b; transition: 0.5s; z-index: 10; }
@@ -59,49 +59,53 @@
         </div>
     </header>
 
-    <div class="max-w-md mx-auto px-6 space-y-12">
+    <div class="max-w-md mx-auto px-6 space-y-14">
         
         <section>
-            <div class="flex items-center justify-between mb-6 ml-1">
-                <h2 class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Luft Exclusive</h2>
-                <span class="text-[8px] bg-blue-500/20 text-blue-400 px-2 py-1 rounded-md font-black uppercase">New Partner</span>
+            <div class="flex items-center gap-3 mb-6">
+                <div class="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center text-xl">☁️</div>
+                <div>
+                    <h2 class="text-xl font-black italic tracking-tighter uppercase">LUFT Maribor</h2>
+                    <p class="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Fun Dining & Cocktails</p>
+                </div>
             </div>
             <div class="grid grid-cols-2 gap-4">
-                <div id="item-LuftBento" onclick="selectItem('Luft Bento Box', 19.90, 'item-LuftBento')" class="glass p-6 rounded-[30px] text-center transition-all cursor-pointer border border-white/5">
-                    <span class="text-3xl block mb-2">🍱</span><p class="font-bold text-xs uppercase">Bento Box</p><p class="text-blue-400 font-black text-xs">€19.90</p>
+                <div id="item-LuftBento" onclick="selectItem('Luft Bento Box', 19.90, 'item-LuftBento', 'LUFT')" class="glass p-5 rounded-[28px] text-center transition-all cursor-pointer border border-white/5">
+                    <span class="text-3xl block mb-2">🍱</span><p class="font-bold text-[11px] uppercase">Bento Box</p><p class="text-blue-400 font-black text-xs">€19.90</p>
                 </div>
-                <div id="item-LuftSteak" onclick="selectItem('Luft NY Strip Steak', 34.00, 'item-LuftSteak')" class="glass p-6 rounded-[30px] text-center transition-all cursor-pointer border border-white/5">
-                    <span class="text-3xl block mb-2">🥩</span><p class="font-bold text-xs uppercase">Strip Steak</p><p class="text-blue-400 font-black text-xs">€34.00</p>
+                <div id="item-LuftSteak" onclick="selectItem('Luft Strip Steak', 34.00, 'item-LuftSteak', 'LUFT')" class="glass p-5 rounded-[28px] text-center transition-all cursor-pointer border border-white/5">
+                    <span class="text-3xl block mb-2">🥩</span><p class="font-bold text-[11px] uppercase">Strip Steak</p><p class="text-blue-400 font-black text-xs">€34.00</p>
                 </div>
-                <div id="item-LuftTacos" onclick="selectItem('Baja Fish Tacos', 15.90, 'item-LuftTacos')" class="glass p-6 rounded-[30px] text-center transition-all cursor-pointer border border-white/5">
-                    <span class="text-3xl block mb-2">🌮</span><p class="font-bold text-xs uppercase">Fish Tacos</p><p class="text-blue-400 font-black text-xs">€15.90</p>
+                <div id="item-PurpleRain" onclick="selectItem('Purple Rain Cocktail', 9.90, 'item-PurpleRain', 'LUFT')" class="glass p-5 rounded-[28px] text-center transition-all cursor-pointer border border-white/5">
+                    <span class="text-3xl block mb-2">🍹</span><p class="font-bold text-[11px] uppercase">Purple Rain</p><p class="text-blue-400 font-black text-xs">€9.90</p>
                 </div>
-                <div id="item-LuftBasque" onclick="selectItem('Burnt Basque Cake', 6.90, 'item-LuftBasque')" class="glass p-6 rounded-[30px] text-center transition-all cursor-pointer border border-white/5">
-                    <span class="text-3xl block mb-2">🍰</span><p class="font-bold text-xs uppercase">Basque Cake</p><p class="text-blue-400 font-black text-xs">€6.90</p>
-                </div>
-            </div>
-        </section>
-
-        <section>
-            <h2 class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-6 ml-1">Luft Mixology & Drinks</h2>
-            <div class="grid grid-cols-3 gap-3">
-                <div id="item-PurpleRain" onclick="selectItem('Purple Rain Cocktail', 9.90, 'item-PurpleRain')" class="glass py-5 rounded-[24px] text-center transition-all cursor-pointer border border-white/5">
-                    <span class="text-2xl block mb-1">🍹</span><p class="font-bold text-[9px] uppercase">Purple Rain</p><p class="text-blue-400 font-black text-[10px]">€9.90</p>
-                </div>
-                <div id="item-WhiskeySour" onclick="selectItem('Whiskey Sour', 9.90, 'item-WhiskeySour')" class="glass py-5 rounded-[24px] text-center transition-all cursor-pointer border border-white/5">
-                    <span class="text-2xl block mb-1">🥃</span><p class="font-bold text-[9px] uppercase">Whiskey Sour</p><p class="text-blue-400 font-black text-[10px]">€9.90</p>
-                </div>
-                <div id="item-Union" onclick="selectItem('Union Beer', 3.20, 'item-Union')" class="glass py-5 rounded-[24px] text-center transition-all cursor-pointer border border-white/5">
-                    <span class="text-2xl block mb-1">🍺</span><p class="font-bold text-[9px] uppercase">Union Beer</p><p class="text-blue-400 font-black text-[10px]">€3.20</p>
+                <div id="item-WhiskeySour" onclick="selectItem('Whiskey Sour', 9.90, 'item-WhiskeySour', 'LUFT')" class="glass p-5 rounded-[28px] text-center transition-all cursor-pointer border border-white/5">
+                    <span class="text-3xl block mb-2">🥃</span><p class="font-bold text-[11px] uppercase">Whiskey Sour</p><p class="text-blue-400 font-black text-xs">€9.90</p>
                 </div>
             </div>
         </section>
 
         <section>
-            <h2 class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-5 ml-1">Customizations (+€1.00)</h2>
-            <div class="space-y-3">
-                <label class="glass flex items-center justify-between p-6 rounded-[28px] cursor-pointer"><span class="font-bold text-sm">🍱 Extra Wasabi</span><input type="checkbox" class="w-6 h-6 accent-blue-500" onchange="updateTotal()" value="Extra Wasabi"></label>
-                <label class="glass flex items-center justify-between p-6 rounded-[28px] cursor-pointer"><span class="font-bold text-sm">🍋 Extra Lime</span><input type="checkbox" class="w-6 h-6 accent-blue-500" onchange="updateTotal()" value="Extra Lime"></label>
+            <div class="flex items-center gap-3 mb-6">
+                <div class="w-10 h-10 rounded-full bg-orange-500/20 flex items-center justify-center text-xl">⚓</div>
+                <div>
+                    <h2 class="text-xl font-black italic tracking-tighter uppercase">Ancora Maribor</h2>
+                    <p class="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Italian & Mediterranean</p>
+                </div>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+                <div id="item-AncoraPizza" onclick="selectItem('Pizza Ancora', 11.50, 'item-AncoraPizza', 'Ancora')" class="glass p-5 rounded-[28px] text-center transition-all cursor-pointer border border-white/5">
+                    <span class="text-3xl block mb-2">🍕</span><p class="font-bold text-[11px] uppercase">Pizza Ancora</p><p class="text-blue-400 font-black text-xs">€11.50</p>
+                </div>
+                <div id="item-AncoraPasta" onclick="selectItem('Seafood Pasta', 13.90, 'item-AncoraPasta', 'Ancora')" class="glass p-5 rounded-[28px] text-center transition-all cursor-pointer border border-white/5">
+                    <span class="text-3xl block mb-2">🍝</span><p class="font-bold text-[11px] uppercase">Seafood Pasta</p><p class="text-blue-400 font-black text-xs">€13.90</p>
+                </div>
+                <div id="item-AncoraSalad" onclick="selectItem('Greek Salad', 9.20, 'item-AncoraSalad', 'Ancora')" class="glass p-5 rounded-[28px] text-center transition-all cursor-pointer border border-white/5">
+                    <span class="text-3xl block mb-2">🥗</span><p class="font-bold text-[11px] uppercase">Greek Salad</p><p class="text-blue-400 font-black text-xs">€9.20</p>
+                </div>
+                <div id="item-AncoraCalamari" onclick="selectItem('Grilled Calamari', 16.50, 'item-AncoraCalamari', 'Ancora')" class="glass p-5 rounded-[28px] text-center transition-all cursor-pointer border border-white/5">
+                    <span class="text-3xl block mb-2">🦑</span><p class="font-bold text-[11px] uppercase">Grilled Calamari</p><p class="text-blue-400 font-black text-xs">€16.50</p>
+                </div>
             </div>
         </section>
 
@@ -110,7 +114,7 @@
                 <div><p class="text-[10px] font-black uppercase text-slate-500 mb-1">Total Mission Cost</p><h3 id="priceDisplay" class="text-5xl font-[900] italic tracking-tighter text-white">€0.00</h3></div>
                 <button onclick="resetUser()" class="text-[9px] font-bold text-slate-600 uppercase underline tracking-widest">Logout</button>
             </div>
-            <button onclick="sendOrder()" class="w-full bg-blue-600 text-white font-[900] py-7 rounded-[32px] text-xl shadow-2xl shadow-blue-900/40 active:scale-95 transition-all uppercase italic tracking-tighter">Initiate Mission</button>
+            <button id="orderBtn" onclick="sendOrder()" class="w-full bg-blue-600 text-white font-[900] py-7 rounded-[32px] text-xl shadow-2xl shadow-blue-900/40 active:scale-95 transition-all uppercase italic tracking-tighter">Initiate Order</button>
         </div>
     </div>
 
@@ -120,7 +124,7 @@
                 <h2 class="text-4xl font-black italic tracking-tighter">MISSION <span class="text-blue-500">TRACKER</span></h2>
                 <p id="tracking-id" class="text-[10px] font-mono text-slate-500 uppercase">REF: ---</p>
             </div>
-            <a href="tel:+38600000000" class="glass w-12 h-12 rounded-2xl flex items-center justify-center text-blue-500 active:bg-blue-500 active:text-white transition-all">
+            <a href="tel:+38600000000" class="glass w-12 h-12 rounded-2xl flex items-center justify-center text-blue-500 border-blue-500/20 active:bg-blue-500 active:text-white transition-all">
                 <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z"></path></svg>
             </a>
         </div>
@@ -155,7 +159,7 @@
         const firebaseConfig = { apiKey: "AIzaSyBD_YmzFTA2OKn64h22Z9yM7pCAmmlTl68", authDomain: "we-kleo.firebaseapp.com", databaseURL: "https://we-kleo-default-rtdb.europe-west1.firebasedatabase.app", projectId: "we-kleo", storageBucket: "we-kleo.firebasestorage.app", messagingSenderId: "87105321281", appId: "1:87105321281:web:ec83e4472e5756182749c0" };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
-        let selectedItemName = ""; let basePrice = 0; let emailSent = false;
+        let selectedItemName = ""; let basePrice = 0; let selectedRestaurant = ""; let emailSent = false;
 
         window.onload = function() {
             if (localStorage.getItem('kleo_name')) {
@@ -174,7 +178,7 @@
                 const email = document.getElementById('userEmail').value;
                 const phone = document.getElementById('userPhone').value;
                 const addr = document.getElementById('userAddress').value;
-                if(!name || !email || !phone || !addr) { alert("Please fill all details!"); return; }
+                if(!name || !email || !phone || !addr) { alert("Fill all details!"); return; }
                 localStorage.setItem('kleo_name', name);
                 localStorage.setItem('kleo_email', email);
                 localStorage.setItem('kleo_phone', phone);
@@ -184,23 +188,16 @@
             }
         }
 
-        function selectItem(name, price, id) {
-            selectedItemName = name; basePrice = price;
+        function selectItem(name, price, id, restaurant) {
+            selectedItemName = name; basePrice = price; selectedRestaurant = restaurant;
             document.querySelectorAll('[id^="item-"]').forEach(el => el.classList.remove('active-item'));
             document.getElementById(id).classList.add('active-item');
-            updateTotal();
-        }
-
-        function updateTotal() {
-            let total = basePrice;
-            const extras = document.querySelectorAll('input[type="checkbox"]:checked');
-            total += extras.length * 1.00;
-            document.getElementById('priceDisplay').innerText = "€" + total.toFixed(2);
+            document.getElementById('priceDisplay').innerText = "€" + price.toFixed(2);
+            document.getElementById('orderBtn').innerText = "Order from " + restaurant;
         }
 
         function sendOrder() {
-            if (!selectedItemName) { alert("Select a masterpiece first!"); return; }
-            const extras = Array.from(document.querySelectorAll('input[type="checkbox"]:checked')).map(el => el.value);
+            if (!selectedItemName) { alert("Select a dish first!"); return; }
             const orderId = db.ref('orders').push().key;
             db.ref('orders/' + orderId).set({
                 customer: localStorage.getItem('kleo_name'),
@@ -208,7 +205,7 @@
                 address: localStorage.getItem('kleo_address'),
                 phone: localStorage.getItem('kleo_phone'),
                 item: selectedItemName,
-                toppings: extras.join(", ") || "None",
+                restaurant: selectedRestaurant,
                 totalPrice: document.getElementById('priceDisplay').innerText,
                 timestamp: Date.now(),
                 status: 'New'
@@ -228,22 +225,18 @@
 
                 dot1.classList.add('active');
                 if (["Preparing", "Ready", "Delivering", "Completed"].includes(o.status)) {
-                    dot2.classList.add('active');
-                    text2.classList.replace('text-slate-500', 'text-blue-500');
+                    dot2.classList.add('active'); text2.classList.replace('text-slate-500', 'text-blue-500');
                 }
                 if (["Delivering", "Completed"].includes(o.status)) {
-                    dot3.classList.add('active');
-                    text3.classList.replace('text-slate-500', 'text-blue-500');
+                    dot3.classList.add('active'); text3.classList.replace('text-slate-500', 'text-blue-500');
                 }
 
                 if(o.status === "Completed" && !emailSent) {
                     emailSent = true;
                     emailjs.send("service_i0905hd", "template_5gwvu9l", {
-                        to_name: o.customer,
-                        to_email: o.email,
-                        item_name: o.item,
-                        total_price: o.totalPrice,
-                        delivery_address: o.address
+                        to_name: o.customer, to_email: o.email,
+                        item_name: o.item + " (" + o.restaurant + ")",
+                        total_price: o.totalPrice, delivery_address: o.address
                     }).then(() => {
                         document.getElementById('success-email-text').innerText = "Receipt sent to " + o.email;
                         document.getElementById('success-msg').style.display = 'flex';
@@ -251,7 +244,7 @@
                 }
             });
         }
-        function resetUser() { if(confirm("Clear profile data?")) { localStorage.clear(); location.reload(); } }
+        function resetUser() { if(confirm("Logout?")) { localStorage.clear(); location.reload(); } }
     </script>
 </body>
 </html>
