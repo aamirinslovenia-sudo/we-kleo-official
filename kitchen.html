@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>KLEO | PURE KITCHEN</title>
+    <title>KLEO | MASTER KITCHEN</title>
 
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
@@ -16,23 +16,25 @@
         .top-nav { height: 80px; border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; align-items: center; justify-content: space-between; padding: 0 40px; background: var(--card); }
         .matrix-container { height: calc(100vh - 80px); display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); grid-auto-rows: 1fr; gap: 20px; padding: 20px; }
         
-        .order-card { background: #111; border-radius: 24px; border: 1px solid rgba(255,255,255,0.08); display: flex; flex-direction: column; padding: 25px; transition: all 0.3s ease; border-left: 8px solid var(--accent); }
+        .order-card { background: #111; border-radius: 24px; border: 1px solid rgba(255,255,255,0.08); display: flex; flex-direction: column; padding: 25px; transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1); border-left: 8px solid var(--accent); }
         .card-warning { border-left-color: #f59e0b; }
         .card-urgent { border-left-color: #ef4444; animation: urgent-pulse 1.5s infinite; }
         
         @keyframes urgent-pulse { 0%, 100% { background: rgba(239, 68, 68, 0.05); } 50% { background: rgba(239, 68, 68, 0.15); } }
         
         .btn-dispatch { background: #fff; color: #000; font-weight: 900; text-transform: uppercase; border-radius: 16px; padding: 18px; font-size: 13px; margin-top: auto; transition: all 0.2s; }
+        .btn-dispatch:active { background: var(--accent); color: white; transform: scale(0.95); }
 
         .driver-status-pill { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); padding: 5px 12px; border-radius: 14px; display: flex; align-items: center; gap: 8px; font-size: 11px; font-weight: 800; }
         .dot { width: 10px; height: 10px; border-radius: 50%; }
         .dot-green { background: #10b981; box-shadow: 0 0 10px rgba(16, 185, 129, 0.4); }
         .dot-red { background: #ef4444; box-shadow: 0 0 10px rgba(239, 68, 68, 0.4); }
 
-        #history-sidebar { position: fixed; top: 0; right: 0; height: 100%; width: 420px; background: #080808; z-index: 2000; transform: translateX(100%); transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1); border-left: 1px solid rgba(255,255,255,0.1); display: flex; flex-direction: column; }
+        #history-sidebar { position: fixed; top: 0; right: 0; height: 100%; width: 420px; background: #080808; z-index: 2000; transform: translateX(100%); transition: transform 0.4s ease; border-left: 1px solid rgba(255,255,255,0.1); display: flex; flex-direction: column; }
         .sidebar-open { transform: translateX(0) !important; }
         #historyList { flex: 1; overflow-y: auto; padding: 0 30px 100px 30px; }
         .qty-badge { background: #3b82f6; color: white; padding: 2px 8px; border-radius: 8px; font-size: 18px; margin-right: 10px; }
+        .category-icon { font-size: 24px; margin-right: 12px; opacity: 0.8; }
     </style>
 </head>
 <body>
@@ -105,24 +107,31 @@
             const list = document.getElementById('orderList');
             const history = document.getElementById('historyList');
             const driverBox = document.getElementById('driver-summary');
-            list.innerHTML = ""; history.innerHTML = "";
-            let drivers = {}; let activeCount = 0; let prepTimes = [];
+            
+            let drivers = {}; let activeOrders = []; let prepTimes = [];
+            history.innerHTML = "";
 
             snap.forEach((child) => {
                 const o = child.val();
+                o.id = child.key;
+
                 if(o.claimedBy) {
                     drivers[o.claimedBy] = (o.status === "Delivering" || o.status === "Ready") ? "Busy" : "Waiting";
                 }
                 
-                // ONLY SHOW "NEW" ON MAIN SCREEN
                 if (o.status === "New") { 
-                    activeCount++; 
-                    renderOrder(child.key, o); 
+                    activeOrders.push(o);
                 } else { 
-                    renderHistory(child.key, o); 
+                    renderHistory(o.id, o); 
                     if(o.completedAt && o.timestamp) prepTimes.push((o.completedAt - o.timestamp) / 60000);
                 }
             });
+
+            // IMPROVEMENT 1: URGENCY SORTING (Oldest or Red orders first)
+            activeOrders.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+
+            list.innerHTML = "";
+            activeOrders.forEach(order => renderOrder(order.id, order));
 
             if(prepTimes.length > 0) {
                 const avg = prepTimes.reduce((a,b) => a+b, 0) / prepTimes.length;
@@ -134,14 +143,26 @@
                 return `<div class="driver-status-pill"><span class="dot ${dotColor}"></span>${dId}</div>`;
             }).join('') || '<span class="text-[9px] text-slate-700 font-black uppercase">No Couriers Online</span>';
 
-            if (activeCount > 0 && !alarmInterval) alarmInterval = setInterval(playBell, 5000);
-            if (activeCount === 0) { clearInterval(alarmInterval); alarmInterval = null; }
+            if (activeOrders.length > 0 && !alarmInterval) alarmInterval = setInterval(playBell, 5000);
+            if (activeOrders.length === 0) { clearInterval(alarmInterval); alarmInterval = null; }
         });
+
+        // IMPROVEMENT 2: SMART ICONS
+        function getIcon(name) {
+            const n = name.toLowerCase();
+            if (n.includes('burger')) return '🍔';
+            if (n.includes('pizza')) return '🍕';
+            if (n.includes('kebab')) return '🥙';
+            if (n.includes('drink') || n.includes('cola') || n.includes('water')) return '🥤';
+            if (n.includes('fry') || n.includes('chips')) return '🍟';
+            return '🍽️';
+        }
 
         function renderOrder(id, o) {
             const time = o.timestamp || Date.now();
             const qtyStr = o.quantity && o.quantity > 1 ? `<span class="qty-badge">${o.quantity}×</span>` : "";
-            const courierMsg = o.claimedBy ? `<div class="bg-blue-500/10 text-blue-400 p-2 rounded-lg text-[9px] font-black uppercase mt-2 italic text-center">Driver Accepted</div>` : `<div class="bg-white/5 text-slate-500 p-2 rounded-lg text-[9px] font-black uppercase mt-2 italic text-center">Waiting for Pickup...</div>`;
+            const icon = getIcon(o.item);
+            const courierMsg = o.claimedBy ? `<div class="bg-blue-500/10 text-blue-400 p-2 rounded-lg text-[9px] font-black uppercase mt-2 italic text-center">Driver Accepted</div>` : `<div class="bg-white/5 text-slate-500 p-2 rounded-lg text-[9px] font-black uppercase mt-2 italic text-center">Waiting...</div>`;
 
             const html = `
                 <div id="card-${id}" data-time="${time}" class="order-card">
@@ -149,16 +170,19 @@
                         <span class="text-[10px] font-black text-blue-500 uppercase tracking-widest">Active Task</span>
                         <span class="text-lg font-black text-white italic">${o.totalPrice}</span>
                     </div>
-                    <h2 class="text-4xl font-black uppercase italic tracking-tighter mb-4 leading-none">${qtyStr}${o.item}</h2>
+                    <h2 class="text-4xl font-black uppercase italic tracking-tighter mb-4 leading-none flex items-center">
+                        <span class="category-icon">${icon}</span>
+                        ${qtyStr}${o.item}
+                    </h2>
                     <div class="bg-black/40 p-4 rounded-xl border border-white/5 mb-4 flex-1 overflow-hidden">
-                        <p class="text-[8px] font-black text-slate-600 uppercase mb-1">Kitchen Note</p>
+                        <p class="text-[8px] font-black text-slate-600 uppercase mb-1 tracking-widest">Kitchen Note</p>
                         <p class="text-sm italic text-slate-300 leading-tight">${o.toppings}</p>
                     </div>
                     <div class="flex justify-between items-end mb-6">
-                        <div><p class="text-[8px] font-black text-slate-600 uppercase mb-1">Prep Timer</p><p id="timer-${id}" class="text-3xl font-black tabular-nums leading-none">00:00</p></div>
+                        <div><p class="text-[8px] font-black text-slate-600 uppercase mb-1 tracking-widest">Prep Timer</p><p id="timer-${id}" class="text-3xl font-black tabular-nums leading-none">00:00</p></div>
                         <div class="text-right">
-                            <p class="text-[8px] font-black text-slate-600 uppercase mb-1">Client</p>
-                            <p class="text-xs font-bold truncate uppercase text-blue-400 mb-1">${o.customer}</p>
+                            <p class="text-[8px] font-black text-slate-600 uppercase mb-1 tracking-widest">Client</p>
+                            <p class="text-xs font-bold truncate uppercase text-blue-400 mb-1 leading-none">${o.customer}</p>
                             ${courierMsg}
                         </div>
                     </div>
@@ -175,18 +199,19 @@
                 const elapsed = Math.floor((Date.now() - start) / 1000);
                 const mins = Math.floor(elapsed / 60);
                 document.getElementById(`timer-${id}`).innerText = `${mins.toString().padStart(2, '0')}:${(elapsed % 60).toString().padStart(2, '0')}`;
-                if (mins >= 20) card.classList.add('card-urgent');
-                else if (mins >= 10) card.classList.add('card-warning');
+                
+                if (mins >= 20) card.className = "order-card card-urgent";
+                else if (mins >= 10) card.className = "order-card card-warning";
+                else card.className = "order-card";
             });
         }
 
         function renderHistory(id, o) {
-            // REMOVED THE RE-OPEN BUTTON COMPLETELY
             const html = `
                 <div class="bg-white/5 p-5 rounded-2xl border border-white/5 mb-4">
                     <p class="font-black italic uppercase text-white text-lg">${o.item}</p>
                     <p class="text-[10px] text-slate-500 font-bold uppercase mt-1">${o.customer}</p>
-                    <div class="mt-4 text-[8px] text-slate-700 font-black uppercase tracking-widest">Logged & Archived</div>
+                    <div class="mt-4 text-[8px] text-slate-800 font-black uppercase tracking-widest">Logged & Archived</div>
                 </div>
             `;
             document.getElementById('historyList').insertAdjacentHTML('afterbegin', html);
