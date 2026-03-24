@@ -25,7 +25,7 @@
         }
         #onboarding-screen { position: fixed; inset: 0; background: #060a11; z-index: 5000; display: flex; flex-direction: column; justify-content: center; padding: 40px; transition: 0.6s; }
         .input-box { width: 100%; background: rgba(255,255,255,0.05); border-radius: 20px; padding: 20px 24px; border: 1px solid rgba(255,255,255,0.1); outline: none; color: white; font-weight: 600; }
-        .active-item { border-color: #3b82f6 !important; background: rgba(59, 130, 246, 0.15) !important; }
+        .active-item { border-color: #3b82f6 !important; background: rgba(59, 130, 246, 0.2) !important; transform: scale(1.05); box-shadow: 0 0 20px rgba(59, 130, 246, 0.2); }
         
         #order-tracking-overlay { position: fixed; inset: 0; background: #060a11; z-index: 2000; display: none; padding: 60px 24px; flex-direction: column; }
         .tracking-dot { width: 14px; height: 14px; border-radius: 50%; background: #1e293b; transition: 0.5s; z-index: 10; }
@@ -35,7 +35,7 @@
         #success-msg { position: fixed; inset: 0; background: #060a11; z-index: 6000; display: none; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 30px; }
     </style>
 </head>
-<body class="pb-10">
+<body class="pb-24">
 
     <div id="onboarding-screen">
         <div class="mb-10 text-center">
@@ -59,15 +59,36 @@
         </div>
     </header>
 
-    <div class="max-w-md mx-auto px-6 space-y-10">
+    <div class="max-w-md mx-auto px-6 space-y-12">
         <section>
-            <h2 class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-5 ml-1">Selection</h2>
+            <h2 class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-6 ml-1">Signature Selection</h2>
             <div class="grid grid-cols-2 gap-4">
-                <div id="card-Pizza" onclick="selectItem('Kleo Pizza', 9.50, 'Pizza')" class="glass p-7 rounded-[35px] text-center transition-all cursor-pointer border border-white/5">
-                    <span class="text-4xl block mb-3">🍕</span><p class="font-bold text-sm uppercase">Pizza</p><p class="text-blue-400 font-black text-xs">€9.50</p>
+                <div id="item-Pizza" onclick="selectItem('Kleo Pizza', 9.50, 'item-Pizza')" class="glass p-6 rounded-[30px] text-center transition-all cursor-pointer border border-white/5">
+                    <span class="text-3xl block mb-2">🍕</span><p class="font-bold text-xs uppercase">Kleo Pizza</p><p class="text-blue-400 font-black text-xs">€9.50</p>
                 </div>
-                <div id="card-Burger" onclick="selectItem('Kleo Burger', 8.90, 'Burger')" class="glass p-7 rounded-[35px] text-center transition-all cursor-pointer border border-white/5">
-                    <span class="text-4xl block mb-3">🍔</span><p class="font-bold text-sm uppercase">Burger</p><p class="text-blue-400 font-black text-xs">€8.90</p>
+                <div id="item-Burger" onclick="selectItem('Kleo Burger', 8.90, 'item-Burger')" class="glass p-6 rounded-[30px] text-center transition-all cursor-pointer border border-white/5">
+                    <span class="text-3xl block mb-2">🍔</span><p class="font-bold text-xs uppercase">Kleo Burger</p><p class="text-blue-400 font-black text-xs">€8.90</p>
+                </div>
+                <div id="item-Pasta" onclick="selectItem('Truffle Pasta', 11.20, 'item-Pasta')" class="glass p-6 rounded-[30px] text-center transition-all cursor-pointer border border-white/5">
+                    <span class="text-3xl block mb-2">🍝</span><p class="font-bold text-xs uppercase">Truffle Pasta</p><p class="text-blue-400 font-black text-xs">€11.20</p>
+                </div>
+                <div id="item-Steak" onclick="selectItem('Premium Steak', 18.50, 'item-Steak')" class="glass p-6 rounded-[30px] text-center transition-all cursor-pointer border border-white/5">
+                    <span class="text-3xl block mb-2">🥩</span><p class="font-bold text-xs uppercase">Kleo Steak</p><p class="text-blue-400 font-black text-xs">€18.50</p>
+                </div>
+            </div>
+        </section>
+
+        <section>
+            <h2 class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-6 ml-1">Cold Beverages</h2>
+            <div class="grid grid-cols-3 gap-3">
+                <div id="item-Cola" onclick="selectItem('Coca Cola', 2.50, 'item-Cola')" class="glass py-5 rounded-[24px] text-center transition-all cursor-pointer border border-white/5">
+                    <span class="text-2xl block mb-1">🥤</span><p class="font-bold text-[10px] uppercase">Cola</p><p class="text-blue-400 font-black text-[10px]">€2.50</p>
+                </div>
+                <div id="item-Water" onclick="selectItem('Mineral Water', 1.80, 'item-Water')" class="glass py-5 rounded-[24px] text-center transition-all cursor-pointer border border-white/5">
+                    <span class="text-2xl block mb-1">💧</span><p class="font-bold text-[10px] uppercase">Water</p><p class="text-blue-400 font-black text-[10px]">€1.80</p>
+                </div>
+                <div id="item-Beer" onclick="selectItem('Union Beer', 3.20, 'item-Beer')" class="glass py-5 rounded-[24px] text-center transition-all cursor-pointer border border-white/5">
+                    <span class="text-2xl block mb-1">🍺</span><p class="font-bold text-[10px] uppercase">Beer</p><p class="text-blue-400 font-black text-[10px]">€3.20</p>
                 </div>
             </div>
         </section>
@@ -95,7 +116,7 @@
                 <h2 class="text-4xl font-black italic tracking-tighter">MISSION <span class="text-blue-500">TRACKER</span></h2>
                 <p id="tracking-id" class="text-[10px] font-mono text-slate-500 uppercase">REF: ---</p>
             </div>
-            <a href="tel:+38600000000" class="glass w-12 h-12 rounded-2xl flex items-center justify-center text-blue-500 border-blue-500/20 active:bg-blue-500 active:text-white transition-all">
+            <a href="tel:+38600000000" class="glass w-12 h-12 rounded-2xl flex items-center justify-center text-blue-500 active:bg-blue-500 active:text-white transition-all">
                 <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z"></path></svg>
             </a>
         </div>
@@ -123,7 +144,7 @@
         </div>
         <h2 class="text-4xl font-black italic tracking-tighter mb-2">MISSION SUCCESS</h2>
         <p id="success-email-text" class="text-slate-400 font-bold mb-10 px-6">Receipt sent to your email.</p>
-        <button onclick="location.reload()" class="bg-white text-black font-black px-12 py-5 rounded-full uppercase tracking-widest">Continue Shopping</button>
+        <button onclick="location.reload()" class="bg-white text-black font-black px-12 py-5 rounded-full uppercase tracking-widest">Done</button>
     </div>
 
     <script>
@@ -161,8 +182,10 @@
 
         function selectItem(name, price, id) {
             selectedItemName = name; basePrice = price;
-            document.querySelectorAll('#card-Pizza, #card-Burger').forEach(el => el.classList.remove('active-item'));
-            document.getElementById('card-' + id).classList.add('active-item');
+            // Remove active style from ALL items (food and drinks)
+            document.querySelectorAll('[id^="item-"]').forEach(el => el.classList.remove('active-item'));
+            // Add to selected
+            document.getElementById(id).classList.add('active-item');
             updateTotal();
         }
 
@@ -174,7 +197,7 @@
         }
 
         function sendOrder() {
-            if (!selectedItemName) { alert("Select food first!"); return; }
+            if (!selectedItemName) { alert("Select something first!"); return; }
             const extras = Array.from(document.querySelectorAll('input[type="checkbox"]:checked')).map(el => el.value);
             const orderId = db.ref('orders').push().key;
             db.ref('orders/' + orderId).set({
