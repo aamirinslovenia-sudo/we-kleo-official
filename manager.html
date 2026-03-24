@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KLEO | COMMAND CENTER v2.2</title>
+    <title>KLEO | COMMAND CENTER v2.3</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
@@ -23,36 +23,35 @@
             font-size: 11px; 
             font-weight: 900; 
             white-space: nowrap; 
-            transition: 0.3s; 
+            transition: all 0.2s ease; 
             cursor: pointer;
             border: 1px solid rgba(255,255,255,0.1);
             background: rgba(255,255,255,0.05);
             color: #64748b;
             position: relative;
         }
-        .tab-active { background: #3b82f6 !important; color: white !important; border-color: #3b82f6; box-shadow: 0 0 15px rgba(59,130,246,0.3); }
-        /* New Message Indicator */
-        .unread-dot { position: absolute; top: -4px; right: -4px; width: 10px; height: 10px; background: #3b82f6; border-radius: 50%; border: 2px solid #000; }
+        .tab-active { background: #3b82f6 !important; color: white !important; border-color: #3b82f6; box-shadow: 0 0 15px rgba(59,130,246,0.3); z-index: 10; }
+        .unread-dot { position: absolute; top: -3px; right: -3px; width: 10px; height: 10px; background: #3b82f6; border-radius: 50%; border: 2px solid #000; }
     </style>
 </head>
 <body class="p-8 flex gap-8">
 
     <div class="w-1/4 flex flex-col gap-6">
-        <h1 class="text-4xl font-black italic tracking-tighter uppercase">KLEO <span class="text-blue-500">HQ</span></h1>
+        <h1 class="text-4xl font-black italic tracking-tighter uppercase text-white">KLEO <span class="text-blue-500">HQ</span></h1>
         <div class="glass stat-card">
             <p class="text-[10px] font-black uppercase text-slate-500 tracking-widest">Revenue Today</p>
             <h2 id="total-revenue" class="text-5xl font-black mt-2 text-blue-400">€0.00</h2>
             <p id="order-count" class="text-xs font-bold text-slate-400 mt-2">0 Missions Completed</p>
         </div>
         <div class="glass rounded-[32px] p-6 flex-1 flex flex-col">
-            <h3 class="text-xs font-black uppercase text-blue-500 mb-6 tracking-widest">Active Couriers</h3>
+            <h3 class="text-xs font-black uppercase text-blue-500 mb-6 tracking-widest text-white">Active Couriers</h3>
             <div id="driver-list" class="space-y-4 overflow-y-auto scroll-hide"></div>
             <button onclick="resetDay()" class="mt-auto w-full py-4 btn-danger rounded-2xl font-black uppercase text-[10px] tracking-widest">Reset System</button>
         </div>
     </div>
 
     <div class="flex-1 glass rounded-[32px] p-8 flex flex-col">
-        <h3 class="text-xl font-black italic uppercase mb-8">Mission Control</h3>
+        <h3 class="text-xl font-black italic uppercase mb-8 text-white">Mission Control</h3>
         <div class="overflow-y-auto scroll-hide flex-1">
             <table class="w-full text-left">
                 <thead>
@@ -71,15 +70,17 @@
     </div>
 
     <div class="w-1/4 glass rounded-[32px] p-6 flex flex-col">
-        <h3 class="text-xs font-black uppercase text-blue-500 mb-4 tracking-widest">Courier Support</h3>
-        <div id="driver-selector" class="flex gap-2 overflow-x-auto pb-4 mb-4 border-b border-white/10 scroll-hide"></div>
+        <h3 class="text-xs font-black uppercase text-blue-500 mb-4 tracking-widest text-white">Courier Support</h3>
+        
+        <div id="driver-selector" class="flex gap-2 overflow-x-auto pb-4 mb-4 border-b border-white/10 scroll-hide">
+            </div>
 
         <div id="chat-box" class="flex-1 overflow-y-auto scroll-hide mb-4 space-y-2 flex flex-col">
             <div class="text-center text-[10px] text-slate-600 uppercase mt-40">Select a driver tab</div>
         </div>
 
         <div class="flex gap-2 bg-white/5 p-2 rounded-2xl border border-white/10">
-            <input type="text" id="chat-input" onkeypress="if(event.key==='Enter') sendAdminMsg()" class="flex-1 bg-transparent p-2 text-sm outline-none" placeholder="Reply...">
+            <input type="text" id="chat-input" onkeypress="if(event.key==='Enter') sendAdminMsg()" class="flex-1 bg-transparent p-2 text-sm outline-none text-white" placeholder="Reply...">
             <button onclick="sendAdminMsg()" class="bg-blue-600 w-10 h-10 rounded-xl flex items-center justify-center font-bold">➤</button>
         </div>
         <button onclick="endSelectedChat()" class="mt-2 text-[8px] text-red-500/50 uppercase font-bold tracking-widest hover:text-red-500 transition">Close Ticket</button>
@@ -90,11 +91,11 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
         
-        let selectedDriverId = null;
-        let lastMessageCount = {}; // To track unread dots
+        let selectedId = null; 
+        let cachedTickets = {};
 
-        // ORDERS SYNC
-        db.ref('orders').on('value', (snap) => {
+        // 1. MISSION CONTROL
+        db.ref('orders').on('value', snap => {
             const list = document.getElementById('master-order-list');
             const driverDiv = document.getElementById('driver-list');
             list.innerHTML = "";
@@ -105,96 +106,81 @@
                 orders++;
                 if(o.claimedBy) drivers[o.claimedBy] = (drivers[o.claimedBy] || 0) + (o.status === "Completed" ? 1 : 0);
                 const sColor = o.status === "Completed" ? "text-green-500" : (o.status === "New" ? "text-blue-500" : "text-yellow-500");
-                list.innerHTML += `<tr class="border-b border-white/5"><td class="py-4 font-black uppercase text-[9px] ${sColor}">${o.status}</td><td class="py-4 font-bold">${o.item}</td><td class="py-4 text-xs text-slate-400">${o.customer}</td><td class="py-4 text-xs font-mono text-blue-400">${o.claimedBy || 'NONE'}</td><td class="py-4 font-black">${o.totalPrice}</td><td class="py-4"><button onclick="deleteOrder('${child.key}')" class="opacity-20 hover:opacity-100 transition">✕</button></td></tr>`;
+                list.innerHTML += `<tr class="border-b border-white/5"><td class="py-4 font-black uppercase text-[9px] ${sColor}">${o.status}</td><td class="py-4 font-bold text-white">${o.item}</td><td class="py-4 text-xs text-slate-400">${o.customer}</td><td class="py-4 text-xs font-mono text-blue-400">${o.claimedBy || 'NONE'}</td><td class="py-4 font-black text-white">${o.totalPrice}</td><td class="py-4"><button onclick="deleteOrder('${child.key}')" class="opacity-20 hover:opacity-100 transition">✕</button></td></tr>`;
             });
             document.getElementById('total-revenue').innerText = "€" + revenue.toFixed(2);
-            document.getElementById('order-count').innerText = orders + " Total Orders Today";
+            document.getElementById('order-count').innerText = orders + " Missions Completed";
             driverDiv.innerHTML = Object.keys(drivers).map(dId => `<div class="flex justify-between items-center p-3 glass rounded-xl border-l-2 border-blue-500"><div><p class="text-[9px] font-black text-blue-400 font-mono">${dId}</p><p class="text-[10px] font-bold">Active</p></div><div class="text-right"><p class="text-lg font-black">${drivers[dId]}</p></div></div>`).join('');
         });
 
-        // REFINED CHAT LOGIC
-        db.ref('support_tickets').on('value', (snap) => {
+        // 2. STABLE CHAT LOGIC
+        db.ref('support_tickets').on('value', snap => {
+            cachedTickets = snap.val() || {};
+            renderTabs();
+            renderChat();
+        });
+
+        function renderTabs() {
             const selector = document.getElementById('driver-selector');
-            const chatBox = document.getElementById('chat-box');
-            const tickets = snap.val();
+            const openIds = Object.keys(cachedTickets).filter(id => id.startsWith('D-') && cachedTickets[id].status === "Open");
             
-            if(!tickets) {
-                selector.innerHTML = "";
-                chatBox.innerHTML = "<div class='text-center text-[10px] text-slate-600 uppercase mt-40'>No messages yet</div>";
+            // Auto-select first driver if none selected
+            if (!selectedId && openIds.length > 0) selectedId = openIds[0];
+
+            let html = "";
+            openIds.forEach(id => {
+                const active = (selectedId === id) ? 'tab-active' : 'tab-inactive';
+                html += `<button onclick="selectDriver('${id}')" class="driver-tab ${active}">${id}</button>`;
+            });
+            selector.innerHTML = html;
+        }
+
+        function renderChat() {
+            const chatBox = document.getElementById('chat-box');
+            if(!selectedId || !cachedTickets[selectedId]) {
+                chatBox.innerHTML = "<div class='text-center text-[10px] text-slate-600 uppercase mt-40'>Select a tab</div>";
                 return;
             }
 
-            const openTickets = Object.keys(tickets).filter(id => tickets[id].status === "Open" && id.startsWith('D-'));
-
-            // Initial Auto-Select only if NOTHING is selected
-            if(!selectedDriverId && openTickets.length > 0) {
-                selectedDriverId = openTickets[0];
+            const t = cachedTickets[selectedId];
+            if(t.chat) {
+                let html = "";
+                Object.values(t.chat).forEach(m => {
+                    const admin = m.sender === "Admin";
+                    html += `<div class="flex ${admin ? 'justify-end' : 'justify-start'}"><div class="msg-bubble ${admin ? 'bg-blue-600 text-white' : 'bg-white/10 text-slate-200'}"><p class="text-[8px] font-black uppercase opacity-50 mb-1">${m.sender}</p>${m.text}</div></div>`;
+                });
+                chatBox.innerHTML = html;
+                chatBox.scrollTop = chatBox.scrollHeight;
             }
+        }
 
-            let tabsHtml = "";
-            openTickets.forEach(id => {
-                const active = (selectedDriverId === id) ? 'tab-active' : '';
-                
-                // Track if there's a new message
-                const currentMsgCount = Object.keys(tickets[id].chat || {}).length;
-                const hasNew = (id !== selectedDriverId) && (currentMsgCount > (lastMessageCount[id] || 0));
-                
-                tabsHtml += `
-                    <button onclick="selectChat('${id}')" class="driver-tab ${active}">
-                        ${id}
-                        ${hasNew ? '<span class="unread-dot"></span>' : ''}
-                    </button>`;
-            });
-            selector.innerHTML = tabsHtml;
-
-            if(selectedDriverId && tickets[selectedDriverId]) {
-                const t = tickets[selectedDriverId];
-                // Update known message count for selected driver to clear dot
-                lastMessageCount[selectedDriverId] = Object.keys(t.chat || {}).length;
-
-                if(t.chat) {
-                    let html = "";
-                    Object.values(t.chat).forEach(m => {
-                        const admin = m.sender === "Admin";
-                        html += `<div class="flex ${admin ? 'justify-end' : 'justify-start'}"><div class="msg-bubble ${admin ? 'bg-blue-600 text-white' : 'bg-white/10 text-slate-200'}"><p class="text-[8px] font-black uppercase opacity-50 mb-1">${m.sender}</p>${m.text}</div></div>`;
-                    });
-                    chatBox.innerHTML = html;
-                    chatBox.scrollTop = chatBox.scrollHeight;
-                }
-            }
-        });
-
-        function selectChat(id) {
-            selectedDriverId = id;
-            // Clear unread dot immediately upon click
-            db.ref('support_tickets/' + id + '/chat').once('value', (s) => {
-                lastMessageCount[id] = Object.keys(s.val() || {}).length;
-            });
-            // Force re-render
-            db.ref('support_tickets').once('value', () => {});
+        function selectDriver(id) {
+            selectedId = id;
+            renderTabs(); // Instant visual update
+            renderChat(); // Instant chat load
         }
 
         function sendAdminMsg() {
             const input = document.getElementById('chat-input');
             const text = input.value.trim();
-            if(!text || !selectedDriverId) return;
+            if(!text || !selectedId) return;
             
-            db.ref('support_tickets/' + selectedDriverId + '/chat').push({
+            db.ref('support_tickets/' + selectedId + '/chat').push({
                 sender: "Admin", text: text, timestamp: Date.now()
             });
-            db.ref('support_tickets/' + selectedDriverId).update({ lastUpdate: Date.now() });
+            db.ref('support_tickets/' + selectedId).update({ lastUpdate: Date.now() });
             input.value = "";
         }
 
         function endSelectedChat() {
-            if(selectedDriverId && confirm("End this chat?")) {
-                db.ref('support_tickets/' + selectedDriverId).update({ status: "Resolved" });
-                selectedDriverId = null;
+            if(selectedId && confirm("Resolve this ticket?")) {
+                db.ref('support_tickets/' + selectedId).update({ status: "Resolved" });
+                selectedId = null;
             }
         }
 
-        function deleteOrder(id) { if(confirm("Delete?")) db.ref('orders/' + id).remove(); }
-        function resetDay() { if(confirm("Wipe all data?")) { db.ref('orders').remove(); db.ref('support_tickets').remove(); selectedDriverId = null; } }
+        function deleteOrder(id) { if(confirm("Delete record?")) db.ref('orders/' + id).remove(); }
+        function resetDay() { if(confirm("Clear database?")) { db.ref('orders').remove(); db.ref('support_tickets').remove(); selectedId = null; } }
     </script>
 </body>
 </html>
