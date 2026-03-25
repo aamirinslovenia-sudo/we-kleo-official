@@ -26,6 +26,10 @@
         @keyframes radar { from { width: 50px; height: 50px; opacity: 1; } to { width: 180px; height: 180px; opacity: 0; } }
         .msg-driver { align-self: flex-end; background: #3b82f6; padding: 12px 18px; border-radius: 20px 20px 4px 20px; font-size: 14px; max-width: 80%; margin-bottom: 10px; }
         .msg-admin { align-self: flex-start; background: rgba(255,255,255,0.1); padding: 12px 18px; border-radius: 20px 20px 20px 4px; font-size: 14px; max-width: 80%; margin-bottom: 10px; }
+        
+        /* New Payment Warning Styles */
+        .cash-alert { background: rgba(234, 179, 8, 0.1); border: 1px solid rgba(234, 179, 8, 0.2); border-radius: 20px; padding: 15px; margin-bottom: 20px; }
+        input[type="checkbox"] { width: 18px; height: 18px; accent-color: #eab308; }
     </style>
 </head>
 <body>
@@ -102,13 +106,26 @@
             </div>
             <div id="order-ui" class="hidden">
                 <div class="flex justify-between items-start mb-6">
-                    <div><p class="text-blue-500 font-black text-[10px] uppercase tracking-widest mb-1">Income</p><div class="text-6xl font-black tracking-tighter text-white">€4.00</div></div>
+                    <div><p class="text-blue-500 font-black text-[10px] uppercase tracking-widest mb-1">Income</p><div id="display-price" class="text-6xl font-black tracking-tighter text-white">€4.00</div></div>
                     <button onclick="confirmDecline()" class="bg-red-500/20 text-red-500 px-4 py-2 rounded-xl text-[10px] font-black uppercase">Skip</button>
                 </div>
+
+                <div id="cash-collection-ui" class="hidden">
+                    <div class="cash-alert">
+                        <label class="flex items-center gap-4 cursor-pointer">
+                            <input type="checkbox" id="cash-collected-check" onchange="toggleFinishButton()">
+                            <div>
+                                <p class="text-[10px] font-black text-yellow-500 uppercase tracking-widest">Payment: CASH</p>
+                                <p class="text-sm font-bold text-white">Collect <span id="cash-amount" class="text-yellow-500">€0.00</span> from customer</p>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
                 <div class="space-y-6 mb-10">
                     <div class="flex gap-4">
                         <div class="w-10 h-10 glass-panel flex items-center justify-center font-black text-white">A</div>
-                        <div><p class="text-[9px] text-slate-500 uppercase font-bold tracking-widest">KLEO Kitchen</p><h4 class="text-lg font-bold text-white">Slovenska ulica 15</h4></div>
+                        <div><p id="res-name" class="text-[9px] text-slate-500 uppercase font-bold tracking-widest">KLEO Kitchen</p><h4 class="text-lg font-bold text-white">Slovenska ulica 15</h4></div>
                     </div>
                     <div class="flex gap-4">
                         <div class="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center font-black text-white">B</div>
@@ -213,18 +230,49 @@
         function renderUI(o, btnText) {
             document.getElementById('c-name').innerText = o.customer;
             document.getElementById('c-addr').innerText = o.address;
+            document.getElementById('res-name').innerText = o.restaurant || "KLEO Kitchen";
             document.getElementById('c-phone').href = "tel:" + o.phone;
             document.getElementById('action-btn').innerText = btnText;
             document.getElementById('order-ui').classList.remove('hidden');
             document.getElementById('waiting-ui').classList.add('hidden');
             document.getElementById('order-sheet').classList.replace('sheet-minimized', 'sheet-expanded');
+
+            // Handle Payment Warning Display
+            const cashUI = document.getElementById('cash-collection-ui');
+            const actionBtn = document.getElementById('action-btn');
+            
+            if (o.status === "Delivering" && o.paymentType === "Cash") {
+                cashUI.classList.remove('hidden');
+                document.getElementById('cash-amount').innerText = o.totalPrice;
+                toggleFinishButton(); // Initial lock check
+            } else {
+                cashUI.classList.add('hidden');
+                actionBtn.disabled = false;
+                actionBtn.style.opacity = "1";
+            }
+        }
+
+        function toggleFinishButton() {
+            const check = document.getElementById('cash-collected-check');
+            const btn = document.getElementById('action-btn');
+            if (currentOrder && currentOrder.status === "Delivering" && currentOrder.paymentType === "Cash") {
+                if (check.checked) {
+                    btn.disabled = false;
+                    btn.style.opacity = "1";
+                    btn.innerText = "End Mission";
+                } else {
+                    btn.disabled = true;
+                    btn.style.opacity = "0.3";
+                    btn.innerText = "Collect Cash First";
+                }
+            }
         }
 
         function processOrder() { 
             if (!currentOrder) return; 
             if (currentOrder.status === "Ready") {
                 db.ref('orders/' + currentOrder.id).update({ status: "Delivering", claimedBy: driverId });
-                window.open(`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(currentOrder.address)}`);
+                window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(currentOrder.address)}`);
             } else {
                 db.ref('orders/' + currentOrder.id).update({status: "Completed", completedAt: Date.now()});
             }
@@ -241,23 +289,19 @@
             input.value = "";
         }
 
-        // --- UPDATED WATCHER: CLOSES SCREEN WHEN RESOLVED ---
         db.ref('support_tickets/' + driverId).on('value', (snap) => {
             const t = snap.val();
             const chatBox = document.getElementById('chat-messages');
-            
-            // If ticket was closed by Manager or doesn't exist
             if (!t || t.status === "Resolved") {
                 chatBox.innerHTML = "<p class='text-center text-slate-500 mt-20 text-xs font-black uppercase tracking-widest'>Session Ended</p>";
                 setTimeout(() => {
                     if (!t || t.status === "Resolved") {
                         document.getElementById('chat-overlay').classList.remove('chat-active');
-                        chatBox.innerHTML = ""; // Clear for next time
+                        chatBox.innerHTML = "";
                     }
                 }, 2000);
                 return;
             }
-
             if (t.chat) {
                 let html = "";
                 Object.values(t.chat).forEach(m => {
