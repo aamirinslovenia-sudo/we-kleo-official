@@ -1,237 +1,273 @@
-<script>
-const firebaseConfig = { 
-    apiKey: "AIzaSyBD_YmzFTA2OKn64h22Z9yM7pCAmmlTl68", 
-    authDomain: "we-kleo.firebaseapp.com", 
-    databaseURL: "https://we-kleo-default-rtdb.europe-west1.firebasedatabase.app", 
-    projectId: "we-kleo", 
-    storageBucket: "we-kleo.firebasestorage.app", 
-    messagingSenderId: "87105321281", 
-    appId: "1:87105321281:web:ec83e4472e5756182749c0" 
-};
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>WE KLEO | MARIBOR</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;900&display=swap" rel="stylesheet">
+    
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+    <script type="text/javascript">
+       (function(){ emailjs.init("_yocJ8G-tQoBn2S80"); })();
+    </script>
 
-firebase.initializeApp(firebaseConfig);
-const db = firebase.database();
+    <style>
+        body { font-family: 'Outfit', sans-serif; background-color: #060a11; color: white; overflow-x: hidden; }
+        .glass { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.08); }
+        .we-kleo-title { animation: text-shimmer 3s infinite; }
+        @keyframes text-shimmer {
+            0%, 100% { color: #3b82f6; text-shadow: 0 0 10px rgba(59, 130, 246, 0.3); }
+            50% { color: #60a5fa; text-shadow: 0 0 25px rgba(96, 165, 250, 0.6); }
+        }
+        #onboarding-screen { position: fixed; inset: 0; background: #060a11; z-index: 5000; display: flex; flex-direction: column; justify-content: center; padding: 40px; transition: 0.6s; }
+        .input-box { width: 100%; background: rgba(255,255,255,0.05); border-radius: 20px; padding: 20px 24px; border: 1px solid rgba(255,255,255,0.1); outline: none; color: white; font-weight: 600; }
+        .active-item { border-color: #3b82f6 !important; background: rgba(59, 130, 246, 0.2) !important; transform: scale(1.02); box-shadow: 0 0 20px rgba(59, 130, 246, 0.3); }
+        
+        #order-tracking-overlay { position: fixed; inset: 0; background: #060a11; z-index: 2000; display: none; padding: 60px 24px; flex-direction: column; }
+        .tracking-dot { width: 14px; height: 14px; border-radius: 50%; background: #1e293b; transition: 0.5s; z-index: 10; }
+        .tracking-dot.active { background: #3b82f6; box-shadow: 0 0 20px #3b82f6; }
+        .connector-line { position: absolute; left: 6px; top: 0; bottom: 0; width: 2px; background: rgba(255,255,255,0.05); }
 
-let selectedItemName = "";
-let basePrice = 0;
-let selectedRestaurant = "";
-let selectedPayment = "";
-let emailSent = false;
+        #success-msg { position: fixed; inset: 0; background: #060a11; z-index: 6000; display: none; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 30px; }
+    </style>
+</head>
+<body class="pb-24">
 
-const deliveryFee = 2.5;
+    <div id="onboarding-screen">
+        <div class="mb-10 text-center">
+            <h1 class="text-6xl font-[900] italic tracking-tighter uppercase we-kleo-title mb-4">WE KLEO</h1>
+            <p class="text-slate-400 font-bold tracking-tight">Premium delivery <br>to your doorstep.</p>
+        </div>
+        <div id="setup-fields" class="space-y-3 mb-8 hidden">
+            <input id="userName" type="text" placeholder="Full Name" class="input-box">
+            <input id="userEmail" type="email" placeholder="Email (For Receipts)" class="input-box">
+            <input id="userPhone" type="tel" placeholder="Phone Number" class="input-box">
+            <input id="userAddress" type="text" placeholder="Address in Maribor" class="input-box">
+        </div>
+        <button id="gate-btn" onclick="handleGateway()" class="bg-white text-black font-black py-6 rounded-[30px] text-lg uppercase tracking-widest active:scale-95 transition-all shadow-2xl">Continue</button>
+    </div>
 
-// LOAD USER
-window.onload = function() {
-    if (localStorage.getItem('kleo_name')) {
-        document.getElementById('onboarding-screen').style.display = 'none';
-        document.getElementById('header-addr').innerText = localStorage.getItem('kleo_address');
-    }
-};
+    <header class="flex flex-col items-center pt-12 pb-6 border-b border-white/5 mb-8">
+        <h1 class="text-4xl font-[900] italic tracking-tighter uppercase we-kleo-title">WE KLEO</h1>
+        <div class="flex items-center gap-2 mt-2 glass px-4 py-1.5 rounded-full">
+            <span class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
+            <p id="header-addr" class="text-[9px] font-black text-slate-400 uppercase tracking-widest"></p>
+        </div>
+    </header>
 
-// ONBOARDING
-function handleGateway() {
-    const fields = document.getElementById('setup-fields');
-    const btn = document.getElementById('gate-btn');
+    <div class="max-w-md mx-auto px-6 space-y-14">
+        
+        <section>
+            <div class="flex items-center gap-3 mb-6">
+                <div class="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center text-xl">☁️</div>
+                <div>
+                    <h2 class="text-xl font-black italic tracking-tighter uppercase">LUFT Maribor</h2>
+                    <p class="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Fun Dining & Cocktails</p>
+                </div>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+                <div id="item-LuftBento" onclick="selectItem('Luft Bento Box', 19.90, 'item-LuftBento', 'LUFT')" class="glass p-5 rounded-[28px] text-center transition-all cursor-pointer border border-white/5">
+                    <span class="text-3xl block mb-2">🍱</span><p class="font-bold text-[11px] uppercase">Bento Box</p><p class="text-blue-400 font-black text-xs">€19.90</p>
+                </div>
+                <div id="item-LuftSteak" onclick="selectItem('Luft Strip Steak', 34.00, 'item-LuftSteak', 'LUFT')" class="glass p-5 rounded-[28px] text-center transition-all cursor-pointer border border-white/5">
+                    <span class="text-3xl block mb-2">🥩</span><p class="font-bold text-[11px] uppercase">Strip Steak</p><p class="text-blue-400 font-black text-xs">€34.00</p>
+                </div>
+                <div id="item-PurpleRain" onclick="selectItem('Purple Rain Cocktail', 9.90, 'item-PurpleRain', 'LUFT')" class="glass p-5 rounded-[28px] text-center transition-all cursor-pointer border border-white/5">
+                    <span class="text-3xl block mb-2">🍹</span><p class="font-bold text-[11px] uppercase">Purple Rain</p><p class="text-blue-400 font-black text-xs">€9.90</p>
+                </div>
+                <div id="item-WhiskeySour" onclick="selectItem('Whiskey Sour', 9.90, 'item-WhiskeySour', 'LUFT')" class="glass p-5 rounded-[28px] text-center transition-all cursor-pointer border border-white/5">
+                    <span class="text-3xl block mb-2">🥃</span><p class="font-bold text-[11px] uppercase">Whiskey Sour</p><p class="text-blue-400 font-black text-xs">€9.90</p>
+                </div>
+            </div>
+        </section>
 
-    if(fields.classList.contains('hidden')) {
-        fields.classList.remove('hidden');
-        btn.innerText = "Complete Profile";
-        return;
-    }
+        <section>
+            <div class="flex items-center gap-3 mb-6">
+                <div class="w-10 h-10 rounded-full bg-orange-500/20 flex items-center justify-center text-xl">⚓</div>
+                <div>
+                    <h2 class="text-xl font-black italic tracking-tighter uppercase">Ancora Maribor</h2>
+                    <p class="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Italian & Mediterranean</p>
+                </div>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+                <div id="item-AncoraPizza" onclick="selectItem('Pizza Ancora', 11.50, 'item-AncoraPizza', 'Ancora')" class="glass p-5 rounded-[28px] text-center transition-all cursor-pointer border border-white/5">
+                    <span class="text-3xl block mb-2">🍕</span><p class="font-bold text-[11px] uppercase">Pizza Ancora</p><p class="text-blue-400 font-black text-xs">€11.50</p>
+                </div>
+                <div id="item-AncoraPasta" onclick="selectItem('Seafood Pasta', 13.90, 'item-AncoraPasta', 'Ancora')" class="glass p-5 rounded-[28px] text-center transition-all cursor-pointer border border-white/5">
+                    <span class="text-3xl block mb-2">🍝</span><p class="font-bold text-[11px] uppercase">Seafood Pasta</p><p class="text-blue-400 font-black text-xs">€13.90</p>
+                </div>
+                <div id="item-AncoraSalad" onclick="selectItem('Greek Salad', 9.20, 'item-AncoraSalad', 'Ancora')" class="glass p-5 rounded-[28px] text-center transition-all cursor-pointer border border-white/5">
+                    <span class="text-3xl block mb-2">🥗</span><p class="font-bold text-[11px] uppercase">Greek Salad</p><p class="text-blue-400 font-black text-xs">€9.20</p>
+                </div>
+                <div id="item-AncoraCalamari" onclick="selectItem('Grilled Calamari', 16.50, 'item-AncoraCalamari', 'Ancora')" class="glass p-5 rounded-[28px] text-center transition-all cursor-pointer border border-white/5">
+                    <span class="text-3xl block mb-2">🦑</span><p class="font-bold text-[11px] uppercase">Grilled Calamari</p><p class="text-blue-400 font-black text-xs">€16.50</p>
+                </div>
+            </div>
+        </section>
 
-    const name = document.getElementById('userName').value.trim();
-    const email = document.getElementById('userEmail').value.trim();
-    const phone = document.getElementById('userPhone').value.trim();
-    const addr = document.getElementById('userAddress').value.trim();
+        <div class="px-2">
+            <p class="text-[10px] font-black uppercase text-slate-500 mb-3 tracking-widest">Select Payment Method</p>
+            <div class="flex gap-3">
+                <button id="pay-cash" onclick="setPayment('Cash')" class="flex-1 py-4 rounded-2xl border border-white/10 bg-white/5 text-[11px] font-bold uppercase transition-all">
+                    💵 Cash
+                </button>
+                <button id="pay-card" onclick="setPayment('Card')" class="flex-1 py-4 rounded-2xl border border-white/10 bg-white/5 text-[11px] font-bold uppercase transition-all">
+                    💳 Card
+                </button>
+            </div>
+        </div>
 
-    if (!name || !email || !phone || !addr) {
-        alert("Please fill all fields!");
-        return;
-    }
+        <div class="pt-4">
+            <div class="flex justify-between items-end mb-8 px-2">
+                <div><p class="text-[10px] font-black uppercase text-slate-500 mb-1">Total Mission Cost</p><h3 id="priceDisplay" class="text-5xl font-[900] italic tracking-tighter text-white">€0.00</h3></div>
+                <button onclick="resetUser()" class="text-[9px] font-bold text-slate-600 uppercase underline tracking-widest">Logout</button>
+            </div>
+            <button id="orderBtn" onclick="sendOrder()" class="w-full bg-blue-600 text-white font-[900] py-7 rounded-[32px] text-xl shadow-2xl shadow-blue-900/40 active:scale-95 transition-all uppercase italic tracking-tighter">Initiate Order</button>
+        </div>
+    </div>
 
-    if (!email.includes("@")) {
-        alert("Enter valid email!");
-        return;
-    }
+    <div id="order-tracking-overlay">
+        <div class="flex justify-between items-start mb-2">
+            <div>
+                <h2 class="text-4xl font-black italic tracking-tighter">MISSION <span class="text-blue-500">TRACKER</span></h2>
+                <p id="tracking-id" class="text-[10px] font-mono text-slate-500 uppercase">REF: ---</p>
+            </div>
+            <a href="tel:+38600000000" class="glass w-12 h-12 rounded-2xl flex items-center justify-center text-blue-500 border-blue-500/20 active:bg-blue-500 active:text-white transition-all">
+                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z"></path></svg>
+            </a>
+        </div>
+        
+        <div class="space-y-12 relative pb-6 mt-12">
+            <div class="connector-line"></div>
+            <div class="flex gap-6 items-center z-10"><div id="step-new" class="tracking-dot"></div><div><p class="text-[10px] font-black text-blue-500 uppercase tracking-widest">Stage 1</p><h4 class="font-bold uppercase">Transmitted</h4></div></div>
+            <div class="flex gap-6 items-center z-10"><div id="step-kitchen" class="tracking-dot"></div><div><p id="text-kitchen" class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Stage 2</p><h4 class="font-bold uppercase">Preparing</h4></div></div>
+            <div class="flex gap-6 items-center z-10"><div id="step-delivery" class="tracking-dot"></div><div><p id="text-delivery" class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Stage 3</p><h4 class="font-bold uppercase">On the road</h4></div></div>
+        </div>
+        
+        <div class="flex-grow flex flex-col justify-center">
+            <div class="glass p-10 text-center rounded-[40px] border border-white/10">
+                <p class="text-[10px] text-slate-400 uppercase font-black mb-3 tracking-[0.2em]">KLEO Arrival</p>
+                <h3 class="text-5xl font-[900] italic tracking-tighter text-white">~25 MIN</h3>
+            </div>
+        </div>
 
-    if (phone.length < 7) {
-        alert("Enter valid phone number!");
-        return;
-    }
+        <button onclick="location.reload()" class="w-full mb-4 bg-white/5 py-5 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-500">Back to Store</button>
+    </div>
 
-    localStorage.setItem('kleo_name', name);
-    localStorage.setItem('kleo_email', email);
-    localStorage.setItem('kleo_phone', phone);
-    localStorage.setItem('kleo_address', addr);
+    <div id="success-msg">
+        <div class="w-24 h-24 bg-blue-600 rounded-full flex items-center justify-center mb-8 shadow-2xl shadow-blue-500/50">
+            <svg class="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="4" d="M5 13l4 4L19 7"></path></svg>
+        </div>
+        <h2 class="text-4xl font-black italic tracking-tighter mb-2">MISSION SUCCESS</h2>
+        <p id="success-email-text" class="text-slate-400 font-bold mb-10 px-6">Receipt sent to your email.</p>
+        <button onclick="location.reload()" class="bg-white text-black font-black px-12 py-5 rounded-full uppercase tracking-widest">Continue Shopping</button>
+    </div>
 
-    document.getElementById('onboarding-screen').style.transform = 'translateY(-100%)';
-    document.getElementById('header-addr').innerText = addr;
-}
+    <script>
+        const firebaseConfig = { apiKey: "AIzaSyBD_YmzFTA2OKn64h22Z9yM7pCAmmlTl68", authDomain: "we-kleo.firebaseapp.com", databaseURL: "https://we-kleo-default-rtdb.europe-west1.firebasedatabase.app", projectId: "we-kleo", storageBucket: "we-kleo.firebasestorage.app", messagingSenderId: "87105321281", appId: "1:87105321281:web:ec83e4472e5756182749c0" };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+        let selectedItemName = ""; let basePrice = 0; let selectedRestaurant = ""; let selectedPayment = ""; let emailSent = false;
 
-// SELECT ITEM
-function selectItem(name, price, id, restaurant) {
-    selectedItemName = name;
-    basePrice = price;
-    selectedRestaurant = restaurant;
+        window.onload = function() {
+            if (localStorage.getItem('kleo_name')) {
+                document.getElementById('onboarding-screen').style.display = 'none';
+                document.getElementById('header-addr').innerText = localStorage.getItem('kleo_address');
+            }
+        };
 
-    document.querySelectorAll('[id^="item-"]').forEach(el => el.classList.remove('active-item'));
-    const el = document.getElementById(id);
-    if (el) el.classList.add('active-item');
-
-    updateTotal();
-
-    document.getElementById('orderBtn').innerText = "Order from " + restaurant;
-
-    localStorage.setItem('last_item', name);
-}
-
-// TOTAL PRICE
-function updateTotal() {
-    if (!basePrice) return;
-    const total = basePrice + deliveryFee;
-    document.getElementById('priceDisplay').innerText = "€" + total.toFixed(2);
-}
-
-// PAYMENT
-function setPayment(method) {
-    selectedPayment = method;
-
-    document.getElementById('pay-cash').classList.remove('active-item');
-    document.getElementById('pay-card').classList.remove('active-item');
-
-    if(method === 'Cash') {
-        document.getElementById('pay-cash').classList.add('active-item');
-    } else {
-        document.getElementById('pay-card').classList.add('active-item');
-    }
-}
-
-// DELIVERY TIME (SAFE, used only when needed)
-function getDeliveryTime() {
-    if (selectedRestaurant === "LUFT") return "~30 MIN";
-    if (selectedRestaurant === "Ancora") return "~20 MIN";
-    return "~25 MIN";
-}
-
-// SEND ORDER
-function sendOrder() {
-    if (!selectedItemName) {
-        alert("Select a dish first!");
-        return;
-    }
-
-    if (!selectedPayment) {
-        alert("Please select Cash or Card!");
-        return;
-    }
-
-    // Anti-spam
-    const lastOrderTime = localStorage.getItem('lastOrderTime');
-    const now = Date.now();
-
-    if (lastOrderTime && now - lastOrderTime < 30000) {
-        alert("Please wait before placing another order!");
-        return;
-    }
-
-    localStorage.setItem('lastOrderTime', now);
-
-    const btn = document.getElementById('orderBtn');
-    btn.innerText = "Processing...";
-    btn.disabled = true;
-
-    const orderId = db.ref('orders').push().key;
-
-    db.ref('orders/' + orderId).set({
-        customer: localStorage.getItem('kleo_name'),
-        email: localStorage.getItem('kleo_email'),
-        address: localStorage.getItem('kleo_address'),
-        phone: localStorage.getItem('kleo_phone'),
-        item: selectedItemName,
-        restaurant: selectedRestaurant,
-        basePrice: basePrice,
-        deliveryFee: deliveryFee,
-        totalPrice: basePrice + deliveryFee,
-        paymentType: selectedPayment,
-        timestamp: Date.now(),
-        status: 'New'
-    }).then(() => {
-        btn.innerText = "Order Sent!";
-        startTracking(orderId);
-    }).catch(() => {
-        btn.innerText = "Try Again";
-        btn.disabled = false;
-    });
-}
-
-// TRACKING
-function startTracking(orderId) {
-    const overlay = document.getElementById('order-tracking-overlay');
-    if (overlay) overlay.style.display = 'flex';
-
-    const idBox = document.getElementById('tracking-id');
-    if (idBox) idBox.innerText = "ID: " + orderId;
-
-    // SAFE delivery time update
-    const timeBox = document.querySelector('#order-tracking-overlay .glass h3');
-    if (timeBox) {
-        timeBox.innerText = getDeliveryTime();
-    }
-
-    db.ref('orders/' + orderId).on('value', (snap) => {
-        const o = snap.val();
-        if(!o) return;
-
-        const dot1 = document.getElementById('step-new');
-        const dot2 = document.getElementById('step-kitchen');
-        const dot3 = document.getElementById('step-delivery');
-        const text2 = document.getElementById('text-kitchen');
-        const text3 = document.getElementById('text-delivery');
-
-        if (o.status === "New") {
-            if(dot1) dot1.classList.add('active');
+        function handleGateway() {
+            const fields = document.getElementById('setup-fields');
+            const btn = document.getElementById('gate-btn');
+            if(fields.classList.contains('hidden')) {
+                fields.classList.remove('hidden'); btn.innerText = "Complete Profile";
+            } else {
+                const name = document.getElementById('userName').value;
+                const email = document.getElementById('userEmail').value;
+                const phone = document.getElementById('userPhone').value;
+                const addr = document.getElementById('userAddress').value;
+                if(!name || !email || !phone || !addr) { alert("Fill all details!"); return; }
+                localStorage.setItem('kleo_name', name);
+                localStorage.setItem('kleo_email', email);
+                localStorage.setItem('kleo_phone', phone);
+                localStorage.setItem('kleo_address', addr);
+                document.getElementById('onboarding-screen').style.transform = 'translateY(-100%)';
+                document.getElementById('header-addr').innerText = addr;
+            }
         }
 
-        if (o.status === "Preparing") {
-            if(dot1) dot1.classList.add('active');
-            if(dot2) dot2.classList.add('active');
-            if(text2) text2.classList.replace('text-slate-500', 'text-blue-500');
+        function selectItem(name, price, id, restaurant) {
+            selectedItemName = name; basePrice = price; selectedRestaurant = restaurant;
+            document.querySelectorAll('[id^="item-"]').forEach(el => el.classList.remove('active-item'));
+            document.getElementById(id).classList.add('active-item');
+            document.getElementById('priceDisplay').innerText = "€" + price.toFixed(2);
+            document.getElementById('orderBtn').innerText = "Order from " + restaurant;
         }
 
-        if (o.status === "Delivering") {
-            if(dot1) dot1.classList.add('active');
-            if(dot2) dot2.classList.add('active');
-            if(dot3) dot3.classList.add('active');
-
-            if(text2) text2.classList.replace('text-slate-500', 'text-blue-500');
-            if(text3) text3.classList.replace('text-slate-500', 'text-blue-500');
+        function setPayment(method) {
+            selectedPayment = method;
+            document.getElementById('pay-cash').classList.remove('active-item');
+            document.getElementById('pay-card').classList.remove('active-item');
+            if(method === 'Cash') document.getElementById('pay-cash').classList.add('active-item');
+            else document.getElementById('pay-card').classList.add('active-item');
         }
 
-        if(o.status === "Completed" && !emailSent) {
-            emailSent = true;
+        function sendOrder() {
+            if (!selectedItemName) { alert("Select a dish first!"); return; }
+            if (!selectedPayment) { alert("Please select Cash or Card!"); return; }
+            
+            const orderId = db.ref('orders').push().key;
+            db.ref('orders/' + orderId).set({
+                customer: localStorage.getItem('kleo_name'),
+                email: localStorage.getItem('kleo_email'),
+                address: localStorage.getItem('kleo_address'),
+                phone: localStorage.getItem('kleo_phone'),
+                item: selectedItemName,
+                restaurant: selectedRestaurant,
+                totalPrice: document.getElementById('priceDisplay').innerText,
+                paymentType: selectedPayment,
+                timestamp: Date.now(),
+                status: 'New'
+            }).then(() => { startTracking(orderId); });
+        }
 
-            emailjs.send("service_i0905hd", "template_5gwvu9l", {
-                to_name: o.customer,
-                to_email: o.email,
-                item_name: o.item + " (" + o.restaurant + ")",
-                total_price: "€" + o.totalPrice,
-                delivery_address: o.address
-            }).then(() => {
-                const msg = document.getElementById('success-email-text');
-                if (msg) msg.innerText = "Receipt sent to " + o.email;
+        function startTracking(orderId) {
+            document.getElementById('order-tracking-overlay').style.display = 'flex';
+            document.getElementById('tracking-id').innerText = "ID: " + orderId;
+            db.ref('orders/' + orderId).on('value', (snap) => {
+                const o = snap.val(); if(!o) return;
+                const dot1 = document.getElementById('step-new');
+                const dot2 = document.getElementById('step-kitchen');
+                const dot3 = document.getElementById('step-delivery');
+                const text2 = document.getElementById('text-kitchen');
+                const text3 = document.getElementById('text-delivery');
 
-                const success = document.getElementById('success-msg');
-                if (success) success.style.display = 'flex';
+                dot1.classList.add('active');
+                if (["Preparing", "Ready", "Delivering", "Completed"].includes(o.status)) {
+                    dot2.classList.add('active'); text2.classList.replace('text-slate-500', 'text-blue-500');
+                }
+                if (["Delivering", "Completed"].includes(o.status)) {
+                    dot3.classList.add('active'); text3.classList.replace('text-slate-500', 'text-blue-500');
+                }
+
+                if(o.status === "Completed" && !emailSent) {
+                    emailSent = true;
+                    emailjs.send("service_i0905hd", "template_5gwvu9l", {
+                        to_name: o.customer, to_email: o.email,
+                        item_name: o.item + " (" + o.restaurant + ")",
+                        total_price: o.totalPrice, delivery_address: o.address
+                    }).then(() => {
+                        document.getElementById('success-email-text').innerText = "Receipt sent to " + o.email;
+                        document.getElementById('success-msg').style.display = 'flex';
+                    });
+                }
             });
         }
-    });
-}
-
-// LOGOUT
-function resetUser() {
-    if(confirm("Logout?")) {
-        localStorage.clear();
-        location.reload();
-    }
-}
-</script>
+        function resetUser() { if(confirm("Logout?")) { localStorage.clear(); location.reload(); } }
+    </script>
+</body>
+</html>
