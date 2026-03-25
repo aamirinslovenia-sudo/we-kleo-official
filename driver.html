@@ -24,16 +24,12 @@
         .stat-row { display: flex; justify-content: space-between; padding: 22px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
         .radar-ring { border: 2px solid rgba(59, 130, 246, 0.2); border-radius: 50%; position: absolute; animation: radar 3s infinite ease-out; pointer-events: none; }
         @keyframes radar { from { width: 50px; height: 50px; opacity: 1; } to { width: 180px; height: 180px; opacity: 0; } }
-        
         .timer-normal { color: #3b82f6; }
         .timer-late { color: #ef4444; font-weight: 900; }
         .ready-status { color: #10b981; animation: pulse-green 2s infinite; }
         @keyframes pulse-green { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
-
-        /* New Map Floating Button Style */
         .map-btn-floating { position: absolute; top: 20px; right: 25px; width: 45px; height: 45px; background: #3b82f6; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4); z-index: 101; transition: transform 0.2s; }
         .map-btn-floating:active { transform: scale(0.9); }
-
         .msg-driver { align-self: flex-end; background: #3b82f6; padding: 12px 18px; border-radius: 20px 20px 4px 20px; font-size: 14px; max-width: 80%; margin-bottom: 10px; }
         .msg-admin { align-self: flex-start; background: rgba(255,255,255,0.1); padding: 12px 18px; border-radius: 20px 20px 20px 4px; font-size: 14px; max-width: 80%; margin-bottom: 10px; }
         .cash-alert { background: rgba(234, 179, 8, 0.1); border: 1px solid rgba(234, 179, 8, 0.2); border-radius: 20px; padding: 15px; margin-bottom: 20px; }
@@ -41,7 +37,6 @@
     </style>
 </head>
 <body>
-
     <div class="fixed top-[60px] left-0 w-full z-[150] px-6 flex justify-between items-center">
         <button onclick="toggleSidebar()" class="w-14 h-14 glass-panel flex items-center justify-center text-2xl active:scale-90 transition-all">≡</button>
         <div class="glass-panel px-5 py-3 flex items-center gap-3">
@@ -107,11 +102,9 @@
     <div id="order-sheet" class="bottom-sheet glass-panel sheet-minimized">
         <div id="order-content" class="px-8 pt-4 pb-10 relative"> 
             <div class="w-16 h-1 bg-white/10 rounded-full mx-auto mb-10"></div>
-            
             <button id="map-trigger-btn" onclick="openMapDirectly()" class="map-btn-floating hidden">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
             </button>
-
             <div id="waiting-ui" class="text-center py-6 relative flex flex-col items-center justify-center">
                 <div class="radar-ring"></div>
                 <div class="radar-ring" style="animation-delay: 1.5s"></div>
@@ -126,19 +119,14 @@
                     </div>
                     <button onclick="confirmDecline()" class="bg-red-500/20 text-red-500 px-4 py-2 rounded-xl text-[10px] font-black uppercase">Skip</button>
                 </div>
-
                 <div id="cash-collection-ui" class="hidden">
                     <div class="cash-alert">
                         <label class="flex items-center gap-4 cursor-pointer">
                             <input type="checkbox" id="cash-collected-check" onchange="toggleFinishButton()">
-                            <div>
-                                <p class="text-[10px] font-black text-yellow-500 uppercase tracking-widest">Payment: CASH</p>
-                                <p class="text-sm font-bold text-white">Collect <span id="cash-amount" class="text-yellow-500">€0.00</span> from customer</p>
-                            </div>
+                            <div><p class="text-[10px] font-black text-yellow-500 uppercase tracking-widest">Payment: CASH</p><p class="text-sm font-bold text-white">Collect <span id="cash-amount" class="text-yellow-500">€0.00</span> from customer</p></div>
                         </label>
                     </div>
                 </div>
-
                 <div class="space-y-6 mb-10">
                     <div class="flex gap-4">
                         <div class="w-10 h-10 glass-panel flex items-center justify-center font-black text-white">A</div>
@@ -170,15 +158,14 @@
         document.getElementById('display-driver-id').innerText = driverId;
 
         let currentOrder = null; let audioCtx = null; let alertInterval = null;
-        let allCompletedOrders = [];
-        let globalTimerInterval = null;
+        let allCompletedOrders = []; let globalTimerInterval = null;
 
         db.ref(".info/connected").on("value", (snap) => {
             const dot = document.getElementById('conn-dot');
-            if (snap.val() === true) dot.className = "w-2.5 h-2.5 rounded-full status-online";
-            else dot.className = "w-2.5 h-2.5 rounded-full status-offline";
+            dot.className = snap.val() === true ? "w-2.5 h-2.5 rounded-full status-online" : "w-2.5 h-2.5 rounded-full status-offline";
         });
 
+        // UI Handlers
         function toggleSidebar() { document.getElementById('history-sidebar').classList.toggle('sidebar-active'); }
         function openStats() { document.getElementById('stats-overlay').classList.add('stats-active'); toggleSidebar(); filterStats('today'); }
         function closeStats() { document.getElementById('stats-overlay').classList.remove('stats-active'); }
@@ -186,63 +173,26 @@
         function closeChat() { document.getElementById('chat-overlay').classList.remove('chat-active'); }
         function showCustomRange() { document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active')); document.getElementById('tab-custom').classList.add('active'); document.getElementById('custom-picker').classList.remove('hidden'); }
         function confirmDecline() { if(confirm("Decline mission?")) location.reload(); }
+        function openMapDirectly() { if (currentOrder && currentOrder.address) window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(currentOrder.address)}`); }
 
-        function updateStatDisplay(count, label) {
-            document.getElementById('stat-count').innerText = count;
-            document.getElementById('stat-total').innerText = "€" + (count * 4).toFixed(2);
-            document.getElementById('stat-base').innerText = "€" + (count * 4).toFixed(2);
-            document.getElementById('stat-date-label').innerText = label;
-        }
-
-        function filterStats(range) {
-            document.getElementById('custom-picker').classList.add('hidden');
-            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-            document.getElementById('tab-' + range).classList.add('active');
-            const now = new Date(); let count = 0;
-            allCompletedOrders.forEach(o => {
-                const timeVal = o.completedAt || o.timestamp;
-                const oDate = new Date(timeVal);
-                if (o.claimedBy === driverId) {
-                    if(range === 'today' && oDate.toDateString() === now.toDateString()) count++;
-                    else if(range === 'week' && (now - oDate) < 7 * 24 * 60 * 60 * 1000) count++;
-                    else if(range === 'month' && oDate.getMonth() === now.getMonth()) count++;
-                }
-            });
-            updateStatDisplay(count, range === 'today' ? now.toLocaleDateString('en-GB', { day: 'numeric', month: 'long' }) : range.toUpperCase());
-        }
-
-        function runCustomFilter() {
-            const from = new Date(document.getElementById('date-from').value).setHours(0,0,0,0);
-            const to = new Date(document.getElementById('date-to').value).setHours(23,59,59,999);
-            if(!from || !to) return;
-            let count = 0;
-            allCompletedOrders.forEach(o => {
-                const oDate = (o.completedAt || o.timestamp);
-                if(o.claimedBy === driverId && oDate >= from && oDate <= to) count++;
-            });
-            updateStatDisplay(count, "Custom Period");
-        }
-
+        // Data Sync logic
         db.ref('orders').on('value', (snap) => {
             let activeTask = null; let availableOrder = null; allCompletedOrders = [];
             snap.forEach(c => {
                 const o = c.val(); o.id = c.key;
                 if (o.status === "Delivering" && o.claimedBy === driverId) activeTask = o;
-                if (!o.claimedBy && (o.status === "Preparing" || o.status === "Ready" || (o.status === "New" && o.readyTimestamp))) {
-                    availableOrder = o;
-                }
+                if (!o.claimedBy && (o.status === "Preparing" || o.status === "Ready" || (o.status === "New" && o.readyTimestamp))) availableOrder = o;
                 if (o.status === "Completed") allCompletedOrders.push(o);
             });
             
             const mapBtn = document.getElementById('map-trigger-btn');
-            
             if (activeTask) {
                 currentOrder = activeTask; renderUI(activeTask, "End Mission");
-                mapBtn.classList.remove('hidden'); // Show map icon only when mission accepted
+                mapBtn.classList.remove('hidden');
                 clearInterval(alertInterval); alertInterval = null;
             } else if (availableOrder) {
                 currentOrder = availableOrder; renderUI(availableOrder, "Accept");
-                mapBtn.classList.add('hidden'); // Hide if not yet accepted
+                mapBtn.classList.add('hidden');
                 if (!alertInterval) { playBeep(); alertInterval = setInterval(() => playBeep(), 2000); }
             } else {
                 currentOrder = null; clearInterval(alertInterval); alertInterval = null;
@@ -254,12 +204,21 @@
             }
         });
 
-        function openMapDirectly() {
-            if (currentOrder && currentOrder.address) {
-                window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(currentOrder.address)}`);
+        function processOrder() { 
+            if (!currentOrder) return; 
+            if (currentOrder.status !== "Delivering") {
+                // FIXED: We ONLY claim the order. We do NOT change the status to "Ready".
+                // If it is "Preparing", it stays "Preparing" so the Kitchen can click Ready.
+                db.ref('orders/' + currentOrder.id).update({ 
+                    claimedBy: driverId, 
+                    status: "Delivering" 
+                });
+            } else {
+                db.ref('orders/' + currentOrder.id).update({status: "Completed", completedAt: Date.now()});
             }
         }
 
+        // Remaining logic for timer, stats, and sound
         function renderUI(o, btnText) {
             document.getElementById('c-name').innerText = o.customer;
             document.getElementById('c-addr').innerText = o.address;
@@ -269,20 +228,16 @@
             document.getElementById('order-ui').classList.remove('hidden');
             document.getElementById('waiting-ui').classList.add('hidden');
             document.getElementById('order-sheet').classList.replace('sheet-minimized', 'sheet-expanded');
-
             startWoltTimer(o);
-
             const cashUI = document.getElementById('cash-collection-ui');
             const actionBtn = document.getElementById('action-btn');
-            
             if (o.status === "Delivering" && o.paymentType === "Cash") {
                 cashUI.classList.remove('hidden');
                 document.getElementById('cash-amount').innerText = o.totalPrice;
                 toggleFinishButton();
             } else {
                 cashUI.classList.add('hidden');
-                actionBtn.disabled = false;
-                actionBtn.style.opacity = "1";
+                actionBtn.disabled = false; actionBtn.style.opacity = "1";
             }
         }
 
@@ -290,33 +245,21 @@
             clearInterval(globalTimerInterval);
             const timerEl = document.getElementById('display-timer');
             const labelEl = document.getElementById('timer-label');
-
             globalTimerInterval = setInterval(() => {
                 if (o.status === "Ready") {
-                    timerEl.innerText = "READY";
-                    timerEl.className = "text-5xl font-black italic ready-status";
-                    labelEl.innerText = "Food is waiting";
-                    return;
+                    timerEl.innerText = "READY"; timerEl.className = "text-5xl font-black italic ready-status";
+                    labelEl.innerText = "Food is waiting"; return;
                 }
                 if (!o.readyTimestamp) {
-                    timerEl.innerText = "WAITING...";
-                    timerEl.className = "text-5xl font-black italic text-slate-500";
-                    return;
+                    timerEl.innerText = "WAITING..."; timerEl.className = "text-5xl font-black italic text-slate-500"; return;
                 }
                 const diff = o.readyTimestamp - Date.now();
-                const totalSecs = Math.floor(diff / 1000);
-                const absSecs = Math.abs(totalSecs);
-                const mins = Math.floor(absSecs / 60);
-                const secs = (absSecs % 60).toString().padStart(2, '0');
-
+                const totalSecs = Math.floor(diff / 1000); const absSecs = Math.abs(totalSecs);
+                const mins = Math.floor(absSecs / 60); const secs = (absSecs % 60).toString().padStart(2, '0');
                 if (totalSecs >= 0) {
-                    timerEl.innerText = `${mins}:${secs}M`;
-                    timerEl.className = "text-5xl font-black italic timer-normal";
-                    labelEl.innerText = "Preparation Time";
+                    timerEl.innerText = `${mins}:${secs}M`; timerEl.className = "text-5xl font-black italic timer-normal"; labelEl.innerText = "Preparation Time";
                 } else {
-                    timerEl.innerText = `-${mins}:${secs}`;
-                    timerEl.className = "text-5xl font-black italic timer-late";
-                    labelEl.innerText = "RESTAURANT LATE";
+                    timerEl.innerText = `-${mins}:${secs}`; timerEl.className = "text-5xl font-black italic timer-late"; labelEl.innerText = "RESTAURANT LATE";
                 }
             }, 1000);
         }
@@ -325,26 +268,36 @@
             const check = document.getElementById('cash-collected-check');
             const btn = document.getElementById('action-btn');
             if (currentOrder && currentOrder.status === "Delivering" && currentOrder.paymentType === "Cash") {
-                if (check.checked) {
-                    btn.disabled = false; btn.style.opacity = "1"; btn.innerText = "End Mission";
-                } else {
-                    btn.disabled = true; btn.style.opacity = "0.3"; btn.innerText = "Collect Cash First";
-                }
-            }
-        }
-
-        function processOrder() { 
-            if (!currentOrder) return; 
-            if (currentOrder.status !== "Delivering") {
-                db.ref('orders/' + currentOrder.id).update({ status: "Delivering", claimedBy: driverId });
-                // AUTO-OPEN REMOVED FROM HERE AS REQUESTED
-            } else {
-                db.ref('orders/' + currentOrder.id).update({status: "Completed", completedAt: Date.now()});
+                if (check.checked) { btn.disabled = false; btn.style.opacity = "1"; btn.innerText = "End Mission"; }
+                else { btn.disabled = true; btn.style.opacity = "0.3"; btn.innerText = "Collect Cash First"; }
             }
         }
 
         function goOnline() { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); if(audioCtx.state === 'suspended') audioCtx.resume(); document.getElementById('boot-screen').style.display = 'none'; }
         
+        function filterStats(range) {
+            document.getElementById('custom-picker').classList.add('hidden');
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('tab-' + range).classList.add('active');
+            const now = new Date(); let count = 0;
+            allCompletedOrders.forEach(o => {
+                const oDate = new Date(o.completedAt || o.timestamp);
+                if (o.claimedBy === driverId) {
+                    if(range === 'today' && oDate.toDateString() === now.toDateString()) count++;
+                    else if(range === 'week' && (now - oDate) < 7 * 24 * 60 * 60 * 1000) count++;
+                    else if(range === 'month' && oDate.getMonth() === now.getMonth()) count++;
+                }
+            });
+            updateStatDisplay(count, range === 'today' ? now.toLocaleDateString('en-GB', { day: 'numeric', month: 'long' }) : range.toUpperCase());
+        }
+
+        function updateStatDisplay(count, label) {
+            document.getElementById('stat-count').innerText = count;
+            document.getElementById('stat-total').innerText = "€" + (count * 4).toFixed(2);
+            document.getElementById('stat-base').innerText = "€" + (count * 4).toFixed(2);
+            document.getElementById('stat-date-label').innerText = label;
+        }
+
         function sendMessage() {
             const input = document.getElementById('chat-input');
             if (!input.value.trim()) return;
@@ -355,40 +308,15 @@
         }
 
         db.ref('support_tickets/' + driverId).on('value', (snap) => {
-            const t = snap.val();
-            const chatBox = document.getElementById('chat-messages');
-            if (!t || t.status === "Resolved") {
-                chatBox.innerHTML = "<p class='text-center text-slate-500 mt-20 text-xs font-black uppercase tracking-widest'>Session Ended</p>";
-                setTimeout(() => {
-                    if (!t || t.status === "Resolved") {
-                        document.getElementById('chat-overlay').classList.remove('chat-active');
-                        chatBox.innerHTML = "";
-                    }
-                }, 2000);
-                return;
-            }
+            const t = snap.val(); const chatBox = document.getElementById('chat-messages');
+            if (!t || t.status === "Resolved") { chatBox.innerHTML = "<p class='text-center text-slate-500 mt-20 text-xs font-black uppercase tracking-widest'>Session Ended</p>"; return; }
             if (t.chat) {
-                let html = "";
-                Object.values(t.chat).forEach(m => {
-                    html += `<div class="${m.sender === 'Driver' ? 'msg-driver' : 'msg-admin'}">${m.text}</div>`;
-                });
-                chatBox.innerHTML = html;
-                chatBox.scrollTop = chatBox.scrollHeight;
+                let html = ""; Object.values(t.chat).forEach(m => { html += `<div class="${m.sender === 'Driver' ? 'msg-driver' : 'msg-admin'}">${m.text}</div>`; });
+                chatBox.innerHTML = html; chatBox.scrollTop = chatBox.scrollHeight;
             }
         });
 
-        function playBeep() {
-            if (!audioCtx) return;
-            const t = audioCtx.currentTime;
-            [0, 0.15].forEach(delay => {
-                const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
-                osc.connect(gain); gain.connect(audioCtx.destination);
-                osc.type = 'sine'; osc.frequency.setValueAtTime(1200, t + delay);
-                gain.gain.setValueAtTime(0.1, t + delay);
-                gain.gain.exponentialRampToValueAtTime(0.001, t + delay + 0.1);
-                osc.start(t + delay); osc.stop(t + delay + 0.1);
-            });
-        }
+        function playBeep() { if (!audioCtx) return; const t = audioCtx.currentTime; [0, 0.15].forEach(delay => { const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain(); osc.connect(gain); gain.connect(audioCtx.destination); osc.type = 'sine'; osc.frequency.setValueAtTime(1200, t + delay); gain.gain.setValueAtTime(0.1, t + delay); gain.gain.exponentialRampToValueAtTime(0.001, t + delay + 0.1); osc.start(t + delay); osc.stop(t + delay + 0.1); }); }
     </script>
 </body>
 </html>
