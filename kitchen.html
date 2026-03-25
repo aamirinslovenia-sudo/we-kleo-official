@@ -3,107 +3,69 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>KLEO | KITCHEN DASHBOARD</title>
+    <title>KLEO | KITCHEN</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;900&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Outfit', sans-serif; background: #000; color: white; }
         .glass-panel { background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 24px; }
-        .btn-blue { background: #3b82f6; }
-        .btn-green { background: #10b981; }
-        .status-badge { font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.1em; }
+        .btn-green { background: #10b981; box-shadow: 0 0 20px rgba(16, 185, 129, 0.2); }
     </style>
 </head>
-<body class="p-8">
-    <div class="flex justify-between items-center mb-10">
-        <h1 class="text-4xl font-black italic tracking-tighter text-white">KLEO <span class="text-blue-500">KITCHEN</span></h1>
-        <div id="conn-status" class="glass-panel px-4 py-2 status-badge text-green-500">System Live</div>
+<body class="p-6">
+    <div class="flex justify-between items-center mb-8">
+        <h1 class="text-3xl font-black italic text-white">KLEO <span class="text-blue-500">KITCHEN</span></h1>
     </div>
 
-    <div id="orders-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        </div>
+    <div id="orders-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
 
     <script>
-        const firebaseConfig = { 
-            apiKey: "AIzaSyBD_YmzFTA2OKn64h22Z9yM7pCAmmlTl68", 
-            authDomain: "we-kleo.firebaseapp.com", 
-            databaseURL: "https://we-kleo-default-rtdb.europe-west1.firebasedatabase.app", 
-            projectId: "we-kleo", 
-            storageBucket: "we-kleo.firebasestorage.app", 
-            messagingSenderId: "87105321281", 
-            appId: "1:87105321281:web:ec83e4472e5756182749c0" 
-        };
+        const firebaseConfig = { apiKey: "AIzaSyBD_YmzFTA2OKn64h22Z9yM7pCAmmlTl68", authDomain: "we-kleo.firebaseapp.com", databaseURL: "https://we-kleo-default-rtdb.europe-west1.firebasedatabase.app", projectId: "we-kleo", storageBucket: "we-kleo.firebasestorage.app", messagingSenderId: "87105321281", appId: "1:87105321281:web:ec83e4472e5756182749c0" };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
         db.ref('orders').on('value', (snap) => {
             const container = document.getElementById('orders-container');
             container.innerHTML = "";
-            
             snap.forEach(child => {
-                const o = child.val();
-                o.id = child.key;
-
-                // LOGIC FIX: Keep showing if food is NOT ready yet
-                // Even if driver accepts, it stays on screen.
-                if (o.status !== "Completed" && o.isFoodReady !== true) {
-                    const driverText = o.claimedBy ? `<p class="text-blue-500 status-badge mb-2">Driver ${o.claimedBy} Accepted</p>` : "";
-                    const borderStyle = o.claimedBy ? "border-blue-500" : "border-white/10";
-
+                const o = child.val(); o.id = child.key;
+                
+                // ONLY show if food is NOT ready yet
+                if (o.status !== "Completed" && !o.isFoodReady) {
                     container.innerHTML += `
-                        <div class="glass-panel p-6 border-2 ${borderStyle}">
-                            ${driverText}
-                            <div class="flex justify-between items-center mb-4">
-                                <h2 class="text-2xl font-bold">${o.customer}</h2>
-                                <span class="text-white/30 text-xs">#${o.id.slice(-4)}</span>
+                        <div class="glass-panel p-6 ${o.claimedBy ? 'border-blue-500 border-2' : ''}">
+                            <div class="flex justify-between mb-2">
+                                <h2 class="text-xl font-bold">${o.customer}</h2>
+                                <span class="text-blue-500 text-xs font-black">#${o.id.slice(-4)}</span>
                             </div>
-                            <p class="text-white/50 text-sm mb-6">${o.address}</p>
-                            
+                            <p class="text-white/40 text-sm mb-6">${o.address}</p>
                             ${!o.readyTimestamp ? `
-                                <div class="grid grid-cols-2 gap-4">
-                                    <button onclick="setTimer('${o.id}', 10)" class="glass-panel py-4 font-black hover:bg-white/10 transition-all">10 MIN</button>
-                                    <button onclick="setTimer('${o.id}', 20)" class="glass-panel py-4 font-black hover:bg-white/10 transition-all">20 MIN</button>
+                                <div class="grid grid-cols-2 gap-3">
+                                    <button onclick="setT('${o.id}', 10)" class="glass-panel py-4 font-bold">10 MIN</button>
+                                    <button onclick="setT('${o.id}', 20)" class="glass-panel py-4 font-bold">20 MIN</button>
                                 </div>
                             ` : `
                                 <div class="text-center bg-white/5 p-4 rounded-xl mb-4">
-                                    <p class="status-badge text-white/40 mb-1">Time Remaining</p>
                                     <p class="text-4xl font-black countdown" data-time="${o.readyTimestamp}">--:--</p>
                                 </div>
-                                <button onclick="markReady('${o.id}')" class="btn-green w-full py-5 rounded-xl font-black uppercase text-lg hover:scale-95 transition-all">
-                                    Food Ready
-                                </button>
+                                <button onclick="setR('${o.id}')" class="btn-green w-full py-4 rounded-xl font-black uppercase">Food Ready</button>
                             `}
-                        </div>
-                    `;
+                        </div>`;
                 }
             });
         });
 
-        function setTimer(id, mins) {
-            const readyTime = Date.now() + (mins * 60000);
-            db.ref('orders/' + id).update({
-                readyTimestamp: readyTime,
-                status: "Preparing",
-                isFoodReady: false
-            });
-        }
-
-        function markReady(id) {
-            db.ref('orders/' + id).update({
-                isFoodReady: true,
-                status: "Ready",
-                readyAt: Date.now()
-            });
-        }
-
+        function setT(id, m) { db.ref('orders/'+id).update({ readyTimestamp: Date.now()+(m*60000), status: "Preparing", isFoodReady: false }); }
+        function setR(id) { db.ref('orders/'+id).update({ isFoodReady: true, status: "Ready" }); }
+        
         setInterval(() => {
             document.querySelectorAll('.countdown').forEach(el => {
                 const diff = parseInt(el.dataset.time) - Date.now();
-                const mins = Math.floor(Math.abs(diff) / 60000);
-                const secs = Math.floor((Math.abs(diff) % 60000) / 1000).toString().padStart(2, '0');
-                el.innerText = (diff < 0 ? "-" : "") + mins + ":" + secs;
+                const abs = Math.abs(diff);
+                const m = Math.floor(abs/60000); const s = Math.floor((abs%60000)/1000).toString().padStart(2,'0');
+                el.innerText = (diff < 0 ? "-" : "") + m + ":" + s;
                 el.classList.toggle('text-red-500', diff < 0);
             });
         }, 1000);
