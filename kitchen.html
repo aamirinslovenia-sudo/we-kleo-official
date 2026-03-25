@@ -104,7 +104,8 @@
             const history = document.getElementById('historyList');
             const driverBox = document.getElementById('driver-summary');
             
-            let drivers = {}; let activeCount = 0;
+            let drivers = {}; 
+            let needsAttention = false; // Logic for sound
             list.innerHTML = "";
             history.innerHTML = "";
 
@@ -119,7 +120,10 @@
                 if (o.status === "Completed") {
                     renderHistory(o.id, o);
                 } else {
-                    activeCount++;
+                    // If any order is NEW and has NO time set, we need sound
+                    if (o.status === "New" && !o.readyTimestamp) {
+                        needsAttention = true;
+                    }
                     renderOrder(o.id, o);
                 }
             });
@@ -129,8 +133,13 @@
                 return `<div class="driver-status-pill"><span class="dot ${dotColor}"></span>${dId}</div>`;
             }).join('') || '<span class="text-[9px] text-slate-700 font-black uppercase">No Couriers Online</span>';
 
-            if (activeCount > 0 && !alarmInterval) alarmInterval = setInterval(playBell, 5000);
-            if (activeCount === 0) { clearInterval(alarmInterval); alarmInterval = null; }
+            // Start alarm if needed, otherwise stop it
+            if (needsAttention) {
+                if (!alarmInterval) alarmInterval = setInterval(playBell, 5000);
+            } else {
+                clearInterval(alarmInterval);
+                alarmInterval = null;
+            }
         });
 
         function renderOrder(id, o) {
