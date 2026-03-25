@@ -1,29 +1,30 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KLEO | KITCHEN COMMAND</title>
+    <meta charset="UTF-8"><title>KLEO | KITCHEN COMMAND</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;900&display=swap" rel="stylesheet">
     <style>
-        body { background: #000; color: white; font-family: 'Outfit', sans-serif; overflow: hidden; }
-        .order-card { background: #0a0a0a; border: 1px solid #1a1a1a; border-radius: 24px; padding: 20px; border-left: 6px solid #3b82f6; transition: 0.3s; }
-        .is-preparing { border-left-color: #eab308; background: #0d0d05; }
-        #boot { position: fixed; inset: 0; background: #000; z-index: 99; display: flex; align-items: center; justify-content: center; }
+        body { background: #050505; color: white; font-family: 'Outfit', sans-serif; }
+        .card { background: #111; border: 1px solid #222; border-radius: 20px; transition: 0.3s; }
+        .card-active { border-left: 10px solid #3b82f6; box-shadow: 0 0 20px rgba(59,130,246,0.2); }
+        #overlay { position: fixed; inset: 0; background: black; z-index: 100; display: flex; align-items: center; justify-content: center; }
     </style>
 </head>
 <body class="p-6">
-    <div id="boot"><button onclick="init()" class="bg-blue-600 px-10 py-5 rounded-2xl font-black italic text-xl">START KITCHEN SYSTEM</button></div>
+    <div id="overlay"><button onclick="init()" class="bg-blue-600 px-12 py-6 rounded-full font-black text-xl italic shadow-2xl">OPEN KITCHEN TERMINAL</button></div>
 
-    <header class="flex justify-between items-center mb-8">
-        <h1 class="text-4xl font-black italic text-blue-500">KLEO <span class="text-white">KITCHEN</span></h1>
-        <div class="text-right"><p class="text-[10px] font-bold text-slate-500">ACTIVE TASKS</p><p id="count" class="text-3xl font-black italic">0</p></div>
+    <header class="flex justify-between items-center mb-10">
+        <h1 class="text-5xl font-black italic tracking-tighter">KLEO <span class="text-blue-500">PRO</span></h1>
+        <div id="stats" class="text-right">
+            <p class="text-[10px] font-black text-slate-500">LIVE ORDERS</p>
+            <p id="orderCount" class="text-4xl font-black italic">0</p>
+        </div>
     </header>
 
-    <div id="list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"></div>
+    <div id="grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"></div>
 
     <script>
         const firebaseConfig = { apiKey: "AIzaSyBD_YmzFTA2OKn64h22Z9yM7pCAmmlTl68", authDomain: "we-kleo.firebaseapp.com", databaseURL: "https://we-kleo-default-rtdb.europe-west1.firebasedatabase.app", projectId: "we-kleo", storageBucket: "we-kleo.firebasestorage.app", messagingSenderId: "87105321281", appId: "1:87105321281:web:ec83e4472e5756182749c0" };
@@ -31,43 +32,58 @@
         const db = firebase.database();
         let audio = null; let lastCount = -1;
 
-        function init() { audio = new (window.AudioContext || window.webkitAudioContext)(); document.getElementById('boot').remove(); }
+        function init() { 
+            audio = new (window.AudioContext || window.webkitAudioContext)(); 
+            document.getElementById('overlay').remove(); 
+        }
 
         function playDing() {
             if(!audio) return; const t = audio.currentTime; const o = audio.createOscillator(); const g = audio.createGain();
-            o.connect(g); g.connect(audio.destination); o.frequency.setValueAtTime(880, t);
-            g.gain.setValueAtTime(0.1, t); g.gain.exponentialRampToValueAtTime(0.01, t + 0.5);
-            o.start(t); o.stop(t + 0.5);
+            o.connect(g); g.connect(audio.destination); o.type='sine'; o.frequency.setValueAtTime(900, t);
+            g.gain.setValueAtTime(0.2, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.8);
+            o.start(t); o.stop(t + 0.8);
         }
 
         db.ref('orders').on('value', (snap) => {
-            const list = document.getElementById('list'); 
-            let count = 0; list.innerHTML = "";
-            snap.forEach(c => {
-                const o = c.val(); o.id = c.key;
+            const grid = document.getElementById('grid');
+            let count = 0; grid.innerHTML = "";
+            snap.forEach(child => {
+                const o = child.val(); o.id = child.key;
                 if(o.status !== "Completed") {
-                    count++; render(o);
+                    count++; renderCard(o);
                 }
             });
             if(lastCount !== -1 && count > lastCount) playDing();
-            lastCount = count; document.getElementById('count').innerText = count;
+            lastCount = count; document.getElementById('orderCount').innerText = count;
         });
 
-        function render(o) {
+        function renderCard(o) {
             const html = `
-                <div class="order-card ${o.status === 'Preparing' ? 'is-preparing' : ''}">
-                    <div class="flex justify-between mb-4"><span class="text-[10px] font-black text-blue-400 uppercase">${o.status}</span><span class="font-bold">${o.totalPrice}</span></div>
-                    <h2 class="text-2xl font-black italic uppercase mb-4">${o.item}</h2>
-                    <div class="grid grid-cols-2 gap-2 mb-4">
-                        <button onclick="update('${o.id}', 'Preparing', 10)" class="bg-white/5 py-3 rounded-xl text-[10px] font-bold hover:bg-yellow-500 hover:text-black">10 MIN</button>
-                        <button onclick="update('${o.id}', 'Preparing', 20)" class="bg-white/5 py-3 rounded-xl text-[10px] font-bold hover:bg-orange-500 hover:text-black">20 MIN</button>
+                <div class="card p-6 ${o.status !== 'Placed' ? 'card-active' : ''}">
+                    <div class="flex justify-between items-start mb-4">
+                        <span class="text-[9px] font-black uppercase tracking-widest text-blue-500">${o.status}</span>
+                        <span class="font-black italic">${o.totalPrice}</span>
                     </div>
-                    <button onclick="update('${o.id}', 'Ready', 0)" class="w-full bg-white text-black py-4 rounded-xl font-black uppercase text-xs">Food is Ready</button>
+                    <h2 class="text-2xl font-black uppercase italic leading-none mb-4">${o.item}</h2>
+                    <p class="text-xs text-slate-500 mb-6">${o.toppings || 'Standard Recipe'}</p>
+                    
+                    <div class="grid grid-cols-2 gap-2 mb-4">
+                        <button onclick="update('${o.id}', 'Preparing', 15)" class="bg-white/5 py-3 rounded-xl text-[10px] font-black hover:bg-yellow-500 hover:text-black transition-all">15 MIN</button>
+                        <button onclick="update('${o.id}', 'Preparing', 30)" class="bg-white/5 py-3 rounded-xl text-[10px] font-black hover:bg-orange-500 hover:text-black transition-all">30 MIN</button>
+                    </div>
+                    <button onclick="update('${o.id}', 'Ready', 0)" class="w-full bg-white text-black py-4 rounded-xl font-black uppercase text-xs shadow-lg active:scale-95 transition-all">Ready for Pickup</button>
                 </div>`;
-            document.getElementById('list').insertAdjacentHTML('beforeend', html);
+            document.getElementById('grid').insertAdjacentHTML('beforeend', html);
         }
 
-        function update(id, s, m) { db.ref('orders/'+id).update({ status: s, isFoodReady: (s === 'Ready') }); }
+        function update(id, s, m) {
+            db.ref('orders/'+id).update({
+                status: s,
+                isFoodReady: (s === 'Ready'),
+                prepTime: m,
+                acceptedAt: Date.now()
+            });
+        }
     </script>
 </body>
 </html>
