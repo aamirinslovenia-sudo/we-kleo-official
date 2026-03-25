@@ -26,10 +26,7 @@
         @keyframes radar { from { width: 50px; height: 50px; opacity: 1; } to { width: 180px; height: 180px; opacity: 0; } }
         .msg-driver { align-self: flex-end; background: #3b82f6; padding: 12px 18px; border-radius: 20px 20px 4px 20px; font-size: 14px; max-width: 80%; margin-bottom: 10px; }
         .msg-admin { align-self: flex-start; background: rgba(255,255,255,0.1); padding: 12px 18px; border-radius: 20px 20px 20px 4px; font-size: 14px; max-width: 80%; margin-bottom: 10px; }
-        
-        /* New Payment Warning Styles */
         .cash-alert { background: rgba(234, 179, 8, 0.1); border: 1px solid rgba(234, 179, 8, 0.2); border-radius: 20px; padding: 15px; margin-bottom: 20px; }
-        input[type="checkbox"] { width: 18px; height: 18px; accent-color: #eab308; }
     </style>
 </head>
 <body>
@@ -205,19 +202,31 @@
             updateStatDisplay(count, "Custom Period");
         }
 
+        // --- FIXED LISTENER LOGIC ---
         db.ref('orders').on('value', (snap) => {
             let activeTask = null; let availableOrder = null; allCompletedOrders = [];
             snap.forEach(c => {
                 const o = c.val(); o.id = c.key;
+                
+                // 1. My Current Active Order
                 if (o.status === "Delivering" && o.claimedBy === driverId) activeTask = o;
-                if (o.status === "Ready" && !o.claimedBy) availableOrder = o;
+                
+                // 2. Orders I haven't claimed yet (Show New, Preparing, or Ready)
+                if ((o.status === "New" || o.status === "Preparing" || o.status === "Ready") && !o.claimedBy) {
+                    availableOrder = o;
+                }
+                
                 if (o.status === "Completed") allCompletedOrders.push(o);
             });
+
             if (activeTask) {
-                currentOrder = activeTask; renderUI(activeTask, "End Mission");
+                currentOrder = activeTask; 
+                // Logic: Only let driver "Finish" if the food is ready
+                renderUI(activeTask, activeTask.isFoodReady ? "End Mission" : "Waiting for Chef...");
                 clearInterval(alertInterval); alertInterval = null;
             } else if (availableOrder) {
-                currentOrder = availableOrder; renderUI(availableOrder, "Accept");
+                currentOrder = availableOrder; 
+                renderUI(availableOrder, "Accept Mission");
                 if (!alertInterval) { playBeep(); alertInterval = setInterval(() => playBeep(), 2000); }
             } else {
                 currentOrder = null; clearInterval(alertInterval); alertInterval = null;
@@ -232,23 +241,33 @@
             document.getElementById('c-addr').innerText = o.address;
             document.getElementById('res-name').innerText = o.restaurant || "KLEO Kitchen";
             document.getElementById('c-phone').href = "tel:" + o.phone;
-            document.getElementById('action-btn').innerText = btnText;
+            
+            const actionBtn = document.getElementById('action-btn');
+            actionBtn.innerText = btnText;
+            
+            // LOCK button if order is accepted but food isn't ready
+            if (o.status === "Delivering" && !o.isFoodReady) {
+                actionBtn.disabled = true;
+                actionBtn.style.opacity = "0.3";
+                actionBtn.classList.add("animate-pulse");
+            } else {
+                actionBtn.disabled = false;
+                actionBtn.style.opacity = "1";
+                actionBtn.classList.remove("animate-pulse");
+            }
+
             document.getElementById('order-ui').classList.remove('hidden');
             document.getElementById('waiting-ui').classList.add('hidden');
             document.getElementById('order-sheet').classList.replace('sheet-minimized', 'sheet-expanded');
 
-            // Handle Payment Warning Display
+            // Handle Cash
             const cashUI = document.getElementById('cash-collection-ui');
-            const actionBtn = document.getElementById('action-btn');
-            
-            if (o.status === "Delivering" && o.paymentType === "Cash") {
+            if (o.status === "Delivering" && o.paymentType === "Cash" && o.isFoodReady) {
                 cashUI.classList.remove('hidden');
                 document.getElementById('cash-amount').innerText = o.totalPrice;
-                toggleFinishButton(); // Initial lock check
+                toggleFinishButton();
             } else {
                 cashUI.classList.add('hidden');
-                actionBtn.disabled = false;
-                actionBtn.style.opacity = "1";
             }
         }
 
@@ -270,11 +289,23 @@
 
         function processOrder() { 
             if (!currentOrder) return; 
-            if (currentOrder.status === "Ready") {
-                db.ref('orders/' + currentOrder.id).update({ status: "Delivering", claimedBy: driverId });
-                window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(currentOrder.address)}`);
-            } else {
-                db.ref('orders/' + currentOrder.id).update({status: "Completed", completedAt: Date.now()});
+            
+            // If I am accepting a new order
+            if (currentOrder.status !== "Delivering") {
+                db.ref('orders/' + currentOrder.id).update({ 
+                    status: "Delivering", 
+                    claimedBy: driverId 
+                });
+                // Open Maps immediately
+                const mapUrl = "https://www.google.com/maps/dir/?api=1&destination=" + encodeURIComponent(currentOrder.address);
+                window.open(mapUrl, "_blank");
+            } 
+            // If I am finishing an order (Only works if food is ready)
+            else if (currentOrder.isFoodReady) {
+                db.ref('orders/' + currentOrder.id).update({
+                    status: "Completed", 
+                    completedAt: Date.now()
+                });
             }
         }
 
