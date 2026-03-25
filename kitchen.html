@@ -2,106 +2,72 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>KLEO | MASTER KITCHEN PRO</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KLEO | KITCHEN COMMAND</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;900&display=swap" rel="stylesheet">
     <style>
-        :root { --bg: #000; --accent: #3b82f6; }
-        body { background: var(--bg); color: white; font-family: 'Outfit', sans-serif; overflow: hidden; }
-        .matrix-container { height: calc(100vh - 80px); display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 20px; padding: 20px; overflow-y: auto; }
-        .order-card { background: #111; border-radius: 24px; border: 1px solid rgba(255,255,255,0.08); padding: 25px; border-left: 8px solid var(--accent); transition: 0.3s; }
-        .status-preparing { border-left-color: #eab308; background: rgba(234, 179, 8, 0.05); }
-        .btn-action { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); padding: 12px; border-radius: 12px; font-size: 10px; font-weight: 900; text-transform: uppercase; transition: 0.2s; }
-        .btn-action:hover { background: var(--accent); color: white; }
-        .btn-ready { background: #fff; color: #000; width: 100%; padding: 18px; border-radius: 16px; font-weight: 900; text-transform: uppercase; margin-top: 15px; }
+        body { background: #000; color: white; font-family: 'Outfit', sans-serif; overflow: hidden; }
+        .order-card { background: #0a0a0a; border: 1px solid #1a1a1a; border-radius: 24px; padding: 20px; border-left: 6px solid #3b82f6; transition: 0.3s; }
+        .is-preparing { border-left-color: #eab308; background: #0d0d05; }
+        #boot { position: fixed; inset: 0; background: #000; z-index: 99; display: flex; align-items: center; justify-content: center; }
     </style>
 </head>
-<body>
+<body class="p-6">
+    <div id="boot"><button onclick="init()" class="bg-blue-600 px-10 py-5 rounded-2xl font-black italic text-xl">START KITCHEN SYSTEM</button></div>
 
-    <div id="sync-overlay" class="fixed inset-0 z-[3000] bg-black flex flex-col items-center justify-center">
-        <button onclick="startKitchen()" class="px-12 py-6 bg-blue-600 rounded-2xl text-white font-black text-xl uppercase italic">Open Kitchen</button>
-    </div>
+    <header class="flex justify-between items-center mb-8">
+        <h1 class="text-4xl font-black italic text-blue-500">KLEO <span class="text-white">KITCHEN</span></h1>
+        <div class="text-right"><p class="text-[10px] font-bold text-slate-500">ACTIVE TASKS</p><p id="count" class="text-3xl font-black italic">0</p></div>
+    </header>
 
-    <nav class="h-[80px] border-b border-white/5 flex items-center justify-between px-10 bg-[#0a0a0a]">
-        <h1 class="text-3xl font-black italic">KLEO <span class="text-blue-500">KITCHEN</span></h1>
-        <div id="driver-summary" class="flex gap-3"></div>
-        <div id="clock" class="text-xl font-black tabular-nums text-slate-500">00:00:00</div>
-    </nav>
-
-    <div id="orderList" class="matrix-container"></div>
+    <div id="list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"></div>
 
     <script>
         const firebaseConfig = { apiKey: "AIzaSyBD_YmzFTA2OKn64h22Z9yM7pCAmmlTl68", authDomain: "we-kleo.firebaseapp.com", databaseURL: "https://we-kleo-default-rtdb.europe-west1.firebasedatabase.app", projectId: "we-kleo", storageBucket: "we-kleo.firebasestorage.app", messagingSenderId: "87105321281", appId: "1:87105321281:web:ec83e4472e5756182749c0" };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
-        let audioCtx = null;
+        let audio = null; let lastCount = -1;
 
-        function startKitchen() {
-            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            document.getElementById('sync-overlay').style.display = "none";
+        function init() { audio = new (window.AudioContext || window.webkitAudioContext)(); document.getElementById('boot').remove(); }
+
+        function playDing() {
+            if(!audio) return; const t = audio.currentTime; const o = audio.createOscillator(); const g = audio.createGain();
+            o.connect(g); g.connect(audio.destination); o.frequency.setValueAtTime(880, t);
+            g.gain.setValueAtTime(0.1, t); g.gain.exponentialRampToValueAtTime(0.01, t + 0.5);
+            o.start(t); o.stop(t + 0.5);
         }
 
-        setInterval(() => { document.getElementById('clock').innerText = new Date().toLocaleTimeString(); }, 1000);
-
-        // --- THE DYNAMIC LISTENER ---
         db.ref('orders').on('value', (snap) => {
-            const list = document.getElementById('orderList');
-            list.innerHTML = ""; 
-
-            snap.forEach((child) => {
-                const o = child.val();
-                o.id = child.key;
-
-                // LOGIC: Show everything EXCEPT Completed
-                // This makes it future-proof for any new statuses!
-                if (o.status !== "Completed" && o.status !== "Ready") {
-                    renderOrder(o.id, o);
+            const list = document.getElementById('list'); 
+            let count = 0; list.innerHTML = "";
+            snap.forEach(c => {
+                const o = c.val(); o.id = c.key;
+                if(o.status !== "Completed") {
+                    count++; render(o);
                 }
             });
+            if(lastCount !== -1 && count > lastCount) playDing();
+            lastCount = count; document.getElementById('count').innerText = count;
         });
 
-        function renderOrder(id, o) {
-            const isCooking = o.status === "Preparing" ? "status-preparing" : "";
-            const statusLabel = o.status === "Preparing" ? "🍳 COOKING" : "NEW TASK";
-
+        function render(o) {
             const html = `
-                <div class="order-card ${isCooking}">
-                    <div class="flex justify-between mb-4">
-                        <span class="text-[10px] font-black text-blue-500 uppercase">${statusLabel}</span>
-                        <span class="font-black italic">${o.totalPrice}</span>
-                    </div>
-                    <h2 class="text-3xl font-black uppercase italic mb-4">${o.item}</h2>
-                    
+                <div class="order-card ${o.status === 'Preparing' ? 'is-preparing' : ''}">
+                    <div class="flex justify-between mb-4"><span class="text-[10px] font-black text-blue-400 uppercase">${o.status}</span><span class="font-bold">${o.totalPrice}</span></div>
+                    <h2 class="text-2xl font-black italic uppercase mb-4">${o.item}</h2>
                     <div class="grid grid-cols-2 gap-2 mb-4">
-                        <button onclick="setStatus('${id}', 'Preparing', 10)" class="btn-action">10 MIN</button>
-                        <button onclick="setStatus('${id}', 'Preparing', 20)" class="btn-action">20 MIN</button>
+                        <button onclick="update('${o.id}', 'Preparing', 10)" class="bg-white/5 py-3 rounded-xl text-[10px] font-bold hover:bg-yellow-500 hover:text-black">10 MIN</button>
+                        <button onclick="update('${o.id}', 'Preparing', 20)" class="bg-white/5 py-3 rounded-xl text-[10px] font-bold hover:bg-orange-500 hover:text-black">20 MIN</button>
                     </div>
-
-                    <div class="bg-black/40 p-3 rounded-xl border border-white/5 mb-4">
-                        <p class="text-[8px] text-slate-600 uppercase font-black">Note</p>
-                        <p class="text-sm italic text-slate-300">${o.toppings || 'No note'}</p>
-                    </div>
-
-                    <button onclick="setStatus('${id}', 'Ready', 0)" class="btn-ready">Ready for Courier</button>
-                </div>
-            `;
-            document.getElementById('orderList').insertAdjacentHTML('beforeend', html);
+                    <button onclick="update('${o.id}', 'Ready', 0)" class="w-full bg-white text-black py-4 rounded-xl font-black uppercase text-xs">Food is Ready</button>
+                </div>`;
+            document.getElementById('list').insertAdjacentHTML('beforeend', html);
         }
 
-        function setStatus(id, s, mins) { 
-            const updates = { status: s };
-            if (mins > 0) updates.prepTime = mins;
-            if (s === 'Ready') {
-                updates.completedAt = Date.now();
-                updates.isFoodReady = true;
-            } else {
-                updates.isFoodReady = false;
-            }
-            db.ref('orders/' + id).update(updates); 
-        }
+        function update(id, s, m) { db.ref('orders/'+id).update({ status: s, isFoodReady: (s === 'Ready') }); }
     </script>
 </body>
 </html>
