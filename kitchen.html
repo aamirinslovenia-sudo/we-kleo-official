@@ -3,223 +3,103 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>KLEO | MASTER KITCHEN</title>
-
+    <title>KLEO | MASTER KITCHEN PRO</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800;900&display=swap" rel="stylesheet">
-    
     <style>
-        :root { --bg: #000000; --card: #0a0a0a; --accent: #3b82f6; }
-        body, html { margin: 0; padding: 0; height: 100%; width: 100%; overflow: hidden; font-family: 'Outfit', sans-serif; background-color: var(--bg); color: white; }
-        .top-nav { height: 80px; border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; align-items: center; justify-content: space-between; padding: 0 40px; background: var(--card); }
-        .matrix-container { height: calc(100vh - 80px); display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); grid-auto-rows: 1fr; gap: 20px; padding: 20px; }
-        
-        .order-card { background: #111; border-radius: 24px; border: 1px solid rgba(255,255,255,0.08); display: flex; flex-direction: column; padding: 25px; transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1); border-left: 8px solid var(--accent); }
-        .card-warning { border-left-color: #f59e0b; }
-        .card-urgent { border-left-color: #ef4444; animation: urgent-pulse 1.5s infinite; }
-        
-        @keyframes urgent-pulse { 0%, 100% { background: rgba(239, 68, 68, 0.05); } 50% { background: rgba(239, 68, 68, 0.15); } }
-        
-        .btn-dispatch { background: #fff; color: #000; font-weight: 900; text-transform: uppercase; border-radius: 16px; padding: 18px; font-size: 13px; margin-top: auto; transition: all 0.2s; }
-        .btn-dispatch:active { background: var(--accent); color: white; transform: scale(0.95); }
-
-        .driver-status-pill { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); padding: 5px 12px; border-radius: 14px; display: flex; align-items: center; gap: 8px; font-size: 11px; font-weight: 800; }
-        .dot { width: 10px; height: 10px; border-radius: 50%; }
-        .dot-green { background: #10b981; box-shadow: 0 0 10px rgba(16, 185, 129, 0.4); }
-        .dot-red { background: #ef4444; box-shadow: 0 0 10px rgba(239, 68, 68, 0.4); }
-
-        #history-sidebar { position: fixed; top: 0; right: 0; height: 100%; width: 420px; background: #080808; z-index: 2000; transform: translateX(100%); transition: transform 0.4s ease; border-left: 1px solid rgba(255,255,255,0.1); display: flex; flex-direction: column; }
-        .sidebar-open { transform: translateX(0) !important; }
-        #historyList { flex: 1; overflow-y: auto; padding: 0 30px 100px 30px; }
-        .qty-badge { background: #3b82f6; color: white; padding: 2px 8px; border-radius: 8px; font-size: 18px; margin-right: 10px; }
-        .category-icon { font-size: 24px; margin-right: 12px; opacity: 0.8; }
+        :root { --bg: #000; --accent: #3b82f6; }
+        body { background: var(--bg); color: white; font-family: 'Outfit', sans-serif; overflow: hidden; }
+        .matrix-container { height: calc(100vh - 80px); display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 20px; padding: 20px; overflow-y: auto; }
+        .order-card { background: #111; border-radius: 24px; border: 1px solid rgba(255,255,255,0.08); padding: 25px; border-left: 8px solid var(--accent); transition: 0.3s; }
+        .status-preparing { border-left-color: #eab308; background: rgba(234, 179, 8, 0.05); }
+        .btn-action { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); padding: 12px; border-radius: 12px; font-size: 10px; font-weight: 900; text-transform: uppercase; transition: 0.2s; }
+        .btn-action:hover { background: var(--accent); color: white; }
+        .btn-ready { background: #fff; color: #000; width: 100%; padding: 18px; border-radius: 16px; font-weight: 900; text-transform: uppercase; margin-top: 15px; }
     </style>
 </head>
 <body>
 
-    <div id="sync-overlay" class="fixed inset-0 z-[3000] bg-black flex flex-col items-center justify-center text-center">
-        <h1 class="text-7xl font-black italic tracking-tighter uppercase mb-4 text-white">WE KLEO</h1>
-        <button onclick="startKitchen()" class="px-12 py-6 bg-blue-600 rounded-[20px] text-white font-black text-xl shadow-2xl uppercase italic">Open Kitchen</button>
+    <div id="sync-overlay" class="fixed inset-0 z-[3000] bg-black flex flex-col items-center justify-center">
+        <button onclick="startKitchen()" class="px-12 py-6 bg-blue-600 rounded-2xl text-white font-black text-xl uppercase italic">Open Kitchen</button>
     </div>
 
-    <nav class="top-nav">
-        <div class="flex items-center gap-10">
-            <h1 class="text-3xl font-black italic tracking-tighter text-white leading-none">KLEO <span class="text-blue-500">KITCHEN</span></h1>
-            <div id="driver-summary" class="flex gap-3 border-l border-white/10 pl-10"></div>
-        </div>
-        
-        <div class="flex items-center gap-6">
-            <div class="glass px-4 py-2 rounded-xl border border-white/5 text-center">
-                <p class="text-[8px] font-black text-slate-500 uppercase">Avg Prep</p>
-                <p id="avg-prep" class="text-sm font-bold text-blue-400">--m</p>
-            </div>
-            <div class="text-right">
-                <p id="clock" class="text-2xl font-black tabular-nums leading-none">00:00:00</p>
-            </div>
-            <button onclick="toggleHistory()" class="bg-white/5 border border-white/10 px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest">History</button>
-        </div>
+    <nav class="h-[80px] border-b border-white/5 flex items-center justify-between px-10 bg-[#0a0a0a]">
+        <h1 class="text-3xl font-black italic">KLEO <span class="text-blue-500">KITCHEN</span></h1>
+        <div id="driver-summary" class="flex gap-3"></div>
+        <div id="clock" class="text-xl font-black tabular-nums text-slate-500">00:00:00</div>
     </nav>
 
     <div id="orderList" class="matrix-container"></div>
-
-    <div id="history-sidebar">
-        <div class="p-10 flex justify-between items-center">
-            <h2 class="text-2xl font-black italic uppercase text-blue-500">Log</h2>
-            <button onclick="toggleHistory()" class="text-white text-3xl">✕</button>
-        </div>
-        <div id="historyList"></div>
-    </div>
 
     <script>
         const firebaseConfig = { apiKey: "AIzaSyBD_YmzFTA2OKn64h22Z9yM7pCAmmlTl68", authDomain: "we-kleo.firebaseapp.com", databaseURL: "https://we-kleo-default-rtdb.europe-west1.firebasedatabase.app", projectId: "we-kleo", storageBucket: "we-kleo.firebasestorage.app", messagingSenderId: "87105321281", appId: "1:87105321281:web:ec83e4472e5756182749c0" };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
-        let audioCtx = null; let alarmInterval = null;
-
-        setInterval(() => {
-            document.getElementById('clock').innerText = new Date().toLocaleTimeString('sl-SI');
-            updateTimers();
-        }, 1000);
+        let audioCtx = null;
 
         function startKitchen() {
             audioCtx = new (window.AudioContext || window.webkitAudioContext)();
             document.getElementById('sync-overlay').style.display = "none";
         }
 
-        function playBell() {
-            if (!audioCtx) return;
-            const t = audioCtx.currentTime;
-            [880, 1100].forEach((f, i) => {
-                const o = audioCtx.createOscillator(); const g = audioCtx.createGain();
-                o.connect(g); g.connect(audioCtx.destination);
-                o.frequency.setValueAtTime(f, t + (i * 0.1));
-                g.gain.setValueAtTime(0.05, t + (i * 0.1));
-                g.gain.exponentialRampToValueAtTime(0.001, t + (i * 0.1) + 0.5);
-                o.start(t + (i * 0.1)); o.stop(t + (i * 0.1) + 0.5);
-            });
-        }
+        setInterval(() => { document.getElementById('clock').innerText = new Date().toLocaleTimeString(); }, 1000);
 
-        function toggleHistory() { document.getElementById('history-sidebar').classList.toggle('sidebar-open'); }
-
+        // --- THE DYNAMIC LISTENER ---
         db.ref('orders').on('value', (snap) => {
             const list = document.getElementById('orderList');
-            const history = document.getElementById('historyList');
-            const driverBox = document.getElementById('driver-summary');
-            
-            let drivers = {}; let activeOrders = []; let prepTimes = [];
-            history.innerHTML = "";
+            list.innerHTML = ""; 
 
             snap.forEach((child) => {
                 const o = child.val();
                 o.id = child.key;
 
-                if(o.claimedBy) {
-                    drivers[o.claimedBy] = (o.status === "Delivering" || o.status === "Ready") ? "Busy" : "Waiting";
-                }
-                
-                if (o.status === "New") { 
-                    activeOrders.push(o);
-                } else { 
-                    renderHistory(o.id, o); 
-                    if(o.completedAt && o.timestamp) prepTimes.push((o.completedAt - o.timestamp) / 60000);
+                // LOGIC: Show everything EXCEPT Completed
+                // This makes it future-proof for any new statuses!
+                if (o.status !== "Completed" && o.status !== "Ready") {
+                    renderOrder(o.id, o);
                 }
             });
-
-            // IMPROVEMENT 1: URGENCY SORTING (Oldest or Red orders first)
-            activeOrders.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
-
-            list.innerHTML = "";
-            activeOrders.forEach(order => renderOrder(order.id, order));
-
-            if(prepTimes.length > 0) {
-                const avg = prepTimes.reduce((a,b) => a+b, 0) / prepTimes.length;
-                document.getElementById('avg-prep').innerText = avg.toFixed(1) + "m";
-            }
-
-            driverBox.innerHTML = Object.keys(drivers).map(dId => {
-                const dotColor = (drivers[dId] === "Busy") ? "dot-red" : "dot-green";
-                return `<div class="driver-status-pill"><span class="dot ${dotColor}"></span>${dId}</div>`;
-            }).join('') || '<span class="text-[9px] text-slate-700 font-black uppercase">No Couriers Online</span>';
-
-            if (activeOrders.length > 0 && !alarmInterval) alarmInterval = setInterval(playBell, 5000);
-            if (activeOrders.length === 0) { clearInterval(alarmInterval); alarmInterval = null; }
         });
 
-        // IMPROVEMENT 2: SMART ICONS
-        function getIcon(name) {
-            const n = name.toLowerCase();
-            if (n.includes('burger')) return '🍔';
-            if (n.includes('pizza')) return '🍕';
-            if (n.includes('kebab')) return '🥙';
-            if (n.includes('drink') || n.includes('cola') || n.includes('water')) return '🥤';
-            if (n.includes('fry') || n.includes('chips')) return '🍟';
-            return '🍽️';
-        }
-
         function renderOrder(id, o) {
-            const time = o.timestamp || Date.now();
-            const qtyStr = o.quantity && o.quantity > 1 ? `<span class="qty-badge">${o.quantity}×</span>` : "";
-            const icon = getIcon(o.item);
-            const courierMsg = o.claimedBy ? `<div class="bg-blue-500/10 text-blue-400 p-2 rounded-lg text-[9px] font-black uppercase mt-2 italic text-center">Driver Accepted</div>` : `<div class="bg-white/5 text-slate-500 p-2 rounded-lg text-[9px] font-black uppercase mt-2 italic text-center">Waiting...</div>`;
+            const isCooking = o.status === "Preparing" ? "status-preparing" : "";
+            const statusLabel = o.status === "Preparing" ? "🍳 COOKING" : "NEW TASK";
 
             const html = `
-                <div id="card-${id}" data-time="${time}" class="order-card">
-                    <div class="flex justify-between items-start mb-4">
-                        <span class="text-[10px] font-black text-blue-500 uppercase tracking-widest">Active Task</span>
-                        <span class="text-lg font-black text-white italic">${o.totalPrice}</span>
+                <div class="order-card ${isCooking}">
+                    <div class="flex justify-between mb-4">
+                        <span class="text-[10px] font-black text-blue-500 uppercase">${statusLabel}</span>
+                        <span class="font-black italic">${o.totalPrice}</span>
                     </div>
-                    <h2 class="text-4xl font-black uppercase italic tracking-tighter mb-4 leading-none flex items-center">
-                        <span class="category-icon">${icon}</span>
-                        ${qtyStr}${o.item}
-                    </h2>
-                    <div class="bg-black/40 p-4 rounded-xl border border-white/5 mb-4 flex-1 overflow-hidden">
-                        <p class="text-[8px] font-black text-slate-600 uppercase mb-1 tracking-widest">Kitchen Note</p>
-                        <p class="text-sm italic text-slate-300 leading-tight">${o.toppings}</p>
+                    <h2 class="text-3xl font-black uppercase italic mb-4">${o.item}</h2>
+                    
+                    <div class="grid grid-cols-2 gap-2 mb-4">
+                        <button onclick="setStatus('${id}', 'Preparing', 10)" class="btn-action">10 MIN</button>
+                        <button onclick="setStatus('${id}', 'Preparing', 20)" class="btn-action">20 MIN</button>
                     </div>
-                    <div class="flex justify-between items-end mb-6">
-                        <div><p class="text-[8px] font-black text-slate-600 uppercase mb-1 tracking-widest">Prep Timer</p><p id="timer-${id}" class="text-3xl font-black tabular-nums leading-none">00:00</p></div>
-                        <div class="text-right">
-                            <p class="text-[8px] font-black text-slate-600 uppercase mb-1 tracking-widest">Client</p>
-                            <p class="text-xs font-bold truncate uppercase text-blue-400 mb-1 leading-none">${o.customer}</p>
-                            ${courierMsg}
-                        </div>
+
+                    <div class="bg-black/40 p-3 rounded-xl border border-white/5 mb-4">
+                        <p class="text-[8px] text-slate-600 uppercase font-black">Note</p>
+                        <p class="text-sm italic text-slate-300">${o.toppings || 'No note'}</p>
                     </div>
-                    <button onclick="setStatus('${id}', 'Ready')" class="btn-dispatch">Ready for Courier</button>
+
+                    <button onclick="setStatus('${id}', 'Ready', 0)" class="btn-ready">Ready for Courier</button>
                 </div>
             `;
             document.getElementById('orderList').insertAdjacentHTML('beforeend', html);
         }
 
-        function updateTimers() {
-            document.querySelectorAll('[id^="card-"]').forEach(card => {
-                const id = card.id.replace('card-', '');
-                const start = parseInt(card.getAttribute('data-time'));
-                const elapsed = Math.floor((Date.now() - start) / 1000);
-                const mins = Math.floor(elapsed / 60);
-                document.getElementById(`timer-${id}`).innerText = `${mins.toString().padStart(2, '0')}:${(elapsed % 60).toString().padStart(2, '0')}`;
-                
-                if (mins >= 20) card.className = "order-card card-urgent";
-                else if (mins >= 10) card.className = "order-card card-warning";
-                else card.className = "order-card";
-            });
-        }
-
-        function renderHistory(id, o) {
-            const html = `
-                <div class="bg-white/5 p-5 rounded-2xl border border-white/5 mb-4">
-                    <p class="font-black italic uppercase text-white text-lg">${o.item}</p>
-                    <p class="text-[10px] text-slate-500 font-bold uppercase mt-1">${o.customer}</p>
-                    <div class="mt-4 text-[8px] text-slate-800 font-black uppercase tracking-widest">Logged & Archived</div>
-                </div>
-            `;
-            document.getElementById('historyList').insertAdjacentHTML('afterbegin', html);
-        }
-
-        function setStatus(id, s) { 
+        function setStatus(id, s, mins) { 
             const updates = { status: s };
-            if (s === 'Ready') updates.completedAt = Date.now();
+            if (mins > 0) updates.prepTime = mins;
+            if (s === 'Ready') {
+                updates.completedAt = Date.now();
+                updates.isFoodReady = true;
+            } else {
+                updates.isFoodReady = false;
+            }
             db.ref('orders/' + id).update(updates); 
         }
     </script>
