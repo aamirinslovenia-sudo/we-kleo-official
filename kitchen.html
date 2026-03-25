@@ -13,12 +13,8 @@
         body { font-family: 'Outfit', sans-serif; background: var(--bg); color: white; overflow-x: hidden; }
         .glass { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.08); }
         .order-card { transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); border-left: 4px solid transparent; }
-        .order-card.new-order { border-left-color: #3b82f6; animation: pulse-border 2s infinite; }
-        @keyframes pulse-border { 0%, 100% { border-left-color: #3b82f6; } 50% { border-left-color: rgba(59, 130, 246, 0.2); } }
-        .tab-active { background: #3b82f6 !important; color: white !important; box-shadow: 0 0 20px rgba(59, 130, 246, 0.4); }
-        .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 8px; }
-        .status-preparing { background: #3b82f6; box-shadow: 0 0 10px #3b82f6; }
-        .status-ready { background: #10b981; box-shadow: 0 0 10px #10b981; }
+        .order-card.new-order { border-left-color: #3b82f6; }
+        .tab-active { background: #3b82f6 !important; color: white !important; }
     </style>
 </head>
 <body class="p-4 md:p-8">
@@ -27,7 +23,6 @@
         <header class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12">
             <div>
                 <h1 class="text-5xl font-black italic tracking-tighter text-white">KITCHEN<span class="text-blue-500">PRO</span></h1>
-                <p class="text-slate-500 font-bold uppercase tracking-[0.3em] text-[10px] mt-2">Live Order Management</p>
             </div>
             <div class="flex gap-2 glass p-1.5 rounded-2xl w-full md:w-auto">
                 <button onclick="switchTab('active')" id="tab-active" class="tab-active flex-1 md:flex-none px-8 py-3 rounded-xl font-black uppercase text-xs tracking-widest transition-all">Active</button>
@@ -55,7 +50,7 @@
         function playAlert() {
             initAudio();
             const now = Date.now();
-            if (now - lastPlayed < 1000) return;
+            if (now - lastPlayed < 1500) return; // Prevent sound spam
             lastPlayed = now;
 
             const t = audioCtx.currentTime;
@@ -95,19 +90,20 @@
             allOrders = snap.val() || {};
             renderOrders();
             
-            // LOGIC CHANGE: Only play sound if there is an order that is "New" AND has NO readyTimestamp
-            let hasNewUnassigned = false;
+            // THE SPECIFIC SOUND LOGIC FIX
+            let shouldBeep = false;
             Object.values(allOrders).forEach(o => {
-                if (o.status === 'New' && !o.readyTimestamp) hasNewUnassigned = true;
+                if (o.status === 'New' && !o.readyTimestamp) {
+                    shouldBeep = true;
+                }
             });
             
-            if (hasNewUnassigned) playAlert();
+            if (shouldBeep) playAlert();
         });
 
         function renderOrders() {
             const container = document.getElementById('orders-container');
             container.innerHTML = '';
-            
             const sorted = Object.entries(allOrders).sort((a,b) => b[1].timestamp - a[1].timestamp);
 
             sorted.forEach(([id, o]) => {
@@ -121,7 +117,6 @@
                 let controls = '';
                 if (!o.readyTimestamp) {
                     controls = `
-                        <p class="text-[10px] font-black uppercase tracking-widest text-blue-500 mb-4 text-center">Estimate Prep Time</p>
                         <div class="grid grid-cols-3 gap-3">
                             <button onclick="setTime('${id}', 10)" class="bg-white/5 hover:bg-blue-600 py-4 rounded-2xl font-black transition-all">10M</button>
                             <button onclick="setTime('${id}', 20)" class="bg-white/5 hover:bg-blue-600 py-4 rounded-2xl font-black transition-all">20M</button>
@@ -129,42 +124,29 @@
                         </div>`;
                 } else if (o.status === 'Preparing') {
                     controls = `
-                        <button onclick="markReady('${id}')" class="w-full bg-blue-600 hover:bg-blue-500 py-5 rounded-2xl font-black uppercase tracking-widest shadow-lg shadow-blue-900/20 transition-all">
+                        <button onclick="markReady('${id}')" class="w-full bg-blue-600 py-5 rounded-2xl font-black uppercase tracking-widest transition-all">
                             Mark as Ready
                         </button>`;
                 } else {
-                    controls = `
-                        <div class="text-center py-2 bg-white/5 rounded-2xl">
-                            <span class="text-[10px] font-black uppercase tracking-tighter ${o.status === 'Ready' ? 'text-green-500' : 'text-slate-500'}">${o.status}</span>
-                        </div>`;
+                    controls = `<div class="text-center py-2 text-slate-500 font-black uppercase text-xs">${o.status}</div>`;
                 }
 
                 card.innerHTML = `
                     <div class="flex justify-between items-start mb-6">
                         <div>
-                            <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Order #${id.slice(-4)}</span>
-                            <h3 class="text-2xl font-bold mt-1">${o.customer}</h3>
+                            <span class="text-[10px] font-black text-slate-500 uppercase">Order #${id.slice(-4)}</span>
+                            <h3 class="text-2xl font-bold">${o.customer}</h3>
                         </div>
-                        <div class="text-right">
-                            <p class="text-xs font-bold text-slate-400">${new Date(o.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>
-                            <p class="text-xl font-black text-blue-500 mt-1">€${o.totalPrice}</p>
-                        </div>
+                        <p class="text-xl font-black text-blue-500">€${o.totalPrice}</p>
                     </div>
-                    <div class="space-y-3 mb-8">
-                        ${o.items ? o.items.map(item => `
-                            <div class="flex justify-between text-sm glass bg-white/5 p-3 rounded-xl">
-                                <span class="font-medium">x${item.quantity} ${item.name}</span>
-                                <span class="text-slate-500">€${item.price}</span>
-                            </div>
-                        `).join('') : ''}
+                    <div class="space-y-2 mb-8 text-sm text-slate-300">
+                        ${o.items ? o.items.map(item => `<div>x${item.quantity} ${item.name}</div>`).join('') : ''}
                     </div>
                     ${controls}
                 `;
                 container.appendChild(card);
             });
         }
-        
-        // Ensure audio context starts on first click anywhere
         document.addEventListener('click', initAudio, { once: true });
     </script>
 </body>
