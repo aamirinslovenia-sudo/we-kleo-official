@@ -1,4 +1,3 @@
-<!-- ONLY SCRIPT PART CHANGED BELOW -->
 <script>
 const firebaseConfig = { 
     apiKey: "AIzaSyBD_YmzFTA2OKn64h22Z9yM7pCAmmlTl68", 
@@ -76,7 +75,8 @@ function selectItem(name, price, id, restaurant) {
     selectedRestaurant = restaurant;
 
     document.querySelectorAll('[id^="item-"]').forEach(el => el.classList.remove('active-item'));
-    document.getElementById(id).classList.add('active-item');
+    const el = document.getElementById(id);
+    if (el) el.classList.add('active-item');
 
     updateTotal();
 
@@ -106,7 +106,7 @@ function setPayment(method) {
     }
 }
 
-// DELIVERY TIME
+// DELIVERY TIME (SAFE, used only when needed)
 function getDeliveryTime() {
     if (selectedRestaurant === "LUFT") return "~30 MIN";
     if (selectedRestaurant === "Ancora") return "~20 MIN";
@@ -166,11 +166,17 @@ function sendOrder() {
 
 // TRACKING
 function startTracking(orderId) {
-    document.getElementById('order-tracking-overlay').style.display = 'flex';
-    document.getElementById('tracking-id').innerText = "ID: " + orderId;
+    const overlay = document.getElementById('order-tracking-overlay');
+    if (overlay) overlay.style.display = 'flex';
 
-    // Update delivery time
-    document.querySelector('.glass h3').innerText = getDeliveryTime();
+    const idBox = document.getElementById('tracking-id');
+    if (idBox) idBox.innerText = "ID: " + orderId;
+
+    // SAFE delivery time update
+    const timeBox = document.querySelector('#order-tracking-overlay .glass h3');
+    if (timeBox) {
+        timeBox.innerText = getDeliveryTime();
+    }
 
     db.ref('orders/' + orderId).on('value', (snap) => {
         const o = snap.val();
@@ -183,22 +189,22 @@ function startTracking(orderId) {
         const text3 = document.getElementById('text-delivery');
 
         if (o.status === "New") {
-            dot1.classList.add('active');
+            if(dot1) dot1.classList.add('active');
         }
 
         if (o.status === "Preparing") {
-            dot1.classList.add('active');
-            dot2.classList.add('active');
-            text2.classList.replace('text-slate-500', 'text-blue-500');
+            if(dot1) dot1.classList.add('active');
+            if(dot2) dot2.classList.add('active');
+            if(text2) text2.classList.replace('text-slate-500', 'text-blue-500');
         }
 
         if (o.status === "Delivering") {
-            dot1.classList.add('active');
-            dot2.classList.add('active');
-            dot3.classList.add('active');
+            if(dot1) dot1.classList.add('active');
+            if(dot2) dot2.classList.add('active');
+            if(dot3) dot3.classList.add('active');
 
-            text2.classList.replace('text-slate-500', 'text-blue-500');
-            text3.classList.replace('text-slate-500', 'text-blue-500');
+            if(text2) text2.classList.replace('text-slate-500', 'text-blue-500');
+            if(text3) text3.classList.replace('text-slate-500', 'text-blue-500');
         }
 
         if(o.status === "Completed" && !emailSent) {
@@ -211,8 +217,11 @@ function startTracking(orderId) {
                 total_price: "€" + o.totalPrice,
                 delivery_address: o.address
             }).then(() => {
-                document.getElementById('success-email-text').innerText = "Receipt sent to " + o.email;
-                document.getElementById('success-msg').style.display = 'flex';
+                const msg = document.getElementById('success-email-text');
+                if (msg) msg.innerText = "Receipt sent to " + o.email;
+
+                const success = document.getElementById('success-msg');
+                if (success) success.style.display = 'flex';
             });
         }
     });
