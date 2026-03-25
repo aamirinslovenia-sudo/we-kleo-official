@@ -7,46 +7,19 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800;900&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Outfit', sans-serif; background: #000; color: white; overflow-x: hidden; }
-        .order-card { 
-            background: rgba(255,255,255,0.05); 
-            border: 1px solid rgba(255,255,255,0.1); 
-            border-radius: 28px; 
-            transition: all 0.3s ease;
-        }
-        .driver-accepted { 
-            border: 2px solid #3b82f6; 
-            background: rgba(59, 130, 246, 0.05);
-        }
-        .btn-ready { 
-            background: #10b981; 
-            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3); 
-        }
-        .btn-time { 
-            background: rgba(255,255,255,0.1); 
-            border: 1px solid rgba(255,255,255,0.1); 
-        }
-        .pulse-driver {
-            animation: pulse-blue 2s infinite;
-        }
-        @keyframes pulse-blue {
-            0% { opacity: 1; }
-            50% { opacity: 0.5; }
-            100% { opacity: 1; }
-        }
+        body { font-family: 'Outfit', sans-serif; background: #000; color: white; }
+        .glass-panel { background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 24px; }
+        .btn-blue { background: #3b82f6; }
+        .btn-green { background: #10b981; }
+        .status-badge { font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.1em; }
     </style>
 </head>
-<body class="p-4 md:p-8">
+<body class="p-8">
     <div class="flex justify-between items-center mb-10">
-        <div>
-            <h1 class="text-4xl font-black italic tracking-tighter">KLEO <span class="text-blue-500">KITCHEN</span></h1>
-            <p class="text-[10px] text-slate-500 font-bold uppercase tracking-[0.3em]">Live Order Management</p>
-        </div>
-        <div id="conn-status" class="px-4 py-2 rounded-full bg-green-500/10 text-green-500 text-[10px] font-black uppercase tracking-widest border border-green-500/20">
-            System Online
-        </div>
+        <h1 class="text-4xl font-black italic tracking-tighter text-white">KLEO <span class="text-blue-500">KITCHEN</span></h1>
+        <div id="conn-status" class="glass-panel px-4 py-2 status-badge text-green-500">System Live</div>
     </div>
 
     <div id="orders-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -65,119 +38,75 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        // LISTEN TO DATABASE
         db.ref('orders').on('value', (snap) => {
             const container = document.getElementById('orders-container');
             container.innerHTML = "";
             
-            let hasOrders = false;
             snap.forEach(child => {
-                const order = child.val();
-                order.id = child.key;
+                const o = child.val();
+                o.id = child.key;
 
-                // CRITICAL LOGIC: 
-                // We show the order if it is NOT marked as Food Ready yet.
-                // Even if a driver accepts (status: Delivering), it stays on the screen.
-                if (order.status !== "Completed" && order.isFoodReady !== true) {
-                    renderOrderCard(order);
-                    hasOrders = true;
+                // LOGIC FIX: Keep showing if food is NOT ready yet
+                // Even if driver accepts, it stays on screen.
+                if (o.status !== "Completed" && o.isFoodReady !== true) {
+                    const driverText = o.claimedBy ? `<p class="text-blue-500 status-badge mb-2">Driver ${o.claimedBy} Accepted</p>` : "";
+                    const borderStyle = o.claimedBy ? "border-blue-500" : "border-white/10";
+
+                    container.innerHTML += `
+                        <div class="glass-panel p-6 border-2 ${borderStyle}">
+                            ${driverText}
+                            <div class="flex justify-between items-center mb-4">
+                                <h2 class="text-2xl font-bold">${o.customer}</h2>
+                                <span class="text-white/30 text-xs">#${o.id.slice(-4)}</span>
+                            </div>
+                            <p class="text-white/50 text-sm mb-6">${o.address}</p>
+                            
+                            ${!o.readyTimestamp ? `
+                                <div class="grid grid-cols-2 gap-4">
+                                    <button onclick="setTimer('${o.id}', 10)" class="glass-panel py-4 font-black hover:bg-white/10 transition-all">10 MIN</button>
+                                    <button onclick="setTimer('${o.id}', 20)" class="glass-panel py-4 font-black hover:bg-white/10 transition-all">20 MIN</button>
+                                </div>
+                            ` : `
+                                <div class="text-center bg-white/5 p-4 rounded-xl mb-4">
+                                    <p class="status-badge text-white/40 mb-1">Time Remaining</p>
+                                    <p class="text-4xl font-black countdown" data-time="${o.readyTimestamp}">--:--</p>
+                                </div>
+                                <button onclick="markReady('${o.id}')" class="btn-green w-full py-5 rounded-xl font-black uppercase text-lg hover:scale-95 transition-all">
+                                    Food Ready
+                                </button>
+                            `}
+                        </div>
+                    `;
                 }
             });
-
-            if (!hasOrders) {
-                container.innerHTML = `<div class="col-span-full py-20 text-center opacity-30 font-bold uppercase tracking-widest">No Active Orders</div>`;
-            }
         });
 
-        function renderOrderCard(o) {
-            const container = document.getElementById('orders-container');
-            
-            // Driver Badge
-            const driverBadge = o.claimedBy ? 
-                `<div class="flex items-center gap-2 mb-4 pulse-driver">
-                    <span class="w-2 h-2 rounded-full bg-blue-500"></span>
-                    <span class="text-[10px] font-black text-blue-500 uppercase">Driver ${o.claimedBy} Accepted</span>
-                </div>` : "";
-
-            const html = `
-                <div class="order-card p-6 ${o.claimedBy ? 'driver-accepted' : ''}">
-                    ${driverBadge}
-                    
-                    <div class="flex justify-between items-start mb-2">
-                        <h3 class="text-2xl font-black truncate pr-4">${o.customer}</h3>
-                        <span class="text-blue-500 font-mono text-xs font-bold">#${o.id.slice(-4)}</span>
-                    </div>
-                    
-                    <p class="text-slate-500 text-sm font-bold mb-6 truncate">${o.address}</p>
-                    
-                    <div class="space-y-4">
-                        ${!o.readyTimestamp ? `
-                            <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Set Preparation Time</p>
-                            <div class="grid grid-cols-2 gap-3">
-                                <button onclick="setTimer('${o.id}', 10)" class="btn-time py-4 rounded-2xl font-black text-lg hover:bg-white/20 transition-all">10M</button>
-                                <button onclick="setTimer('${o.id}', 20)" class="btn-time py-4 rounded-2xl font-black text-lg hover:bg-white/20 transition-all">20M</button>
-                            </div>
-                        ` : `
-                            <div class="bg-white/5 rounded-2xl p-4 text-center">
-                                <p class="text-[9px] font-black text-slate-500 uppercase mb-1">Pick-Up In</p>
-                                <div class="text-4xl font-black italic countdown" data-time="${o.readyTimestamp}">--:--</div>
-                            </div>
-                            <button onclick="markReady('${o.id}')" class="btn-ready w-full py-5 rounded-2xl font-black uppercase text-lg tracking-tighter hover:scale-[1.02] transition-all">
-                                Mark Food Ready
-                            </button>
-                        `}
-                    </div>
-                </div>
-            `;
-            container.innerHTML += html;
-        }
-
-        // KITCHEN ACTIONS
         function setTimer(id, mins) {
             const readyTime = Date.now() + (mins * 60000);
             db.ref('orders/' + id).update({
                 readyTimestamp: readyTime,
                 status: "Preparing",
-                isFoodReady: false // Reset state just in case
+                isFoodReady: false
             });
         }
 
         function markReady(id) {
-            // This button triggers the Driver App's "READY" status
             db.ref('orders/' + id).update({
                 isFoodReady: true,
-                status: "Ready", // Official status becomes Ready
+                status: "Ready",
                 readyAt: Date.now()
             });
-            // The order will now disappear from the Kitchen container because of the filter in line 67
         }
 
-        // TIMER SYNC
         setInterval(() => {
             document.querySelectorAll('.countdown').forEach(el => {
-                const target = parseInt(el.dataset.time);
-                const diff = target - Date.now();
-                const abs = Math.abs(diff);
-                const mins = Math.floor(abs / 60000);
-                const secs = Math.floor((abs % 60000) / 1000).toString().padStart(2, '0');
-                
+                const diff = parseInt(el.dataset.time) - Date.now();
+                const mins = Math.floor(Math.abs(diff) / 60000);
+                const secs = Math.floor((Math.abs(diff) % 60000) / 1000).toString().padStart(2, '0');
                 el.innerText = (diff < 0 ? "-" : "") + mins + ":" + secs;
-                if (diff < 0) el.classList.add('text-red-500');
-                else el.classList.remove('text-red-500');
+                el.classList.toggle('text-red-500', diff < 0);
             });
         }, 1000);
-
-        // Connection Monitor
-        db.ref(".info/connected").on("value", (snap) => {
-            const status = document.getElementById('conn-status');
-            if (snap.val() === true) {
-                status.innerText = "System Online";
-                status.className = "px-4 py-2 rounded-full bg-green-500/10 text-green-500 text-[10px] font-black uppercase tracking-widest border border-green-500/20";
-            } else {
-                status.innerText = "System Offline";
-                status.className = "px-4 py-2 rounded-full bg-red-500/10 text-red-500 text-[10px] font-black uppercase tracking-widest border border-red-500/20";
-            }
-        });
     </script>
 </body>
 </html>
