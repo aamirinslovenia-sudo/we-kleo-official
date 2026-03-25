@@ -109,6 +109,18 @@
             </div>
         </section>
 
+        <div class="px-2">
+            <p class="text-[10px] font-black uppercase text-slate-500 mb-3 tracking-widest">Select Payment Method</p>
+            <div class="flex gap-3">
+                <button id="pay-cash" onclick="setPayment('Cash')" class="flex-1 py-4 rounded-2xl border border-white/10 bg-white/5 text-[11px] font-bold uppercase transition-all">
+                    💵 Cash
+                </button>
+                <button id="pay-card" onclick="setPayment('Card')" class="flex-1 py-4 rounded-2xl border border-white/10 bg-white/5 text-[11px] font-bold uppercase transition-all">
+                    💳 Card
+                </button>
+            </div>
+        </div>
+
         <div class="pt-4">
             <div class="flex justify-between items-end mb-8 px-2">
                 <div><p class="text-[10px] font-black uppercase text-slate-500 mb-1">Total Mission Cost</p><h3 id="priceDisplay" class="text-5xl font-[900] italic tracking-tighter text-white">€0.00</h3></div>
@@ -159,7 +171,7 @@
         const firebaseConfig = { apiKey: "AIzaSyBD_YmzFTA2OKn64h22Z9yM7pCAmmlTl68", authDomain: "we-kleo.firebaseapp.com", databaseURL: "https://we-kleo-default-rtdb.europe-west1.firebasedatabase.app", projectId: "we-kleo", storageBucket: "we-kleo.firebasestorage.app", messagingSenderId: "87105321281", appId: "1:87105321281:web:ec83e4472e5756182749c0" };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
-        let selectedItemName = ""; let basePrice = 0; let selectedRestaurant = ""; let emailSent = false;
+        let selectedItemName = ""; let basePrice = 0; let selectedRestaurant = ""; let selectedPayment = ""; let emailSent = false;
 
         window.onload = function() {
             if (localStorage.getItem('kleo_name')) {
@@ -196,8 +208,18 @@
             document.getElementById('orderBtn').innerText = "Order from " + restaurant;
         }
 
+        function setPayment(method) {
+            selectedPayment = method;
+            document.getElementById('pay-cash').classList.remove('active-item');
+            document.getElementById('pay-card').classList.remove('active-item');
+            if(method === 'Cash') document.getElementById('pay-cash').classList.add('active-item');
+            else document.getElementById('pay-card').classList.add('active-item');
+        }
+
         function sendOrder() {
             if (!selectedItemName) { alert("Select a dish first!"); return; }
+            if (!selectedPayment) { alert("Please select Cash or Card!"); return; }
+            
             const orderId = db.ref('orders').push().key;
             db.ref('orders/' + orderId).set({
                 customer: localStorage.getItem('kleo_name'),
@@ -207,6 +229,7 @@
                 item: selectedItemName,
                 restaurant: selectedRestaurant,
                 totalPrice: document.getElementById('priceDisplay').innerText,
+                paymentType: selectedPayment,
                 timestamp: Date.now(),
                 status: 'New'
             }).then(() => { startTracking(orderId); });
