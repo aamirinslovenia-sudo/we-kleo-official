@@ -11,35 +11,83 @@
     <style>
         :root { --accent: #3b82f6; --bg: #000000; }
         body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; font-family: 'Outfit', sans-serif; background: var(--bg); color: white; -webkit-tap-highlight-color: transparent; }
+        
+        /* Layout Components */
         .glass-panel { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(25px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 32px; }
-        .bottom-sheet { position: fixed; bottom: 30px; left: 12px; right: 12px; z-index: 100; transition: all 0.6s cubic-bezier(0.23, 1, 0.32, 1); }
+        .bottom-sheet { position: fixed; bottom: 30px; left: 12px; right: 12px; z-index: 100; transition: all 0.6s cubic-bezier(0.23, 1, 0.32, 1); padding-bottom: env(safe-area-inset-bottom); }
         .sheet-minimized { transform: translateY(calc(100% - 160px)); }
         .sheet-expanded { transform: translateY(0); }
-        .radar-ring { border: 2px solid rgba(59, 130, 246, 0.2); border-radius: 50%; position: absolute; animation: radar 3s infinite ease-out; pointer-events: none; }
-        @keyframes radar { from { width: 50px; height: 50px; opacity: 1; } to { width: 180px; height: 180px; opacity: 0; } }
-        /* Dynamic Timer Colors */
+
+        /* Sidebar & Overlays */
+        #history-sidebar, #chat-overlay, #stats-overlay { position: fixed; top: 0; right: 0; width: 100%; height: 100%; background: #000000; z-index: 2000; transform: translateX(100%); transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1); padding: 70px 25px; display: flex; flex-direction: column; }
+        .sidebar-active, .chat-active, .stats-active { transform: translateX(0) !important; }
+        
+        /* Timer States */
         .timer-normal { color: #3b82f6; }
         .timer-late { color: #ef4444; font-weight: 900; }
         .ready-status { color: #10b981; animation: pulse-green 2s infinite; }
-        @keyframes pulse-green { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+        @keyframes pulse-green { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+        .radar-ring { border: 2px solid rgba(59, 130, 246, 0.2); border-radius: 50%; position: absolute; animation: radar 3s infinite ease-out; pointer-events: none; }
+        @keyframes radar { from { width: 50px; height: 50px; opacity: 1; } to { width: 180px; height: 180px; opacity: 0; } }
+        
+        /* Chat bubbles */
+        .msg-driver { align-self: flex-end; background: #3b82f6; padding: 12px 18px; border-radius: 20px 20px 4px 20px; font-size: 14px; max-width: 80%; margin-bottom: 10px; }
+        .msg-admin { align-self: flex-start; background: rgba(255,255,255,0.1); padding: 12px 18px; border-radius: 20px 20px 20px 4px; font-size: 14px; max-width: 80%; margin-bottom: 10px; }
     </style>
 </head>
 <body>
 
     <div class="fixed top-[60px] left-0 w-full z-[150] px-6 flex justify-between items-center">
+        <button onclick="toggleSidebar()" class="w-14 h-14 glass-panel flex items-center justify-center text-2xl active:scale-90 transition-all">≡</button>
         <div class="glass-panel px-5 py-3 flex items-center gap-3">
             <span id="conn-dot" class="w-2.5 h-2.5 rounded-full bg-green-500"></span>
-            <span class="text-[10px] font-black uppercase tracking-widest text-white">Driver Online</span>
+            <span class="text-[10px] font-black uppercase tracking-widest text-white">Live Shift</span>
         </div>
     </div>
 
-    <div id="boot-screen" class="fixed inset-0 z-[3000] bg-black flex flex-col items-center justify-center p-12">
+    <div id="stats-overlay">
+        <div class="flex items-center gap-6 mb-10">
+            <button onclick="closeStats()" class="text-2xl font-bold">←</button>
+            <h2 class="text-3xl font-black italic tracking-tighter text-white">YOUR <span class="text-blue-500">STATS</span></h2>
+        </div>
+        <div class="space-y-4">
+            <div class="glass-panel p-6 flex justify-between"><span>Orders Today</span><span id="stat-count" class="font-bold">0</span></div>
+            <div class="glass-panel p-6 flex justify-between"><span>Income</span><span id="stat-total" class="font-bold text-blue-400">€0.00</span></div>
+        </div>
+    </div>
+
+    <div id="history-sidebar">
+        <div class="flex justify-between items-center mb-12">
+            <h2 class="text-4xl font-black italic tracking-tighter text-blue-500">KLEO</h2>
+            <button onclick="toggleSidebar()" class="w-12 h-12 glass-panel flex items-center justify-center">✕</button>
+        </div>
+        <div class="space-y-4">
+            <button onclick="openStats()" class="w-full flex items-center gap-5 p-6 glass-panel text-left">
+                <span class="text-2xl">📊</span><div><p class="font-bold text-lg text-white">Your Stats</p></div>
+            </button>
+            <button onclick="openChat()" class="w-full flex items-center gap-5 p-6 glass-panel text-left">
+                <span class="text-2xl">🎧</span><div><p class="font-bold text-lg text-white">Support</p></div>
+            </button>
+        </div>
+        <div class="mt-auto p-6 border-t border-white/10">
+            <p class="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">ID: <span id="display-driver-id" class="text-blue-400">---</span></p>
+        </div>
+    </div>
+
+    <div id="chat-overlay">
+        <div class="flex justify-between items-center mb-8"><h2 class="text-2xl font-black italic text-blue-500">SUPPORT</h2><button onclick="closeChat()">✕</button></div>
+        <div id="chat-messages" class="flex-1 space-y-4 mb-6 overflow-y-auto flex flex-col"></div>
+        <div class="flex gap-3"><input type="text" id="chat-input" placeholder="Type..." class="flex-1 glass-panel p-5 outline-none text-white"><button onclick="sendMessage()" class="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center font-bold">➤</button></div>
+    </div>
+
+    <div id="boot-screen" class="fixed inset-0 z-[3000] bg-black flex flex-col items-center justify-center p-12 text-center">
         <div class="text-blue-500 font-black text-7xl tracking-tighter italic mb-10">KLEO</div>
-        <button onclick="goOnline()" class="bg-blue-600 text-white w-full py-7 rounded-[35px] text-lg font-black uppercase tracking-widest shadow-2xl">Start Shift</button>
+        <button onclick="goOnline()" class="bg-blue-600 text-white w-full py-7 rounded-[35px] text-lg font-black uppercase tracking-widest shadow-2xl active:scale-95 transition-all">Start Shift</button>
     </div>
 
     <div id="order-sheet" class="bottom-sheet glass-panel sheet-minimized">
-        <div class="px-8 pt-4 pb-10">
+        <div id="order-content" class="px-8 pt-4 pb-10"> 
             <div class="w-16 h-1 bg-white/10 rounded-full mx-auto mb-10"></div>
             
             <div id="waiting-ui" class="text-center py-6 relative flex flex-col items-center justify-center">
@@ -53,27 +101,23 @@
                         <p class="text-blue-500 font-black text-[10px] uppercase tracking-widest mb-1">Preparation Time</p>
                         <div id="display-timer" class="text-5xl font-black tracking-tighter italic">--:--</div>
                     </div>
-                    <div id="order-id-tag" class="bg-white/5 px-3 py-1 rounded text-[10px] font-mono text-slate-500">#0000</div>
                 </div>
 
                 <div class="space-y-6 mb-10">
                     <div class="flex gap-4">
-                        <div class="w-10 h-10 glass-panel flex items-center justify-center font-black text-blue-500">A</div>
-                        <div>
-                            <p id="res-name" class="text-[9px] text-slate-500 uppercase font-bold tracking-widest">Restaurant</p>
-                            <h4 id="res-addr" class="text-lg font-bold text-white italic">Slovenska ulica 15</h4>
-                        </div>
+                        <div class="w-10 h-10 glass-panel flex items-center justify-center font-black text-white">A</div>
+                        <div><p id="res-name" class="text-[9px] text-slate-500 uppercase font-bold tracking-widest">Restaurant</p><h4 class="text-lg font-bold text-white italic">Slovenska ulica 15</h4></div>
                     </div>
                     <div class="flex gap-4">
-                        <div class="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center font-black text-white text-xs">B</div>
+                        <div class="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center font-black text-white">B</div>
                         <div class="flex-1">
-                            <p class="text-[9px] text-slate-500 uppercase font-bold tracking-widest">Customer Location</p>
+                            <p class="text-[9px] text-slate-500 uppercase font-bold tracking-widest">Customer</p>
                             <h4 id="c-name" class="text-lg font-bold text-white">---</h4>
-                            <p id="c-addr" class="text-blue-400 text-sm font-bold underline truncate">---</p>
+                            <p id="c-addr" class="text-blue-400 text-sm font-bold underline">---</p>
                         </div>
                     </div>
                 </div>
-
+                
                 <div class="flex gap-4">
                     <a id="c-phone" href="#" class="w-20 h-20 glass-panel flex items-center justify-center text-2xl">📞</a>
                     <button id="action-btn" onclick="processOrder()" class="flex-1 bg-blue-600 text-white rounded-[24px] font-black uppercase text-lg tracking-widest active:scale-95 transition-all">Accept</button>
@@ -86,13 +130,21 @@
         const firebaseConfig = { apiKey: "AIzaSyBD_YmzFTA2OKn64h22Z9yM7pCAmmlTl68", authDomain: "we-kleo.firebaseapp.com", databaseURL: "https://we-kleo-default-rtdb.europe-west1.firebasedatabase.app", projectId: "we-kleo", storageBucket: "we-kleo.firebasestorage.app", messagingSenderId: "87105321281", appId: "1:87105321281:web:ec83e4472e5756182749c0" };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
+        
         let driverId = localStorage.getItem('kleo_driver_id') || "D-" + Math.floor(Math.random() * 999);
         localStorage.setItem('kleo_driver_id', driverId);
+        document.getElementById('display-driver-id').innerText = driverId;
 
         let currentOrder = null;
         let timerInterval = null;
 
-        // Start Shift
+        // UI Controls
+        function toggleSidebar() { document.getElementById('history-sidebar').classList.toggle('sidebar-active'); }
+        function openStats() { document.getElementById('stats-overlay').classList.add('stats-active'); toggleSidebar(); }
+        function closeStats() { document.getElementById('stats-overlay').classList.remove('stats-active'); }
+        function openChat() { document.getElementById('chat-overlay').classList.add('chat-active'); toggleSidebar(); }
+        function closeChat() { document.getElementById('chat-overlay').classList.remove('chat-active'); }
+
         function goOnline() {
             document.getElementById('boot-screen').style.display = 'none';
             listenForOrders();
@@ -100,21 +152,19 @@
 
         function listenForOrders() {
             db.ref('orders').on('value', (snap) => {
-                let activeFound = null;
-                let availableFound = null;
-
+                let found = null;
                 snap.forEach(child => {
                     const o = child.val(); o.id = child.key;
-                    if (o.status === "Delivering" && o.claimedBy === driverId) activeFound = o;
-                    if (o.status === "Ready" && !o.claimedBy) availableFound = o;
-                    if (o.status === "Preparing" && !o.claimedBy) availableFound = o;
+                    if (o.status !== "Completed" && (o.status === "Ready" || o.status === "Preparing" || (o.status === "Delivering" && o.claimedBy === driverId))) {
+                        found = o;
+                    }
                 });
 
-                const order = activeFound || availableFound;
-                if (order) {
-                    currentOrder = order;
-                    renderUI(order);
+                if (found) {
+                    currentOrder = found;
+                    renderUI(found);
                 } else {
+                    currentOrder = null;
                     resetUI();
                 }
             });
@@ -125,10 +175,10 @@
             document.getElementById('waiting-ui').classList.add('hidden');
             document.getElementById('order-sheet').classList.replace('sheet-minimized', 'sheet-expanded');
             
-            document.getElementById('res-name').innerText = o.restaurant;
+            document.getElementById('res-name').innerText = o.restaurant || "KLEO Kitchen";
             document.getElementById('c-name').innerText = o.customer;
             document.getElementById('c-addr').innerText = o.address;
-            document.getElementById('order-id-tag').innerText = "#" + o.id.slice(-4);
+            document.getElementById('c-phone').href = "tel:" + o.phone;
             document.getElementById('action-btn').innerText = (o.status === "Delivering") ? "End Mission" : "Accept Mission";
 
             startTimer(o);
@@ -139,7 +189,6 @@
             const timerEl = document.getElementById('display-timer');
 
             timerInterval = setInterval(() => {
-                // If Kitchen marks as READY, stop countdown and show status
                 if (o.status === "Ready") {
                     timerEl.innerText = "READY";
                     timerEl.className = "text-5xl font-black italic ready-status";
@@ -174,11 +223,18 @@
 
         function processOrder() {
             if (!currentOrder) return;
-            if (currentOrder.status === "Preparing" || currentOrder.status === "Ready") {
+            if (currentOrder.status !== "Delivering") {
                 db.ref('orders/' + currentOrder.id).update({ status: "Delivering", claimedBy: driverId });
             } else {
                 db.ref('orders/' + currentOrder.id).update({ status: "Completed" });
             }
+        }
+
+        function sendMessage() {
+            const input = document.getElementById('chat-input');
+            if (!input.value.trim()) return;
+            db.ref('support_tickets/' + driverId + '/chat').push({ sender: "Driver", text: input.value, timestamp: Date.now() });
+            input.value = "";
         }
     </script>
 </body>
