@@ -24,10 +24,15 @@
         .stat-row { display: flex; justify-content: space-between; padding: 22px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
         .radar-ring { border: 2px solid rgba(59, 130, 246, 0.2); border-radius: 50%; position: absolute; animation: radar 3s infinite ease-out; pointer-events: none; }
         @keyframes radar { from { width: 50px; height: 50px; opacity: 1; } to { width: 180px; height: 180px; opacity: 0; } }
+        
+        /* New Timer Logic Classes */
+        .timer-normal { color: #3b82f6; }
+        .timer-late { color: #ef4444; font-weight: 900; }
+        .ready-status { color: #10b981; animation: pulse-green 2s infinite; }
+        @keyframes pulse-green { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+
         .msg-driver { align-self: flex-end; background: #3b82f6; padding: 12px 18px; border-radius: 20px 20px 4px 20px; font-size: 14px; max-width: 80%; margin-bottom: 10px; }
         .msg-admin { align-self: flex-start; background: rgba(255,255,255,0.1); padding: 12px 18px; border-radius: 20px 20px 20px 4px; font-size: 14px; max-width: 80%; margin-bottom: 10px; }
-        
-        /* New Payment Warning Styles */
         .cash-alert { background: rgba(234, 179, 8, 0.1); border: 1px solid rgba(234, 179, 8, 0.2); border-radius: 20px; padding: 15px; margin-bottom: 20px; }
         input[type="checkbox"] { width: 18px; height: 18px; accent-color: #eab308; }
     </style>
@@ -106,7 +111,10 @@
             </div>
             <div id="order-ui" class="hidden">
                 <div class="flex justify-between items-start mb-6">
-                    <div><p class="text-blue-500 font-black text-[10px] uppercase tracking-widest mb-1">Income</p><div id="display-price" class="text-6xl font-black tracking-tighter text-white">€4.00</div></div>
+                    <div>
+                        <p id="timer-label" class="text-blue-500 font-black text-[10px] uppercase tracking-widest mb-1">Preparation Time</p>
+                        <div id="display-timer" class="text-5xl font-black tracking-tighter italic text-white">--:--</div>
+                    </div>
                     <button onclick="confirmDecline()" class="bg-red-500/20 text-red-500 px-4 py-2 rounded-xl text-[10px] font-black uppercase">Skip</button>
                 </div>
 
@@ -154,6 +162,7 @@
 
         let currentOrder = null; let audioCtx = null; let alertInterval = null;
         let allCompletedOrders = [];
+        let globalTimerInterval = null;
 
         db.ref(".info/connected").on("value", (snap) => {
             const dot = document.getElementById('conn-dot');
@@ -210,7 +219,10 @@
             snap.forEach(c => {
                 const o = c.val(); o.id = c.key;
                 if (o.status === "Delivering" && o.claimedBy === driverId) activeTask = o;
-                if (o.status === "Ready" && !o.claimedBy) availableOrder = o;
+                // Updated available check: Show if New (but kitchen set time), Preparing, or Ready (not claimed)
+                if (!o.claimedBy && (o.status === "Preparing" || o.status === "Ready" || (o.status === "New" && o.readyTimestamp))) {
+                    availableOrder = o;
+                }
                 if (o.status === "Completed") allCompletedOrders.push(o);
             });
             if (activeTask) {
@@ -224,6 +236,7 @@
                 document.getElementById('order-ui').classList.add('hidden');
                 document.getElementById('waiting-ui').classList.remove('hidden');
                 document.getElementById('order-sheet').classList.replace('sheet-expanded', 'sheet-minimized');
+                clearInterval(globalTimerInterval);
             }
         });
 
@@ -237,6 +250,9 @@
             document.getElementById('waiting-ui').classList.add('hidden');
             document.getElementById('order-sheet').classList.replace('sheet-minimized', 'sheet-expanded');
 
+            // --- New Timer Execution ---
+            startWoltTimer(o);
+
             // Handle Payment Warning Display
             const cashUI = document.getElementById('cash-collection-ui');
             const actionBtn = document.getElementById('action-btn');
@@ -244,12 +260,49 @@
             if (o.status === "Delivering" && o.paymentType === "Cash") {
                 cashUI.classList.remove('hidden');
                 document.getElementById('cash-amount').innerText = o.totalPrice;
-                toggleFinishButton(); // Initial lock check
+                toggleFinishButton();
             } else {
                 cashUI.classList.add('hidden');
                 actionBtn.disabled = false;
                 actionBtn.style.opacity = "1";
             }
+        }
+
+        function startWoltTimer(o) {
+            clearInterval(globalTimerInterval);
+            const timerEl = document.getElementById('display-timer');
+            const labelEl = document.getElementById('timer-label');
+
+            globalTimerInterval = setInterval(() => {
+                if (o.status === "Ready") {
+                    timerEl.innerText = "READY";
+                    timerEl.className = "text-5xl font-black italic ready-status";
+                    labelEl.innerText = "Food is waiting";
+                    return;
+                }
+
+                if (!o.readyTimestamp) {
+                    timerEl.innerText = "WAITING...";
+                    timerEl.className = "text-5xl font-black italic text-slate-500";
+                    return;
+                }
+
+                const diff = o.readyTimestamp - Date.now();
+                const totalSecs = Math.floor(diff / 1000);
+                const absSecs = Math.abs(totalSecs);
+                const mins = Math.floor(absSecs / 60);
+                const secs = (absSecs % 60).toString().padStart(2, '0');
+
+                if (totalSecs >= 0) {
+                    timerEl.innerText = `${mins}:${secs}M`;
+                    timerEl.className = "text-5xl font-black italic timer-normal";
+                    labelEl.innerText = "Preparation Time";
+                } else {
+                    timerEl.innerText = `-${mins}:${secs}`;
+                    timerEl.className = "text-5xl font-black italic timer-late";
+                    labelEl.innerText = "RESTAURANT LATE";
+                }
+            }, 1000);
         }
 
         function toggleFinishButton() {
@@ -270,7 +323,7 @@
 
         function processOrder() { 
             if (!currentOrder) return; 
-            if (currentOrder.status === "Ready") {
+            if (currentOrder.status !== "Delivering") {
                 db.ref('orders/' + currentOrder.id).update({ status: "Delivering", claimedBy: driverId });
                 window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(currentOrder.address)}`);
             } else {
