@@ -3,149 +3,330 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>KLEO | DRIVER UNIT</title>
+    <title>KLEO PRO | DRIVER</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800;900&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Outfit', sans-serif; background: #060a11; color: white; overflow-x: hidden; }
-        .glass { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.08); }
-        .radar-scan { border: 2px solid #3b82f6; border-radius: 50%; animation: pulse 2s infinite; position: absolute; }
-        @keyframes pulse { 0% { transform: scale(0.5); opacity: 1; } 100% { transform: scale(2.5); opacity: 0; } }
-        .status-pill { padding: 4px 12px; border-radius: 99px; font-size: 10px; font-weight: 900; text-transform: uppercase; }
-        .offline { display: flex; }
-        .online { display: none; }
+        :root { --accent: #3b82f6; --bg: #000000; }
+        body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; font-family: 'Outfit', sans-serif; background: var(--bg); color: white; -webkit-tap-highlight-color: transparent; }
+        .bottom-sheet { position: fixed; bottom: 30px; left: 12px; right: 12px; z-index: 100; transition: all 0.6s cubic-bezier(0.23, 1, 0.32, 1); padding-bottom: env(safe-area-inset-bottom); }
+        .sheet-minimized { transform: translateY(calc(100% - 160px)); }
+        .sheet-expanded { transform: translateY(0); }
+        .glass-panel { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(25px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 32px; }
+        #history-sidebar, #chat-overlay, #stats-overlay { position: fixed; top: 0; right: 0; width: 100%; height: 100%; background: #000000; z-index: 2000; transform: translateX(100%); transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1); padding: 70px 25px; display: flex; flex-direction: column; }
+        .sidebar-active, .chat-active, .stats-active { transform: translateX(0) !important; }
+        .status-online { background: #10b981; box-shadow: 0 0 15px #10b981; }
+        .status-offline { background: #ef4444; box-shadow: 0 0 15px #ef4444; }
+        .tab-btn { padding: 10px 18px; border-radius: 14px; font-weight: 700; font-size: 13px; color: #64748b; border: 1px solid transparent; }
+        .tab-btn.active { background: rgba(59, 130, 246, 0.1); color: #3b82f6; border-color: rgba(59, 130, 246, 0.3); }
+        .stat-row { display: flex; justify-content: space-between; padding: 22px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .radar-ring { border: 2px solid rgba(59, 130, 246, 0.2); border-radius: 50%; position: absolute; animation: radar 3s infinite ease-out; pointer-events: none; }
+        @keyframes radar { from { width: 50px; height: 50px; opacity: 1; } to { width: 180px; height: 180px; opacity: 0; } }
+        .msg-driver { align-self: flex-end; background: #3b82f6; padding: 12px 18px; border-radius: 20px 20px 4px 20px; font-size: 14px; max-width: 80%; margin-bottom: 10px; }
+        .msg-admin { align-self: flex-start; background: rgba(255,255,255,0.1); padding: 12px 18px; border-radius: 20px 20px 20px 4px; font-size: 14px; max-width: 80%; margin-bottom: 10px; }
+        
+        /* New Payment Warning Styles */
+        .cash-alert { background: rgba(234, 179, 8, 0.1); border: 1px solid rgba(234, 179, 8, 0.2); border-radius: 20px; padding: 15px; margin-bottom: 20px; }
+        input[type="checkbox"] { width: 18px; height: 18px; accent-color: #eab308; }
     </style>
 </head>
-<body class="pb-20">
+<body>
 
-    <div id="offline-screen" class="fixed inset-0 z-[5000] bg-[#060a11] offline flex-col items-center justify-center p-10">
-        <div class="mb-12 text-center">
-            <h1 class="text-6xl font-[900] italic tracking-tighter text-blue-600 mb-2">KLEO.</h1>
-            <p class="text-slate-500 font-bold uppercase text-[10px] tracking-[0.3em]">Driver Intelligence</p>
+    <div class="fixed top-[60px] left-0 w-full z-[150] px-6 flex justify-between items-center">
+        <button onclick="toggleSidebar()" class="w-14 h-14 glass-panel flex items-center justify-center text-2xl active:scale-90 transition-all">≡</button>
+        <div class="glass-panel px-5 py-3 flex items-center gap-3">
+            <span id="conn-dot" class="w-2.5 h-2.5 rounded-full status-online"></span>
+            <span id="conn-text" class="text-[10px] font-black uppercase tracking-widest">Live Shift</span>
         </div>
-        <button onclick="startShift()" class="w-full bg-white text-black py-6 rounded-[32px] font-[900] text-xl uppercase italic tracking-tighter active:scale-95 transition-all shadow-2xl">Start Shift</button>
     </div>
 
-    <header class="p-6 flex justify-between items-center border-b border-white/5">
-        <div>
-            <h2 class="text-2xl font-[900] italic tracking-tighter uppercase">Operations</h2>
-            <p class="text-[9px] font-black text-green-500 uppercase tracking-widest">Unit Active: Maribor</p>
+    <div id="stats-overlay">
+        <div class="flex items-center gap-6 mb-10">
+            <button onclick="closeStats()" class="text-2xl font-bold">←</button>
+            <h2 class="text-3xl font-black italic tracking-tighter text-white">YOUR <span class="text-blue-500">STATS</span></h2>
         </div>
-        <button onclick="location.reload()" class="glass w-10 h-10 rounded-full flex items-center justify-center text-xs">🛑</button>
-    </header>
-
-    <div id="radar-section" class="h-40 relative flex items-center justify-center overflow-hidden">
-        <div class="radar-scan w-20 h-20"></div>
-        <div class="radar-scan w-20 h-20" style="animation-delay: 1s"></div>
-        <p class="text-[10px] font-black text-blue-500 uppercase tracking-[0.3em] z-10">Scanning for Missions...</p>
+        <div class="flex justify-between glass-panel p-1 mb-10">
+            <button onclick="filterStats('today')" id="tab-today" class="tab-btn active flex-1">Today</button>
+            <button onclick="filterStats('week')" id="tab-week" class="tab-btn flex-1">Week</button>
+            <button onclick="filterStats('month')" id="tab-month" class="tab-btn flex-1">Month</button>
+            <button onclick="showCustomRange()" id="tab-custom" class="tab-btn flex-1">Custom</button>
+        </div>
+        <div id="custom-picker" class="hidden grid grid-cols-2 gap-4 mb-8">
+            <input type="date" id="date-from" onchange="runCustomFilter()" class="bg-white/10 p-4 rounded-2xl text-xs text-white">
+            <input type="date" id="date-to" onchange="runCustomFilter()" class="bg-white/10 p-4 rounded-2xl text-xs text-white">
+        </div>
+        <p id="stat-date-label" class="text-xs font-black text-blue-500 uppercase tracking-widest mb-6"></p>
+        <div class="space-y-1">
+            <div class="stat-row"><span class="text-slate-400">Orders</span><span id="stat-count" class="font-bold">0</span></div>
+            <div class="stat-row"><span class="text-slate-400">Income</span><span id="stat-total" class="font-bold text-blue-400">€0.00</span></div>
+            <div class="stat-row"><span class="text-slate-400">Base Pay</span><span id="stat-base" class="font-bold">€0.00</span></div>
+            <div class="stat-row border-none"><span class="text-slate-400">Tips</span><span class="font-bold text-green-500">€0.00</span></div>
+        </div>
     </div>
 
-    <div id="orders-container" class="px-6 space-y-4">
+    <div id="history-sidebar">
+        <div class="flex justify-between items-center mb-12">
+            <h2 class="text-4xl font-black italic tracking-tighter text-blue-500">KLEO</h2>
+            <button onclick="toggleSidebar()" class="w-12 h-12 glass-panel flex items-center justify-center">✕</button>
         </div>
+        <div class="space-y-4">
+            <button onclick="openStats()" class="w-full flex items-center gap-5 p-6 glass-panel text-left active:scale-95 transition-all">
+                <span class="text-2xl">📊</span><div><p class="font-bold text-lg text-white">Your Stats</p><p class="text-[10px] text-slate-500 uppercase">Track Income</p></div>
+            </button>
+            <button onclick="openChat()" class="w-full flex items-center gap-5 p-6 glass-panel text-left active:scale-95 transition-all">
+                <span class="text-2xl">🎧</span><div><p class="font-bold text-lg text-white">Support</p><p class="text-[10px] text-slate-500 uppercase">Live Help</p></div>
+            </button>
+        </div>
+        <div class="mt-auto p-6 border-t border-white/10">
+            <p class="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Device Identity</p>
+            <p id="display-driver-id" class="text-sm font-mono text-blue-400">---</p>
+        </div>
+    </div>
+
+    <div id="chat-overlay">
+        <div class="flex justify-between items-center mb-8"><h2 class="text-2xl font-black italic text-blue-500">SUPPORT</h2><button onclick="closeChat()">✕</button></div>
+        <div id="chat-messages" class="flex-1 space-y-4 mb-6 overflow-y-auto flex flex-col scroll-hide"></div>
+        <div class="flex gap-3"><input type="text" id="chat-input" placeholder="Type..." class="flex-1 glass-panel p-5 outline-none text-white"><button onclick="sendMessage()" class="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center font-bold">➤</button></div>
+    </div>
+
+    <div id="boot-screen" class="fixed inset-0 z-[3000] bg-black flex flex-col items-center justify-center p-12 text-center">
+        <div class="text-blue-500 font-black text-7xl tracking-tighter italic mb-10">KLEO</div>
+        <button onclick="goOnline()" class="bg-blue-600 text-white w-full py-7 rounded-[35px] text-lg font-black uppercase tracking-widest shadow-2xl active:scale-95 transition-all">Start Shift</button>
+    </div>
+
+    <div id="order-sheet" class="bottom-sheet glass-panel sheet-minimized">
+        <div id="order-content" class="px-8 pt-4 pb-10"> <div class="w-16 h-1 bg-white/10 rounded-full mx-auto mb-10"></div>
+            <div id="waiting-ui" class="text-center py-6 relative flex flex-col items-center justify-center">
+                <div class="radar-ring"></div>
+                <div class="radar-ring" style="animation-delay: 1.5s"></div>
+                <h3 class="text-xl font-black uppercase italic tracking-tighter z-10 text-white">Ready for Orders</h3>
+                <p class="text-slate-500 font-bold text-[10px] uppercase tracking-[0.3em] z-10 mt-1">Scanning Maribor</p>
+            </div>
+            <div id="order-ui" class="hidden">
+                <div class="flex justify-between items-start mb-6">
+                    <div><p class="text-blue-500 font-black text-[10px] uppercase tracking-widest mb-1">Income</p><div id="display-price" class="text-6xl font-black tracking-tighter text-white">€4.00</div></div>
+                    <button onclick="confirmDecline()" class="bg-red-500/20 text-red-500 px-4 py-2 rounded-xl text-[10px] font-black uppercase">Skip</button>
+                </div>
+
+                <div id="cash-collection-ui" class="hidden">
+                    <div class="cash-alert">
+                        <label class="flex items-center gap-4 cursor-pointer">
+                            <input type="checkbox" id="cash-collected-check" onchange="toggleFinishButton()">
+                            <div>
+                                <p class="text-[10px] font-black text-yellow-500 uppercase tracking-widest">Payment: CASH</p>
+                                <p class="text-sm font-bold text-white">Collect <span id="cash-amount" class="text-yellow-500">€0.00</span> from customer</p>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="space-y-6 mb-10">
+                    <div class="flex gap-4">
+                        <div class="w-10 h-10 glass-panel flex items-center justify-center font-black text-white">A</div>
+                        <div><p id="res-name" class="text-[9px] text-slate-500 uppercase font-bold tracking-widest">KLEO Kitchen</p><h4 class="text-lg font-bold text-white">Slovenska ulica 15</h4></div>
+                    </div>
+                    <div class="flex gap-4">
+                        <div class="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center font-black text-white">B</div>
+                        <div class="flex-1">
+                            <p class="text-[9px] text-slate-500 uppercase font-bold tracking-widest">Customer</p>
+                            <h4 id="c-name" class="text-lg font-bold truncate text-white">---</h4>
+                            <p id="c-addr" class="text-blue-400 text-sm font-bold underline truncate">---</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex gap-4">
+                    <a id="c-phone" href="#" class="w-20 h-20 glass-panel flex items-center justify-center text-2xl">📞</a>
+                    <button id="action-btn" onclick="processOrder()" class="flex-1 bg-blue-600 text-white rounded-[24px] font-black uppercase text-lg tracking-widest active:scale-95 transition-all">Accept</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <script>
-        // FIREBASE CONFIG
-        const firebaseConfig = { 
-            apiKey: "AIzaSyBD_YmzFTA2OKn64h22Z9yM7pCAmmlTl68", 
-            authDomain: "we-kleo.firebaseapp.com", 
-            databaseURL: "https://we-kleo-default-rtdb.europe-west1.firebasedatabase.app", 
-            projectId: "we-kleo", 
-            storageBucket: "we-kleo.firebasestorage.app", 
-            messagingSenderId: "87105321281", 
-            appId: "1:87105321281:web:ec83e4472e5756182749c0" 
-        };
+        const firebaseConfig = { apiKey: "AIzaSyBD_YmzFTA2OKn64h22Z9yM7pCAmmlTl68", authDomain: "we-kleo.firebaseapp.com", databaseURL: "https://we-kleo-default-rtdb.europe-west1.firebasedatabase.app", projectId: "we-kleo", storageBucket: "we-kleo.firebasestorage.app", messagingSenderId: "87105321281", appId: "1:87105321281:web:ec83e4472e5756182749c0" };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
+        let driverId = localStorage.getItem('kleo_driver_id');
+        if (!driverId) { driverId = "D-" + Math.floor(Math.random() * 10000); localStorage.setItem('kleo_driver_id', driverId); }
+        document.getElementById('display-driver-id').innerText = driverId;
 
-        function startShift() {
-            document.getElementById('offline-screen').style.display = 'none';
-            trackMissions();
+        let currentOrder = null; let audioCtx = null; let alertInterval = null;
+        let allCompletedOrders = [];
+
+        db.ref(".info/connected").on("value", (snap) => {
+            const dot = document.getElementById('conn-dot');
+            if (snap.val() === true) dot.className = "w-2.5 h-2.5 rounded-full status-online";
+            else dot.className = "w-2.5 h-2.5 rounded-full status-offline";
+        });
+
+        function toggleSidebar() { document.getElementById('history-sidebar').classList.toggle('sidebar-active'); }
+        function openStats() { document.getElementById('stats-overlay').classList.add('stats-active'); toggleSidebar(); filterStats('today'); }
+        function closeStats() { document.getElementById('stats-overlay').classList.remove('stats-active'); }
+        function openChat() { document.getElementById('chat-overlay').classList.add('chat-active'); toggleSidebar(); }
+        function closeChat() { document.getElementById('chat-overlay').classList.remove('chat-active'); }
+        function showCustomRange() { document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active')); document.getElementById('tab-custom').classList.add('active'); document.getElementById('custom-picker').classList.remove('hidden'); }
+        function confirmDecline() { if(confirm("Decline mission?")) location.reload(); }
+
+        function updateStatDisplay(count, label) {
+            document.getElementById('stat-count').innerText = count;
+            document.getElementById('stat-total').innerText = "€" + (count * 4).toFixed(2);
+            document.getElementById('stat-base').innerText = "€" + (count * 4).toFixed(2);
+            document.getElementById('stat-date-label').innerText = label;
         }
 
-        function trackMissions() {
-            db.ref('orders').on('value', (snapshot) => {
-                const orders = snapshot.val();
-                const container = document.getElementById('orders-container');
-                container.innerHTML = '';
-
-                if (!orders) return;
-
-                Object.keys(orders).forEach(id => {
-                    const order = orders[id];
-
-                    // Hide completed orders
-                    if (order.status !== 'Completed') {
-                        const card = document.createElement('div');
-                        card.className = "glass p-6 rounded-[32px] border border-white/10 animate-in slide-in-from-bottom duration-500";
-                        
-                        // Check if Card payment (Auto-unlock) or Cash (Lock)
-                        const isCash = (order.paymentType === 'Cash');
-
-                        card.innerHTML = `
-                            <div class="flex justify-between items-start mb-4">
-                                <div>
-                                    <p class="text-[10px] font-black text-blue-500 uppercase tracking-widest mb-1">Pick up from</p>
-                                    <h3 class="text-xl font-[900] italic uppercase tracking-tighter">${order.restaurant || 'KLEO PARTNER'}</h3>
-                                </div>
-                                <div class="status-pill ${order.status === 'Delivering' ? 'bg-blue-600' : 'bg-white/10 text-slate-400'}">
-                                    ${order.status}
-                                </div>
-                            </div>
-
-                            <div class="space-y-3 mb-6">
-                                <p class="text-sm font-bold text-slate-300">📦 ${order.item}</p>
-                                <p class="text-xs font-semibold text-slate-500">📍 ${order.address}</p>
-                                <p class="text-lg font-black text-white italic">💰 ${order.totalPrice}</p>
-                            </div>
-
-                            ${order.status === 'Ready' ? `
-                                <button onclick="acceptMission('${id}')" class="w-full bg-blue-600 text-white py-5 rounded-2xl font-black uppercase italic tracking-tighter shadow-xl shadow-blue-900/30">Accept Mission</button>
-                            ` : ''}
-
-                            ${order.status === 'Delivering' ? `
-                                <div class="bg-blue-500/5 border border-white/5 p-4 rounded-2xl mb-4">
-                                    <div class="flex items-center gap-3">
-                                        <input type="checkbox" id="cash-check-${id}" onchange="toggleEndBtn('${id}')" class="w-6 h-6 rounded-lg bg-white/5 border-white/10">
-                                        <label class="text-[10px] font-black text-blue-400 uppercase tracking-widest">
-                                            Confirm ${order.paymentType} Collection: ${order.totalPrice}
-                                        </label>
-                                    </div>
-                                </div>
-                                <button id="end-btn-${id}" disabled onclick="completeMission('${id}')" class="w-full bg-white/5 text-slate-600 py-5 rounded-2xl font-black uppercase italic tracking-tighter transition-all">
-                                    ${isCash ? 'Collect Cash First' : 'End Mission'}
-                                </button>
-                            ` : ''}
-                        `;
-                        container.appendChild(card);
-                    }
-                });
+        function filterStats(range) {
+            document.getElementById('custom-picker').classList.add('hidden');
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('tab-' + range).classList.add('active');
+            const now = new Date(); let count = 0;
+            allCompletedOrders.forEach(o => {
+                const timeVal = o.completedAt || o.timestamp;
+                const oDate = new Date(timeVal);
+                if (o.claimedBy === driverId) {
+                    if(range === 'today' && oDate.toDateString() === now.toDateString()) count++;
+                    else if(range === 'week' && (now - oDate) < 7 * 24 * 60 * 60 * 1000) count++;
+                    else if(range === 'month' && oDate.getMonth() === now.getMonth()) count++;
+                }
             });
+            updateStatDisplay(count, range === 'today' ? now.toLocaleDateString('en-GB', { day: 'numeric', month: 'long' }) : range.toUpperCase());
         }
 
-        function toggleEndBtn(id) {
-            const check = document.getElementById(`cash-check-${id}`);
-            const btn = document.getElementById(`end-btn-${id}`);
-            if(check.checked) {
-                btn.disabled = false;
-                btn.classList.replace('bg-white/5', 'bg-green-600');
-                btn.classList.replace('text-slate-600', 'text-white');
-                btn.innerText = "Complete Mission";
+        function runCustomFilter() {
+            const from = new Date(document.getElementById('date-from').value).setHours(0,0,0,0);
+            const to = new Date(document.getElementById('date-to').value).setHours(23,59,59,999);
+            if(!from || !to) return;
+            let count = 0;
+            allCompletedOrders.forEach(o => {
+                const oDate = (o.completedAt || o.timestamp);
+                if(o.claimedBy === driverId && oDate >= from && oDate <= to) count++;
+            });
+            updateStatDisplay(count, "Custom Period");
+        }
+
+        db.ref('orders').on('value', (snap) => {
+            let activeTask = null; let availableOrder = null; allCompletedOrders = [];
+            snap.forEach(c => {
+                const o = c.val(); o.id = c.key;
+                if (o.status === "Delivering" && o.claimedBy === driverId) activeTask = o;
+                if (o.status === "Ready" && !o.claimedBy) availableOrder = o;
+                if (o.status === "Completed") allCompletedOrders.push(o);
+            });
+            if (activeTask) {
+                currentOrder = activeTask; renderUI(activeTask, "End Mission");
+                clearInterval(alertInterval); alertInterval = null;
+            } else if (availableOrder) {
+                currentOrder = availableOrder; renderUI(availableOrder, "Accept");
+                if (!alertInterval) { playBeep(); alertInterval = setInterval(() => playBeep(), 2000); }
             } else {
-                btn.disabled = true;
-                btn.classList.replace('bg-green-600', 'bg-white/5');
-                btn.classList.replace('text-white', 'text-slate-600');
-                btn.innerText = "Collect Cash First";
+                currentOrder = null; clearInterval(alertInterval); alertInterval = null;
+                document.getElementById('order-ui').classList.add('hidden');
+                document.getElementById('waiting-ui').classList.remove('hidden');
+                document.getElementById('order-sheet').classList.replace('sheet-expanded', 'sheet-minimized');
+            }
+        });
+
+        function renderUI(o, btnText) {
+            document.getElementById('c-name').innerText = o.customer;
+            document.getElementById('c-addr').innerText = o.address;
+            document.getElementById('res-name').innerText = o.restaurant || "KLEO Kitchen";
+            document.getElementById('c-phone').href = "tel:" + o.phone;
+            document.getElementById('action-btn').innerText = btnText;
+            document.getElementById('order-ui').classList.remove('hidden');
+            document.getElementById('waiting-ui').classList.add('hidden');
+            document.getElementById('order-sheet').classList.replace('sheet-minimized', 'sheet-expanded');
+
+            // Handle Payment Warning Display
+            const cashUI = document.getElementById('cash-collection-ui');
+            const actionBtn = document.getElementById('action-btn');
+            
+            if (o.status === "Delivering" && o.paymentType === "Cash") {
+                cashUI.classList.remove('hidden');
+                document.getElementById('cash-amount').innerText = o.totalPrice;
+                toggleFinishButton(); // Initial lock check
+            } else {
+                cashUI.classList.add('hidden');
+                actionBtn.disabled = false;
+                actionBtn.style.opacity = "1";
             }
         }
 
-        function acceptMission(id) {
-            db.ref('orders/' + id).update({ status: 'Delivering' });
+        function toggleFinishButton() {
+            const check = document.getElementById('cash-collected-check');
+            const btn = document.getElementById('action-btn');
+            if (currentOrder && currentOrder.status === "Delivering" && currentOrder.paymentType === "Cash") {
+                if (check.checked) {
+                    btn.disabled = false;
+                    btn.style.opacity = "1";
+                    btn.innerText = "End Mission";
+                } else {
+                    btn.disabled = true;
+                    btn.style.opacity = "0.3";
+                    btn.innerText = "Collect Cash First";
+                }
+            }
         }
 
-        function completeMission(id) {
-            db.ref('orders/' + id).update({ status: 'Completed' });
+        function processOrder() { 
+            if (!currentOrder) return; 
+            if (currentOrder.status === "Ready") {
+                db.ref('orders/' + currentOrder.id).update({ status: "Delivering", claimedBy: driverId });
+                window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(currentOrder.address)}`);
+            } else {
+                db.ref('orders/' + currentOrder.id).update({status: "Completed", completedAt: Date.now()});
+            }
+        }
+
+        function goOnline() { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); if(audioCtx.state === 'suspended') audioCtx.resume(); document.getElementById('boot-screen').style.display = 'none'; }
+        
+        function sendMessage() {
+            const input = document.getElementById('chat-input');
+            if (!input.value.trim()) return;
+            const msg = { sender: "Driver", text: input.value, timestamp: Date.now() };
+            db.ref('support_tickets/' + driverId).update({ customer: driverId, lastUpdate: Date.now(), status: "Open" });
+            db.ref('support_tickets/' + driverId + '/chat').push(msg);
+            input.value = "";
+        }
+
+        db.ref('support_tickets/' + driverId).on('value', (snap) => {
+            const t = snap.val();
+            const chatBox = document.getElementById('chat-messages');
+            if (!t || t.status === "Resolved") {
+                chatBox.innerHTML = "<p class='text-center text-slate-500 mt-20 text-xs font-black uppercase tracking-widest'>Session Ended</p>";
+                setTimeout(() => {
+                    if (!t || t.status === "Resolved") {
+                        document.getElementById('chat-overlay').classList.remove('chat-active');
+                        chatBox.innerHTML = "";
+                    }
+                }, 2000);
+                return;
+            }
+            if (t.chat) {
+                let html = "";
+                Object.values(t.chat).forEach(m => {
+                    html += `<div class="${m.sender === 'Driver' ? 'msg-driver' : 'msg-admin'}">${m.text}</div>`;
+                });
+                chatBox.innerHTML = html;
+                chatBox.scrollTop = chatBox.scrollHeight;
+            }
+        });
+
+        function playBeep() {
+            if (!audioCtx) return;
+            const t = audioCtx.currentTime;
+            [0, 0.15].forEach(delay => {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(1200, t + delay);
+                gain.gain.setValueAtTime(0.1, t + delay);
+                gain.gain.exponentialRampToValueAtTime(0.001, t + delay + 0.1);
+                osc.start(t + delay);
+                osc.stop(t + delay + 0.1);
+            });
         }
     </script>
 </body>
