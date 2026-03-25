@@ -1,87 +1,104 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KLEO | DRIVER PRO</title>
+    <meta charset="UTF-8"><title>KLEO | COURIER HUB</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;900&display=swap" rel="stylesheet">
     <style>
-        body { background: #000; color: white; font-family: 'Outfit', sans-serif; }
-        .sidebar { position: fixed; top: 0; right: 0; height: 100%; width: 280px; background: #0a0a0a; transform: translateX(100%); transition: 0.3s; z-index: 50; border-left: 1px solid #1a1a1a; }
-        .sidebar-open { transform: translateX(0); }
-        .driver-card { background: #0a0a0a; border-radius: 24px; padding: 20px; margin-bottom: 15px; border: 1px solid #1a1a1a; }
+        body { background: #000; color: white; font-family: 'Outfit', sans-serif; overflow-x: hidden; }
+        .sidebar { position: fixed; top: 0; right: 0; height: 100%; width: 300px; background: #0a0a0a; transform: translateX(100%); transition: 0.4s cubic-bezier(0.4, 0, 0.2, 1); z-index: 1000; border-left: 1px solid #1a1a1a; }
+        .sidebar-active { transform: translateX(0); box-shadow: -20px 0 50px rgba(0,0,0,0.8); }
+        .order-card { background: #0a0a0a; border-radius: 25px; border: 1px solid #1a1a1a; padding: 25px; margin-bottom: 20px; }
+        .status-badge { font-size: 10px; font-weight: 900; padding: 4px 12px; border-radius: 99px; text-transform: uppercase; }
     </style>
 </head>
 <body class="p-6">
-    <header class="flex justify-between items-center mb-8">
-        <h1 class="text-3xl font-black italic">DRIVER <span class="text-blue-500">HUB</span></h1>
-        <button onclick="toggleMenu()" class="text-2xl text-slate-400">⋮</button>
+
+    <header class="flex justify-between items-center mb-10">
+        <div>
+            <h1 class="text-3xl font-black italic">COURIER <span class="text-blue-500">HUB</span></h1>
+            <p class="text-[9px] font-black text-slate-500 uppercase tracking-widest mt-1">Live Dispatch System</p>
+        </div>
+        <button onclick="toggleMenu()" class="text-3xl hover:text-blue-500 transition-all text-slate-400 font-bold">⋮</button>
     </header>
 
-    <div id="driverList"></div>
+    <div id="orders"></div>
 
-    <div id="menu" class="sidebar p-8">
-        <button onclick="toggleMenu()" class="text-xl mb-10 text-slate-500">✕ CLOSE</button>
-        <div class="mb-10">
-            <p class="text-[10px] font-black text-slate-500 uppercase mb-2">My Wallet</p>
-            <p id="money" class="text-4xl font-black italic text-green-500">€0.00</p>
+    <div id="sidebar" class="sidebar p-10 flex flex-col">
+        <button onclick="toggleMenu()" class="text-left text-slate-500 font-black mb-12">✕ DISMISS</button>
+        
+        <div class="mb-12">
+            <p class="text-[10px] font-black text-slate-500 uppercase mb-2">Total Earnings</p>
+            <p id="wallet" class="text-5xl font-black italic text-green-500">€0.00</p>
         </div>
-        <div class="space-y-6">
-            <button class="block font-bold text-lg hover:text-blue-500">Order History</button>
-            <button onclick="alert('Support: +123 456 789')" class="block font-bold text-lg hover:text-blue-500">Support Chat</button>
-            <button class="block font-bold text-lg text-red-500">Go Offline</button>
-        </div>
+
+        <nav class="space-y-8">
+            <a href="#" class="block text-xl font-black italic hover:text-blue-500">MY HISTORY</a>
+            <a href="#" class="block text-xl font-black italic hover:text-blue-500">SUPPORT</a>
+            <a href="#" class="block text-xl font-black italic hover:text-blue-500">VEHICLE SETTINGS</a>
+            <a href="#" class="block text-xl font-black italic text-red-600 pt-10 border-t border-white/5">GO OFFLINE</a>
+        </nav>
     </div>
 
     <script>
         const firebaseConfig = { apiKey: "AIzaSyBD_YmzFTA2OKn64h22Z9yM7pCAmmlTl68", authDomain: "we-kleo.firebaseapp.com", databaseURL: "https://we-kleo-default-rtdb.europe-west1.firebasedatabase.app", projectId: "we-kleo", storageBucket: "we-kleo.firebasestorage.app", messagingSenderId: "87105321281", appId: "1:87105321281:web:ec83e4472e5756182749c0" };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
-        const driverID = "COURIER_01";
+        const courierID = "COURIER_01";
 
-        function toggleMenu() { document.getElementById('menu').classList.toggle('sidebar-open'); }
+        function toggleMenu() { document.getElementById('sidebar').classList.toggle('sidebar-active'); }
 
         db.ref('orders').on('value', (snap) => {
-            const list = document.getElementById('driverList');
-            let wallet = 0; list.innerHTML = "";
+            const container = document.getElementById('orders');
+            let total = 0; container.innerHTML = "";
             
-            snap.forEach(c => {
-                const o = c.val(); o.id = c.key;
-                // Calculate Money (Only for completed orders by this driver)
-                if(o.status === "Completed" && o.claimedBy === driverID) {
-                    wallet += parseFloat(o.totalPrice.replace(/[^0-9.]/g, ''));
+            snap.forEach(child => {
+                const o = child.val(); o.id = child.key;
+                
+                // Money Logic
+                if(o.status === "Completed" && o.claimedBy === courierID) {
+                    total += parseFloat(o.totalPrice.replace(/[^0-9.]/g, ''));
                 }
-                // Show orders that are Preparing or Ready
-                if(o.status === "Preparing" || o.status === "Ready" || (o.status === "Delivering" && o.claimedBy === driverID)) {
-                    renderDriver(o);
+
+                // Wolt Filter: Hide "Placed" (Kitchen must Accept first)
+                if(o.status !== "Placed" && o.status !== "Completed") {
+                    renderCard(o);
                 }
             });
-            document.getElementById('money').innerText = "€" + wallet.toFixed(2);
+            document.getElementById('wallet').innerText = "€" + total.toFixed(2);
         });
 
-        function renderDriver(o) {
-            const isMine = o.claimedBy === driverID;
-            const btn = !o.claimedBy ? 
-                `<button onclick="claim('${o.id}')" class="w-full bg-blue-600 py-4 rounded-xl font-black uppercase text-xs">Accept Mission</button>` : 
-                (isMine ? (o.isFoodReady ? 
-                    `<button onclick="finish('${o.id}')" class="w-full bg-green-500 py-4 rounded-xl font-black uppercase text-xs">Complete Handover</button>` : 
-                    `<button disabled class="w-full bg-zinc-900 text-zinc-600 py-4 rounded-xl font-black italic text-xs cursor-not-allowed">Kitchen is cooking...</button>`) 
-                : `<p class="text-center text-[10px] text-zinc-600 font-bold uppercase">Assigned to another driver</p>`);
+        function renderCard(o) {
+            const isMine = o.claimedBy === courierID;
+            const isReady = o.isFoodReady === true;
+            
+            let btn = "";
+            if(!o.claimedBy) {
+                btn = `<button onclick="claim('${o.id}')" class="w-full bg-blue-600 py-5 rounded-2xl font-black uppercase text-sm shadow-xl">Accept Order</button>`;
+            } else if (isMine) {
+                btn = isReady ? 
+                      `<button onclick="finish('${o.id}')" class="w-full bg-green-500 py-5 rounded-2xl font-black uppercase text-sm shadow-xl">Confirm Delivery</button>` :
+                      `<button disabled class="w-full bg-zinc-900 text-zinc-600 py-5 rounded-2xl font-black uppercase italic text-xs">Waiting for kitchen...</button>`;
+            } else {
+                btn = `<p class="text-center font-black uppercase text-[10px] text-zinc-700">Order Assigned Elsewhere</p>`;
+            }
 
             const html = `
-                <div class="driver-card border-l-4 ${o.isFoodReady ? 'border-green-500' : 'border-blue-500'}">
-                    <div class="flex justify-between mb-4"><span class="text-[10px] font-black text-blue-400 uppercase">${o.status}</span><span class="font-bold">${o.totalPrice}</span></div>
-                    <h2 class="text-2xl font-black italic uppercase leading-tight mb-2">${o.item}</h2>
-                    <p class="text-xs text-zinc-500 mb-6">${o.address || 'Standard Delivery'}</p>
+                <div class="order-card border-l-4 ${isReady ? 'border-green-500' : 'border-blue-500'}">
+                    <div class="flex justify-between mb-4">
+                        <span class="status-badge bg-white/5 text-blue-400">${o.status}</span>
+                        <span class="text-xl font-black italic">${o.totalPrice}</span>
+                    </div>
+                    <h2 class="text-3xl font-black italic uppercase leading-none mb-2">${o.item}</h2>
+                    <p class="text-sm font-bold text-slate-500 mb-6">${o.address || 'Standard Dropoff'}</p>
                     ${btn}
                 </div>`;
-            document.getElementById('driverList').insertAdjacentHTML('beforeend', html);
+            container.insertAdjacentHTML('beforeend', html);
         }
 
-        function claim(id) { db.ref('orders/'+id).update({ claimedBy: driverID, status: "Delivering" }); }
+        function claim(id) { db.ref('orders/'+id).update({ claimedBy: courierID, status: "Delivering" }); }
         function finish(id) { db.ref('orders/'+id).update({ status: "Completed" }); }
     </script>
 </body>
