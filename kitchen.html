@@ -20,22 +20,18 @@
         }
         .status-preparing { border-color: #eab308 !important; box-shadow: 0 0 20px rgba(234, 179, 8, 0.1); }
         .status-driver { border-color: #3b82f6 !important; box-shadow: 0 0 20px rgba(59, 130, 246, 0.1); }
+        .btn-ready { background: #3b82f6; box-shadow: 0 10px 20px rgba(59, 130, 246, 0.3); }
         
-        .timer-badge { background: rgba(255,255,255,0.05); padding: 4px 12px; border-radius: 99px; font-weight: 800; font-size: 12px; }
-        .btn-ready { 
-            background: #3b82f6; 
-            box-shadow: 0 10px 20px rgba(59, 130, 246, 0.3);
-            transition: all 0.3s ease;
-        }
-        .btn-ready:active { transform: scale(0.96); }
-        
-        /* Custom Scrollbar */
-        ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #222; border-radius: 10px; }
+        /* Boot Screen */
+        #boot-screen { position: fixed; inset: 0; background: black; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; }
     </style>
 </head>
 <body class="p-6 lg:p-12">
+
+    <div id="boot-screen">
+        <h1 class="text-7xl font-black italic text-blue-500 mb-8">KLEO</h1>
+        <button onclick="initSystem()" class="bg-blue-600 px-12 py-6 rounded-full font-black uppercase tracking-widest text-xl hover:scale-105 transition-all">Start Kitchen</button>
+    </div>
 
     <header class="flex flex-col md:flex-row justify-between items-start md:items-center mb-12 gap-6">
         <div>
@@ -48,18 +44,16 @@
                 <p id="active-count" class="text-4xl font-black italic">0</p>
             </div>
             <div class="h-12 w-[1px] bg-white/10"></div>
-            <div class="text-right">
-                <p class="text-[9px] font-black text-slate-500 uppercase tracking-widest">Status</p>
-                <p class="text-4xl font-black italic text-green-500">LIVE</p>
+            <div class="text-right text-green-500">
+                <p class="text-[9px] font-black text-slate-500 uppercase tracking-widest">System</p>
+                <p class="text-4xl font-black italic">ONLINE</p>
             </div>
         </div>
     </header>
 
-    <main id="order-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-        </main>
+    <main id="order-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8"></main>
 
     <script>
-        // --- Firebase Configuration ---
         const firebaseConfig = { 
             apiKey: "AIzaSyBD_YmzFTA2OKn64h22Z9yM7pCAmmlTl68", 
             authDomain: "we-kleo.firebaseapp.com", 
@@ -72,108 +66,93 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        // --- Real-time Listener ---
+        let audioCtx = null;
+        let lastOrderCount = -1;
+
+        function initSystem() {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            document.getElementById('boot-screen').style.display = 'none';
+        }
+
+        function playBell() {
+            if (!audioCtx) return;
+            const t = audioCtx.currentTime;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(880, t); // High A
+            osc.frequency.exponentialRampToValueAtTime(440, t + 0.5);
+            
+            gain.gain.setValueAtTime(0, t);
+            gain.gain.linearRampToValueAtTime(0.2, t + 0.05);
+            gain.gain.exponentialRampToValueAtTime(0.01, t + 0.8);
+            
+            osc.start(t);
+            osc.stop(t + 0.8);
+        }
+
         db.ref('orders').on('value', (snap) => {
             const grid = document.getElementById('order-grid');
-            let activeCount = 0;
+            let currentCount = 0;
+            let activeIDs = [];
             grid.innerHTML = "";
 
             snap.forEach((child) => {
                 const order = child.val();
                 order.id = child.key;
 
-                // Only show orders that are not finished (New, Preparing, or Delivering)
                 if (order.status !== "Completed" && order.status !== "Ready") {
-                    activeCount++;
+                    currentCount++;
+                    activeIDs.push(order.id);
                     renderCard(order);
                 }
             });
-            document.getElementById('active-count').innerText = activeCount;
+
+            // Trigger sound if the number of orders increased
+            if (lastOrderCount !== -1 && currentCount > lastOrderCount) {
+                playBell();
+            }
+            lastOrderCount = currentCount;
+            document.getElementById('active-count').innerText = currentCount;
         });
 
-        // --- Render Function ---
         function renderCard(o) {
             let statusLabel = "New Order";
             let cardStyle = "";
-            
-            if (o.status === "Preparing") {
-                statusLabel = `Cooking (~${o.prepEstimate || 10}m)`;
-                cardStyle = "status-preparing";
-            }
-            
-            if (o.claimedBy) {
-                statusLabel = `Driver ${o.claimedBy} Is Coming`;
-                cardStyle = "status-driver";
-            }
+            if (o.status === "Preparing") { statusLabel = `Cooking...`; cardStyle = "status-preparing"; }
+            if (o.claimedBy) { statusLabel = `Driver ${o.claimedBy} incoming`; cardStyle = "status-driver"; }
 
             const html = `
-                <div class="order-card ${cardStyle} flex flex-col">
-                    <div class="flex justify-between items-start mb-6">
-                        <span class="text-[10px] font-black uppercase tracking-widest text-blue-400">${statusLabel}</span>
-                        <div class="timer-badge">NEW</div>
+                <div class="order-card ${cardStyle}">
+                    <div class="flex justify-between mb-6">
+                        <span class="text-[10px] font-black uppercase text-blue-400">${statusLabel}</span>
+                        <span class="text-xs font-bold text-slate-500">${o.paymentType || 'CASH'}</span>
                     </div>
-
-                    <h2 class="text-4xl font-black italic uppercase tracking-tighter mb-2 leading-none">
-                        ${o.item}
-                    </h2>
-                    <p class="text-blue-500 font-bold text-lg mb-6">${o.totalPrice}</p>
-
-                    <div class="bg-white/5 border border-white/5 p-4 rounded-2xl mb-8 flex-1">
-                        <p class="text-[8px] font-black text-slate-500 uppercase tracking-widest mb-2">Instructions</p>
-                        <p class="text-sm font-semibold leading-relaxed text-slate-300">
-                            ${o.toppings || "Standard Recipe"}
-                        </p>
+                    <h2 class="text-4xl font-black italic uppercase mb-2 tracking-tighter">${o.item}</h2>
+                    <p class="text-blue-500 font-bold mb-6">${o.totalPrice}</p>
+                    <div class="bg-white/5 p-4 rounded-2xl mb-8">
+                        <p class="text-[8px] font-black text-slate-500 uppercase mb-2">Instructions</p>
+                        <p class="text-sm font-semibold">${o.toppings || "Standard"}</p>
                     </div>
-
-                    <div class="space-y-3">
-                        <div class="grid grid-cols-2 gap-3">
-                            <button onclick="updateStatus('${o.id}', 'Preparing', 10)" 
-                                class="bg-white/5 border border-white/10 py-4 rounded-2xl text-[10px] font-black uppercase hover:bg-yellow-500 hover:text-black transition-all">
-                                10 Min
-                            </button>
-                            <button onclick="updateStatus('${o.id}', 'Preparing', 20)" 
-                                class="bg-white/5 border border-white/10 py-4 rounded-2xl text-[10px] font-black uppercase hover:bg-orange-500 hover:text-black transition-all">
-                                20 Min
-                            </button>
-                        </div>
-                        
-                        <button onclick="markFinished('${o.id}')" 
-                            class="btn-ready w-full py-5 rounded-2xl text-xs font-black uppercase tracking-widest mt-2">
-                            Food is Ready
-                        </button>
+                    <div class="grid grid-cols-2 gap-3 mb-3">
+                        <button onclick="updateStatus('${o.id}', 'Preparing', 10)" class="bg-white/5 border border-white/10 py-4 rounded-2xl text-[10px] font-black uppercase hover:bg-yellow-500 hover:text-black transition-all">10 Min</button>
+                        <button onclick="updateStatus('${o.id}', 'Preparing', 20)" class="bg-white/5 border border-white/10 py-4 rounded-2xl text-[10px] font-black uppercase hover:bg-orange-500 hover:text-black transition-all">20 Min</button>
                     </div>
-
-                    <div class="mt-6 pt-6 border-t border-white/5 flex justify-between items-center">
-                        <div class="text-left">
-                            <p class="text-[8px] font-black text-slate-600 uppercase">Client</p>
-                            <p class="text-[10px] font-bold">${o.customer}</p>
-                        </div>
-                        <div class="text-right">
-                            <p class="text-[8px] font-black text-slate-600 uppercase">Method</p>
-                            <p class="text-[10px] font-bold text-yellow-500">${o.paymentType || 'Card'}</p>
-                        </div>
-                    </div>
+                    <button onclick="markFinished('${o.id}')" class="btn-ready w-full py-5 rounded-2xl text-xs font-black uppercase tracking-widest">Food is Ready</button>
                 </div>
             `;
-            document.getElementById('order-grid').insertAdjacentHTML('beforeend', html);
+            grid.insertAdjacentHTML('beforeend', html);
         }
 
-        // --- Logic Functions ---
         function updateStatus(id, status, mins) {
-            db.ref('orders/' + id).update({
-                status: status,
-                prepEstimate: mins,
-                isFoodReady: false // Ensures Driver App stays locked
-            });
+            db.ref('orders/' + id).update({ status: status, prepEstimate: mins, isFoodReady: false });
         }
 
         function markFinished(id) {
-            // "Ready" state tells the Driver App: "You can now finish the mission"
-            db.ref('orders/' + id).update({
-                status: "Ready",
-                isFoodReady: true,
-                completedAt: Date.now()
-            });
+            db.ref('orders/' + id).update({ status: "Ready", isFoodReady: true, completedAt: Date.now() });
         }
     </script>
 </body>
