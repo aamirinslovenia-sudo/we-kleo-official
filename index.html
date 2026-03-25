@@ -2,96 +2,79 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>KLEO | MARIBOR</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>KLEO | CUSTOMER</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;900&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Outfit', sans-serif; background: #ffffff; color: #111827; overflow-x: hidden; }
-        .onboarding-screen { position: fixed; inset: 0; background: #3b82f6; z-index: 2000; display: flex; flex-direction: column; padding: 40px; transition: 0.5s cubic-bezier(0.4, 0, 0.2, 1); }
-        .food-card { border-radius: 24px; overflow: hidden; background: #f9fafb; transition: 0.3s; border: 2px solid transparent; }
-        .food-card.selected { border-color: #3b82f6; background: #eff6ff; }
-        .status-float { position: fixed; bottom: 20px; left: 15px; right: 15px; background: #111827; color: white; border-radius: 24px; padding: 20px; display: none; z-index: 1000; }
-        .pay-btn { border: 2px solid #f3f4f6; border-radius: 18px; padding: 16px; transition: 0.2s; font-weight: 800; }
+        body { font-family: 'Outfit', sans-serif; background: #f9fafb; color: #111827; }
+        .onboarding-screen { position: fixed; inset: 0; background: #3b82f6; z-index: 2000; display: flex; flex-direction: column; padding: 40px; justify-content: center; transition: 0.6s cubic-bezier(0.4, 0, 0.2, 1); }
+        .food-item { background: white; border: 1px solid #eee; border-radius: 20px; padding: 20px; margin-bottom: 15px; transition: 0.3s; cursor: pointer; }
+        .food-item.selected { border-color: #3b82f6; background: #eff6ff; transform: scale(0.98); }
+        .pay-btn { border: 2px solid #eee; border-radius: 15px; padding: 15px; font-weight: 800; transition: 0.2s; }
         .pay-btn.active { border-color: #3b82f6; background: #eff6ff; color: #3b82f6; }
-        .hide { transform: translateY(-100%); opacity: 0; pointer-events: none; }
+        .status-bar { position: fixed; bottom: 20px; left: 20px; right: 20px; background: #111827; color: white; border-radius: 20px; padding: 20px; display: none; z-index: 1000; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
+        .hide-login { transform: translateY(-100%); opacity: 0; pointer-events: none; }
     </style>
 </head>
-<body class="pb-40">
+<body class="p-6 pb-32">
 
     <div id="onboarding" class="onboarding-screen">
-        <div class="mt-20 mb-10 text-white">
-            <h1 class="text-6xl font-[900] italic tracking-tighter">KLEO.</h1>
-            <p class="opacity-80 font-bold mt-2 uppercase tracking-widest text-xs">Maribor Delivery Service</p>
-        </div>
-        <div class="space-y-4">
-            <input type="text" id="reg-name" placeholder="Full Name" class="w-full p-5 rounded-2xl border-none outline-none font-bold text-lg">
-            <input type="email" id="reg-email" placeholder="Email Address" class="w-full p-5 rounded-2xl border-none outline-none font-bold text-lg">
-            <input type="tel" id="reg-phone" placeholder="Phone Number" class="w-full p-5 rounded-2xl border-none outline-none font-bold text-lg">
-            <input type="text" id="reg-address" placeholder="Default Delivery Address" class="w-full p-5 rounded-2xl border-none outline-none font-bold text-lg">
-            <button onclick="saveProfile()" class="w-full bg-black text-white py-6 rounded-2xl font-black text-xl mt-4 shadow-2xl active:scale-95 transition-all">Get Started</button>
+        <h1 class="text-5xl font-[900] italic tracking-tighter text-white mb-2">KLEO.</h1>
+        <p class="text-white/70 font-bold uppercase text-[10px] tracking-widest mb-10">Maribor Logistics</p>
+        <div class="space-y-3">
+            <input type="text" id="reg-name" placeholder="Full Name" class="w-full p-4 rounded-xl border-none font-bold">
+            <input type="email" id="reg-email" placeholder="Email" class="w-full p-4 rounded-xl border-none font-bold">
+            <input type="tel" id="reg-phone" placeholder="Phone Number" class="w-full p-4 rounded-xl border-none font-bold">
+            <input type="text" id="reg-address" placeholder="Delivery Address" class="w-full p-4 rounded-xl border-none font-bold">
+            <button onclick="saveUser()" class="w-full bg-black text-white py-5 rounded-xl font-black text-lg mt-4 shadow-xl active:scale-95 transition-all">Start Ordering</button>
         </div>
     </div>
 
-    <header class="p-6 bg-white sticky top-0 z-50">
-        <div class="flex justify-between items-center mb-6">
-            <div>
-                <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Delivering to</p>
-                <h2 id="display-address" class="font-bold text-sm text-blue-600 truncate max-w-[200px]">---</h2>
-            </div>
-            <button onclick="clearProfile()" class="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center text-sm">👤</button>
+    <header class="mb-10 flex justify-between items-center">
+        <div>
+            <h1 class="text-3xl font-[900] italic tracking-tighter text-blue-600">KLEO</h1>
+            <p id="display-address" class="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-1">---</p>
         </div>
-        
-        <div class="flex gap-4 overflow-x-auto pb-2">
-            <div class="flex-shrink-0 bg-blue-600 text-white px-6 py-3 rounded-full font-bold text-sm">All</div>
-            <div class="flex-shrink-0 bg-gray-100 px-6 py-3 rounded-full font-bold text-sm">Sushi</div>
-            <div class="flex-shrink-0 bg-gray-100 px-6 py-3 rounded-full font-bold text-sm">Pizza</div>
-            <div class="flex-shrink-0 bg-gray-100 px-6 py-3 rounded-full font-bold text-sm">Burgers</div>
-        </div>
+        <button onclick="logout()" class="text-xs font-black text-gray-300 uppercase underline">Logout</button>
     </header>
 
-    <div class="px-6 space-y-6 mt-4">
-        <h2 class="text-2xl font-black italic tracking-tight">Maribor's Best</h2>
-        
-        <div id="item-1" onclick="selectItem('Bento Luxury Box', '14.50', 'item-1')" class="food-card p-4 flex gap-4">
-            <img src="https://images.unsplash.com/photo-1579871494447-9811cf80d66c?w=400" class="w-24 h-24 rounded-2xl object-cover">
-            <div class="flex-1 py-1">
+    <div class="space-y-4">
+        <div id="item-1" onclick="selectItem('Bento Luxury Box', '14.50', 'item-1')" class="food-item shadow-sm flex justify-between items-center">
+            <div>
                 <h3 class="font-bold text-lg">Bento Luxury Box</h3>
-                <p class="text-gray-400 text-xs">Luft 360° • 25-35 min</p>
-                <p class="font-black text-blue-600 mt-2">€14.50</p>
+                <p class="text-gray-500 text-xs">Luft 360° • Maribor</p>
             </div>
+            <p class="font-black text-blue-600">€14.50</p>
         </div>
 
-        <div id="item-2" onclick="selectItem('Pizza Ancora', '9.80', 'item-2')" class="food-card p-4 flex gap-4">
-            <img src="https://images.unsplash.com/photo-1513104890138-7c749659a591?w=400" class="w-24 h-24 rounded-2xl object-cover">
-            <div class="flex-1 py-1">
+        <div id="item-2" onclick="selectItem('Pizza Ancora', '9.80', 'item-2')" class="food-item shadow-sm flex justify-between items-center">
+            <div>
                 <h3 class="font-bold text-lg">Pizza Ancora</h3>
-                <p class="text-gray-400 text-xs">Classic • 15-25 min</p>
-                <p class="font-black text-blue-600 mt-2">€9.80</p>
+                <p class="text-gray-500 text-xs">Classic Margherita</p>
             </div>
+            <p class="font-black text-blue-600">€9.80</p>
         </div>
     </div>
 
-    <div class="fixed bottom-0 left-0 right-0 bg-white p-6 border-t border-gray-100 z-[100]">
-        <div class="grid grid-cols-2 gap-3 mb-4">
+    <div class="mt-10 pt-10 border-t border-gray-100">
+        <p class="text-[10px] font-black uppercase text-gray-400 mb-4 tracking-widest">Select Payment</p>
+        <div class="grid grid-cols-2 gap-3 mb-6">
             <button id="pay-Cash" onclick="setPayment('Cash')" class="pay-btn">💵 Cash</button>
             <button id="pay-Card" onclick="setPayment('Card')" class="pay-btn">💳 Card</button>
         </div>
-        <button onclick="placeOrder()" class="w-full bg-blue-600 text-white py-5 rounded-2xl font-black text-lg shadow-xl active:scale-95 transition-all">Order Now</button>
+        <button onclick="placeOrder()" class="w-full bg-blue-600 text-white py-5 rounded-2xl font-black text-lg shadow-xl shadow-blue-200 active:scale-95 transition-all">Initiate Mission</button>
     </div>
 
-    <div id="live-status" class="status-float shadow-2xl">
-        <div class="flex justify-between items-center mb-4">
+    <div id="live-status" class="status-bar">
+        <div class="flex justify-between items-center">
             <div>
-                <p id="status-text" class="text-blue-400 text-[10px] font-black uppercase">Tracking...</p>
-                <h4 id="status-item" class="font-bold text-lg text-white">---</h4>
+                <p id="st-label" class="text-blue-400 text-[10px] font-black uppercase tracking-widest">Preparing</p>
+                <h4 id="st-item" class="font-bold text-white">---</h4>
             </div>
-            <div class="text-3xl" id="status-icon">👨‍🍳</div>
-        </div>
-        <div class="w-full bg-white/10 h-1.5 rounded-full overflow-hidden">
-            <div id="status-progress" class="bg-blue-500 h-full transition-all duration-1000" style="width: 10%"></div>
+            <div id="st-icon" class="text-2xl">👨‍🍳</div>
         </div>
     </div>
 
@@ -100,47 +83,36 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        let userProfile = JSON.parse(localStorage.getItem('kleo_user'));
+        let user = JSON.parse(localStorage.getItem('kleo_user'));
         let selectedFood = null;
         let selectedPrice = null;
         let paymentMethod = null;
 
-        // Check if user is already logged in
-        if (userProfile) {
-            document.getElementById('onboarding').classList.add('hide');
-            document.getElementById('display-address').innerText = userProfile.address;
+        if (user) {
+            document.getElementById('onboarding').classList.add('hide-login');
+            document.getElementById('display-address').innerText = user.address;
         }
 
-        function saveProfile() {
-            const profile = {
+        function saveUser() {
+            const data = {
                 name: document.getElementById('reg-name').value,
                 email: document.getElementById('reg-email').value,
                 phone: document.getElementById('reg-phone').value,
                 address: document.getElementById('reg-address').value
             };
-
-            if (!profile.name || !profile.phone || !profile.address) {
-                alert("Please fill in your details!");
-                return;
-            }
-
-            localStorage.setItem('kleo_user', JSON.stringify(profile));
-            userProfile = profile;
-            document.getElementById('display-address').innerText = profile.address;
-            document.getElementById('onboarding').classList.add('hide');
+            if(!data.name || !data.phone || !data.address) return alert("Fill all fields!");
+            localStorage.setItem('kleo_user', JSON.stringify(data));
+            user = data;
+            document.getElementById('display-address').innerText = user.address;
+            document.getElementById('onboarding').classList.add('hide-login');
         }
 
-        function clearProfile() {
-            if(confirm("Logout and clear profile?")) {
-                localStorage.removeItem('kleo_user');
-                location.reload();
-            }
-        }
+        function logout() { localStorage.removeItem('kleo_user'); location.reload(); }
 
         function selectItem(name, price, id) {
             selectedFood = name;
             selectedPrice = price;
-            document.querySelectorAll('.food-card').forEach(c => c.classList.remove('selected'));
+            document.querySelectorAll('.food-item').forEach(i => i.classList.remove('selected'));
             document.getElementById(id).classList.add('selected');
         }
 
@@ -151,54 +123,35 @@
         }
 
         function placeOrder() {
-            if (!selectedFood || !paymentMethod) {
-                alert("Select food and payment method!");
-                return;
-            }
-
-            const newOrderRef = db.ref('orders').push();
-            newOrderRef.set({
-                customer: userProfile.name,
-                email: userProfile.email,
-                phone: userProfile.phone,
-                address: userProfile.address,
+            if(!selectedFood || !paymentMethod) return alert("Select Food & Payment!");
+            const ref = db.ref('orders').push();
+            ref.set({
+                customer: user.name,
+                phone: user.phone,
+                address: user.address,
                 item: selectedFood,
                 totalPrice: "€" + selectedPrice,
                 paymentType: paymentMethod,
                 status: "Preparing",
                 timestamp: Date.now()
             });
-
             document.getElementById('live-status').style.display = 'block';
-            trackOrderStatus(newOrderRef.key);
+            track(ref.key);
         }
 
-        function trackOrderStatus(id) {
-            db.ref('orders/' + id).on('value', (snap) => {
+        function track(id) {
+            db.ref('orders/' + id).on('value', snap => {
                 const o = snap.val();
-                if(!o) return;
+                document.getElementById('st-item').innerText = o.item;
+                const label = document.getElementById('st-label');
+                const icon = document.getElementById('st-icon');
                 
-                const text = document.getElementById('status-text');
-                const title = document.getElementById('status-item');
-                const progress = document.getElementById('status-progress');
-                const icon = document.getElementById('status-icon');
-
-                title.innerText = o.item;
-
-                if(o.status === "Preparing") {
-                    text.innerText = "👨‍🍳 Chef is cooking";
-                    progress.style.width = "30%";
-                } else if(o.status === "Ready") {
-                    text.innerText = "🛍️ Packaged & Ready";
-                    progress.style.width = "55%";
-                } else if(o.status === "Delivering") {
-                    text.innerText = "🛵 Driver on the way";
-                    progress.style.width = "85%";
-                    icon.innerText = "🛵";
-                } else if(o.status === "Completed") {
-                    text.innerText = "✅ Order Delivered!";
-                    progress.style.width = "100%";
-                    progress.classList.replace('bg-blue-500', 'bg-green-500');
+                if(o.status === "Preparing") { label.innerText = "👨‍🍳 Preparing"; }
+                if(o.status === "Ready") { label.innerText = "🛍️ Ready for Pickup"; }
+                if(o.status === "Delivering") { label.innerText = "🛵 Driver on way"; icon.innerText = "🛵"; }
+                if(o.status === "Completed") { 
+                    label.innerText = "✅ Delivered!"; 
+                    label.className = "text-green-400 text-[10px] font-black uppercase tracking-widest";
                     icon.innerText = "🍽️";
                 }
             });
